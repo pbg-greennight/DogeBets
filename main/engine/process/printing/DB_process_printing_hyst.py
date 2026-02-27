@@ -9,8 +9,8 @@ from .DB_process_printing_utils import (
     _safe_get,
     _fmt_time,
     _line,
-    _section_on,
 )
+from main.engine.process.printing.DB_process_SectionLogger import get_section_logger
 
 logger = logging.getLogger(__name__)
 
@@ -401,8 +401,7 @@ def print_hysteresis_fan_stack(
     if not config or not config.get("LOG_HYSTERESIS", True):
         return {}
 
-    if not _section_on(config, "hyst_header", True):
-        return {}
+    slog = get_section_logger(logger, config)
 
     if decision_dt is None:
         decision_dt = datetime.now()
@@ -430,39 +429,39 @@ def print_hysteresis_fan_stack(
     eta = hyst["eta"]
     stacks = hyst["stacks"]
 
-    logger.info(_line("=", 155))
-    logger.info("HYSTERESIS FAN STACK (method_hyster_v1.0)")
-    logger.info(_line("-", 155))
+    slog.HYST_HEADER(_line("=", 155))
+    slog.HYST_HEADER("HYSTERESIS FAN STACK (method_hyster_v1.0)")
+    slog.HYST_HEADER(_line("-", 155))
 
-    if _section_on(config, "hyst_episode", True):
-        logger.info(
+    if True:
+        slog.HYST_EPISODE(
             f"[hyst_episode] decision_time={_fmt_time(decision_dt)} | "
             f"pair=({ep['pair_used'][0]},{ep['pair_used'][1]}) | "
             f"start={_fmt_time(ep['start_ts']) if ep['start_ts'] else 'NONE'} | "
             f"elapsed={(ep['elapsed_seconds'] if ep['elapsed_seconds'] is not None else 0.0):.1f}s | "
             f"stage={ep['stage']}"
         )
-        logger.info(
+        slog.HYST_EPISODE(
             f"[hyst_primary] d{ep['pair_used'][0]}_{ep['pair_used'][1]} now={ep['d_now']:+.6f} | "
             f"sign={ep['sign_now']} | "
             f"last_cross={_fmt_time(ep['last_cross_ts']) if ep['last_cross_ts'] else 'NONE'} | "
             f"lookback=60m | mode={ep['mode']}"
         )
 
-    if _section_on(config, "hyst_probe", True):
-        logger.info(
+    if True:
+        slog.HYST_PROBE(
             f"[hyst_probe] pair=(23,83) | d23_83 now={pr['d_now']:+.6f} | "
             f"sign={pr['sign_now']} | flip_watch={int(pr['flip_watch'])} | "
             f"fast_collapse={int(pr['fast_collapse'])} | d_abs_slope_tail={pr['d_abs_slope_tail']:+.6f}"
         )
 
-    if _section_on(config, "hyst_eta", True) and eta.get("eta_to_end_seconds") is not None:
-        logger.info(
+    if eta.get("eta_to_end_seconds") is not None:
+        slog.HYST_ETA(
             f"[hyst_eta] eta={eta['eta_to_end_seconds']:.1f}s (~{eta['eta_to_end_seconds']/300.0:.2f} epochs) | "
             f"source={eta.get('source_stack')}"
         )
 
-    if _section_on(config, "hyst_ladder", True):
+    if True:
         for sid in ["S0", "S1", "S2", "S3"]:
             lm = stacks.get(sid)
             if not lm:
@@ -470,7 +469,7 @@ def print_hysteresis_fan_stack(
             sigs = ",".join(map(str, lm["sigmas"]))
             W_pct = lm["W_pct"]
             W_pct_s = "nan" if not np.isfinite(W_pct) else f"{int(round(W_pct)):>3d}"
-            logger.info(
+            slog.HYST_LADDER(
                 f"  [hyst_{sid}] sigmas={sigs:<14} | "
                 f"m_norm={lm['m_norm']:+.3f} | "
                 f"W_pct={W_pct_s} | "
@@ -479,13 +478,13 @@ def print_hysteresis_fan_stack(
                 f"cross={lm['cross_rate']:.2f}/m"
             )
 
-    if _section_on(config, "hyst_debug", False):
-        logger.info(
+    if True:
+        slog.HYST_DEBUG(
             f"  [hyst_dbg] tail={hyst['meta']['tail_window_seconds']}s | "
             f"baseline={hyst['meta']['baseline_window_seconds']}s | "
             f"align_tol={hyst['meta']['align_tol_seconds']:.1f}s"
         )
 
-    logger.info(_line("-", 155))
+    slog.HYST_HEADER(_line("-", 155))
 
     return hyst

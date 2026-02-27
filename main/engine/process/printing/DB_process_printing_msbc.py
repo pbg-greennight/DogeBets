@@ -4,8 +4,9 @@ from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 from main.engine.process.printing.DB_process_printing_utils import (
-    _safe_get, _fmt_time, _fmt_float, _line, _fmt_price, _section_on, _series_preview
+    _safe_get, _fmt_time, _fmt_float, _line, _fmt_price, _series_preview
 )
+from main.engine.process.printing.DB_process_SectionLogger import get_section_logger
 
 
 def print_sigma_tailing_snapshots(
@@ -41,12 +42,14 @@ def print_sigma_tailing_snapshots(
     if config is None:
         config = {}
 
+    slog = get_section_logger(logger, config)
+
     # Master toggle
     if not config.get('LOG_TAILING_SNAPSHOTS', True):
         return {}
 
     if catalog is None or not hasattr(catalog, 'ensure_calc'):
-        logger.info('[tail_anchor] No FeatureCatalog provided; cannot compute bell snapshots.')
+        slog.TAIL_ANCHOR('[tail_anchor] No FeatureCatalog provided; cannot compute bell snapshots.')
         return {}
 
     # Compute truth (once) and read from it
@@ -58,18 +61,18 @@ def print_sigma_tailing_snapshots(
     next_epoch = _safe_get(timing, 'next_epoch', default=None)
     prev_epoch = _safe_get(timing, 'prev_epoch', default=None)
 
-    logger.info(
+    slog.PERF(
         f"Sigma Bell-Curve Tailing Snapshots from (Epoch {curr_epoch}) used for (Epoch {next_epoch}) Trend Determination"
     )
 
     # Tail anchor
     last_ts = bell.get('last_ts')
     last_age = bell.get('last_sample_age')
-    logger.info(
+    slog.TAIL_ANCHOR(
         f"[tail_anchor] decision_time={_fmt_time(decision_dt)} | last_ts={_fmt_time(last_ts)} | "
         f"last_sample_age={_fmt_float(last_age, nd=2)}s"
     )
-    logger.info(_line('-', 155))
+    slog.PERF(_line('-', 155))
 
     pv_ref_sigma = int(bell.get('pv_ref_sigma') or config.get('PV_REF_SIGMA', 23))
     pv_pair_ref = bell.get('pv_pair_ref')
@@ -77,7 +80,7 @@ def print_sigma_tailing_snapshots(
     # If PV pair missing, make it loud + stop (this is the root cause behind empty prints)
     if not pv_pair_ref:
         lookback = bell.get('lookback_minutes', config.get('BELL_CURVE_LOOKBACK_MINUTES', 240))
-        logger.info(
+        slog.PV_REF(
             f"[pv_ref] BTC Close: start=? current=? | sigma={pv_ref_sigma} | extrema_pair=? (no PV pair found) | "
             f"ref_lookback=?m (cfg={lookback}m) | (Epoch {prev_epoch} → {curr_epoch})"
         )
@@ -112,7 +115,7 @@ def print_sigma_tailing_snapshots(
 
     cfg_lookback = bell.get('lookback_minutes', config.get('BELL_CURVE_LOOKBACK_MINUTES', 240))
 
-    logger.info(
+    slog.PV_REF(
         f"[pv_ref]  BTC Close: start={_fmt_price(btc_start)} current={_fmt_price(btc_cur)} | "
         f"sigma={pv_ref_sigma} | extrema_pair={swing}→CURRENT | "
         f"prev={prev_kind}@{_fmt_price(prev_val)}, last={last_kind}@{_fmt_price(last_val)}, current=CURRENT@{_fmt_price(btc_cur)} | "
@@ -121,20 +124,20 @@ def print_sigma_tailing_snapshots(
         f"(Epoch {prev_epoch} → {curr_epoch})"
     )
 
-    logger.info(_line('-', 155))
-    logger.info(_line('*', 155))
-    logger.info(_line('-', 155))
+    slog.PERF(_line('-', 155))
+    slog.PERF(_line('*', 155))
+    slog.PERF(_line('-', 155))
 
-    sec_leg1 = _section_on(config, "pv_MSBC_Leg1", True)
-    sec_leg2 = _section_on(config, "pv_MSBC_Leg2", True)
+    sec_leg1 = bool((config.get("PRINT", {}).get("MSBC", {}).get("LEG1", {}) or {}).get("ENABLED", True))
+    sec_leg2 = bool((config.get("PRINT", {}).get("MSBC", {}).get("LEG2", {}) or {}).get("ENABLED", True))
 
     # MSBC headers / LEG 1
     if sec_leg1:
-        logger.info(
+        slog.MSBC_Leg1(
             f"[pv_MSBC_Leg1]  Multi Sigma Bell Curve Segments for (Epoch {prev_epoch}) used for (Epoch {next_epoch}) Trend Determination"
         )
 
-        logger.info(
+        slog.MSBC_Leg1(
             f"LEG 1 ({swing}) ({_fmt_time(t_prev)} → {_fmt_time(t_last)})  |  leg 1 swing segment"
         )
 
@@ -171,7 +174,7 @@ def print_sigma_tailing_snapshots(
             if not m or (pack.get('values') is None):
                 continue
 
-            logger.info(
+            slog.MSBC_Leg1(
                 f"σ={int(sigma):>3}  PV-leg | "
                 f"start={_fmt_price(m.get('start'))} last={_fmt_price(m.get('last'))}, "
                 f"Δ={_fmt_price(m.get('delta'))}, slope={_fmt_float(m.get('slope'), nd=6)}, "
@@ -182,18 +185,18 @@ def print_sigma_tailing_snapshots(
                 vals = pack.get('values', []) or []
                 t0 = pack.get('t0') or t_prev
                 t1 = pack.get('t1') or t_last
-                logger.info(
+                slog.MSBC_Leg1(
                     f"       PV-leg ({_fmt_time(t0)} → {_fmt_time(t1)}) ({len(vals)} Data Points) | {_series_preview(vals, max_items=9999, nd=2)}"
                 )
 
-        logger.info(_line('-', 155))
+        slog.PERF(_line('-', 155))
 
     # LEG 2 header
     if sec_leg2:
-        logger.info(
+        slog.MSBC_Leg2(
             f"[pv_MSBC_Leg2]  Multi Sigma Bell Curve Segments for (Epoch {prev_epoch}) used for (Epoch {next_epoch}) Trend Determination"
         )
-        logger.info(
+        slog.MSBC_Leg2(
             f"LEG 2 ({last_kind}→NOW) ({_fmt_time(t_last)} → {_fmt_time(last_ts)})  |  leg 2 tail continuation"
         )
 
@@ -203,7 +206,7 @@ def print_sigma_tailing_snapshots(
             if not m or (pack.get('values') is None):
                 continue
 
-            logger.info(
+            slog.MSBC_Leg2(
                 f"σ={int(sigma):>3}  TAIL   | "
                 f"start={_fmt_price(m.get('start'))} last={_fmt_price(m.get('last'))}, "
                 f"Δ={_fmt_price(m.get('delta'))}, slope={_fmt_float(m.get('slope'), nd=6)}, "
@@ -214,12 +217,12 @@ def print_sigma_tailing_snapshots(
                 vals = pack.get('values', []) or []
                 t0 = pack.get('t0') or t_last
                 t1 = pack.get('t1') or last_ts
-                logger.info(
+                slog.MSBC_Leg2(
                     f"       TAIL  ({_fmt_time(t0)} → {_fmt_time(t1)}) ({len(vals)} Data Points) | {_series_preview(vals, max_items=9999, nd=2)}"
                 )
 
-    logger.info(_line('-', 155))
-    logger.info(_line('*', 155))
-    logger.info(_line('-', 155))
+    slog.PERF(_line('-', 155))
+    slog.PERF(_line('*', 155))
+    slog.PERF(_line('-', 155))
 
     return bell_curve_series

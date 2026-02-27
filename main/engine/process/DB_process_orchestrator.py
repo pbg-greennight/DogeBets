@@ -214,26 +214,13 @@ def process_epoch_window(
         # Keep epoch dump based on per-sigma raw/full payload
         print_epoch_dump(timing, windows, per_sigma_full, config)
 
-    # ------------------------------------------------------------------
-    # CATALOG-FIRST: build the per-sigma payload for trend using model config
-    # ------------------------------------------------------------------
-    model_path = (
-        config.get("TREND_MODEL_PATH")
-        or config.get("MODEL_PATH")
-        or config.get("DEV_MODEL_PATH")
-    )
-
-    # If model_path exists and includes: {"sigmas":{"wanted":[...]}}
-    # then catalog will use that list. Otherwise it falls back to config["GAUSS_SIGMAS"].
-    per_sigma_for_trend = catalog.build_for_model(model_path=model_path, use_hist=False)
-
     trend = calculate_trend(
         timing.curr_epoch,
         timing.next_epoch,
         windows,
-        per_sigma_for_trend,
+        per_sigma_hist,
         config,
-        model_path=model_path,
+        model_path=None,
     )
     print_trend_decision(timing, trend, config)
 

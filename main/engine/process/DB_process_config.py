@@ -81,19 +81,13 @@ def cfg() -> Dict[str, Any]:
         "WIDE_CSV": "gauss_epoch_snapshots_wide.csv",
         "LONG_CSV": "gauss_epoch_snapshots_long.csv",
 
-        # ---------------------------------------------------------------------
-        # PRINT TOGGLES (Nested, per-section)  True / False
-        # NOTE: This is the canonical toggle set used by DB_process_printing.py.
-        # Legacy flat keys are still accepted and will be mapped into PRINT.
-        # ---------------------------------------------------------------------
+        "MODEL_hyster": {"MODEL_ID": "method_hyster_v1.0.json", "ENABLED": True},
+
         "PRINT": {
             "HEADER": True,
-
-            # Canonical print sections (matches Log_example.txt)
             "PERF": {"ENABLED": True},
             "TAIL_ANCHOR": {"ENABLED": True},
             "PV_REF": {"ENABLED": True},
-
             "MSBC": {
                 "LEG1": {
                     "ENABLED": False,
@@ -105,58 +99,48 @@ def cfg() -> Dict[str, Any]:
                     "SUMMARY": {"ENABLED": True},
                     "SERIES": {"ENABLED": True, "MAX_POINTS": 0, "DECIMATE": True},
                 },
-                # "extra brain" lines (dump-diag)
                 "DIAGNOSTICS": {"ENABLED": True},
             },
-
             "GCS": {"ENABLED": True},
+
             "PV_TAIL_CHANNELS": {
                 "ENABLED": True,
                 "PER_SIGMA": {
                     "ENABLED": True,
-                    "SUMMARY": {"ENABLED": False},
+                    "SUMMARY": {"ENABLED": True},
                     "SERIES": {"ENABLED": True},
                     "MAX_POINTS": 0,
                     "DECIMATE": True,
                 },
             },
 
+            "CSD_DCSD": {
+                "ENABLED": True,
+                "LEG1": {"CSD": {"ENABLED": False}, "DCSD": {"ENABLED": False}},
+                "LEG2": {"CSD": {"ENABLED": False}, "DCSD": {"ENABLED": True}},
+            },
+
+            "GBC": {
+                "ENABLED": True,
+                "SD": {"ENABLED": True},
+                "DIAG": {"ENABLED": True},
+                "BC_DIAG": {"ENABLED": True},
+            },
+
+            "HYSTERESIS": {
+                "ENABLED": True,
+                "HEADER": {"ENABLED": True},
+                "EPISODE": {"ENABLED": True},
+                "PROBE": {"ENABLED": True},
+                "ETA": {"ENABLED": True},
+                "LADDER": {"ENABLED": True},
+                "DEBUG": {"ENABLED": False},
+            },
+
             "TREND": {
                 "DECISION": True,
                 "SCORES": True,
                 "FEATURES": True,
-            },
-
-            "LEGACY_EPOCH_DUMP": False,
-            "PV_STATUS_DEBUG": True,
-
-            # Fine-grained log section toggles (match bracket tags in log)
-            # These are checked by DB_process_printing.py so you can independently
-            # enable/disable each bracketed block without affecting the data plumbing.
-
-            "LOG_HYSTERESIS": True,
-            "SECTIONS": {
-                "pv_MSBC_Leg1": False,
-                "pv_MSBC_Leg2": True,
-                "gcs": True,
-                "gc_leg1": False,
-                "gc_leg2": True,
-                "csd_leg1": False,
-                "csd_leg2": True,
-                "dcsd_leg1": False,
-                "dcsd_leg2": True,
-                "gbc_sd": True,
-                "gbc_diag": True,
-                "bc_diag": True,
-                "td_scores": True,
-                "td_features": True,
-                # ---HYSTERESIS FAN STACK (v1.0)
-                "hyst_header": True,
-                "hyst_episode": True,
-                "hyst_probe": True,
-                "hyst_eta": True,
-                "hyst_ladder": True,
-                "hyst_debug": False,
             },
         },
 

@@ -10,9 +10,10 @@ logger = logging.getLogger(__name__)
 # Helpers
 # =====================================================================================================================
 from main.engine.process.printing.DB_process_printing_utils import (
-    _safe_get, _fmt_time, _fmt_float, _line, _fmt_price, _section_on, _series_preview, _as_mapping, _fmt_iso,
+    _safe_get, _fmt_time, _fmt_float, _line, _fmt_price, _series_preview, _as_mapping, _fmt_iso,
     _arrow, _print_cfg
 )
+from main.engine.process.printing.DB_process_SectionLogger import get_section_logger
 
 
 def print_gaussian_channel_snapshot(
@@ -36,11 +37,10 @@ def print_gaussian_channel_snapshot(
         config = {}
 
     p = _print_cfg(config)
+    slog = get_section_logger(logger, config)
     if not config.get('LOG_GAUSS_CHANNEL_SNAPSHOT', True):
         return
     if not p.get("GCS", {}).get("ENABLED", True):
-        return
-    if not _section_on(config, "gcs", True):
         return
 
     # Detect call pattern: (timing, windows, catalog, config)
@@ -66,8 +66,8 @@ def print_gaussian_channel_snapshot(
         snapshot = build_channel_snapshot(per_sigma_full, k=k)
 
     if not snapshot:
-        logger.info('Gaussian Channel Snapshot')
-        logger.info('[channels] (missing)')
+        slog.GCS('Gaussian Channel Snapshot')
+        slog.GCS('[channels] (missing)')
         return
 
     curr_epoch = _safe_get(timing, 'curr_epoch', default=None)
@@ -76,11 +76,11 @@ def print_gaussian_channel_snapshot(
     full_start = _safe_get(windows, 'full_start', default=None)
     full_end = _safe_get(windows, 'full_end', default=None)
 
-    logger.info(
+    slog.GCS(
         f"[gcs]  Gaussian Channel Snapshot (per-sigma dispersion bands) | (Epoch {curr_epoch} used for Epoch {next_epoch})"
     )
-    logger.info(_line('-', 155))
-    logger.info(f"Window: {_fmt_time(full_start)} → {_fmt_time(full_end)} | K={k:.2f}")
+    slog.GCS(_line('-', 155))
+    slog.GCS(f"Window: {_fmt_time(full_start)} → {_fmt_time(full_end)} | K={k:.2f}")
 
     # snapshot: {sigma: ChannelStats dataclass OR dict}
     def _fmt_chan(c: Any) -> str:
@@ -113,8 +113,8 @@ def print_gaussian_channel_snapshot(
 
     for sigma in sorted(snapshot.keys()):
         c = snapshot[sigma]
-        logger.info(f"G{int(sigma):<3} | {_fmt_chan(c)}")
+        slog.GCS(f"G{int(sigma):<3} | {_fmt_chan(c)}")
 
-    logger.info(_line('-', 155))
-    logger.info(_line('*', 155))
-    logger.info(_line('-', 155))
+    slog.GCS(_line('-', 155))
+    slog.GCS(_line('*', 155))
+    slog.GCS(_line('-', 155))

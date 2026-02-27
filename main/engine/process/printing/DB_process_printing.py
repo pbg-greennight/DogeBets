@@ -27,9 +27,10 @@ logger = logging.getLogger(__name__)
 # Helpers
 # =====================================================================================================================
 from main.engine.process.printing.DB_process_printing_utils import (
-    _safe_get, _fmt_time, _fmt_float, _line, _fmt_price, _section_on, _series_preview, _as_mapping, _fmt_iso,
+    _safe_get, _fmt_time, _fmt_float, _line, _fmt_price, _series_preview, _as_mapping, _fmt_iso,
     _arrow, _print_cfg
 )
+from main.engine.process.printing.DB_process_SectionLogger import get_section_logger
 # =====================================================================================================================
 # Public API
 # =====================================================================================================================
@@ -40,6 +41,8 @@ def print_header(timing: Any, windows: Any, decision_dt: datetime, config: Any =
     Note: `config` is accepted for compatibility with orchestrator calls, even if
     this printer doesn't currently need it.
     """
+
+    slog = get_section_logger(logger, config)
 
     # timing/windows are dataclasses in your pipeline, but keep dict fallback.
     try:
@@ -60,17 +63,17 @@ def print_header(timing: Any, windows: Any, decision_dt: datetime, config: Any =
     ts_now = _fmt_time(decision_dt)
 
     # 1) Contract line (double timestamp as in Log_example.txt)
-    logger.info(
+    slog.HEADER(
         f"{ts_now} - GAUSS EPOCH CAPTURE: (Epoch {curr_epoch}) for EPOCH ANALYSIS ({next_epoch}) "
         f"from time: {full_start} to {full_end} | Predict Next Epoch: (Epoch {next_epoch}) at {_fmt_iso(dt_next)} | "
         f"decision_time={ts_now}"
     )
 
     # 2) Extra lines used in the example
-    logger.info(f"TRIGGER: Next Epoch {next_epoch} @ {_fmt_iso(dt_next)} | decision_time={ts_now}")
-    logger.info(f"ANALYZE EPOCH: {curr_epoch}")
-    logger.info(f"FULL WINDOW : {_fmt_time(full_start)} {_arrow()} {_fmt_time(full_end)}")
-    logger.info(_line("-", 155))
+    slog.HEADER(f"TRIGGER: Next Epoch {next_epoch} @ {_fmt_iso(dt_next)} | decision_time={ts_now}")
+    slog.HEADER(f"ANALYZE EPOCH: {curr_epoch}")
+    slog.HEADER(f"FULL WINDOW : {_fmt_time(full_start)} {_arrow()} {_fmt_time(full_end)}")
+    slog.HEADER(_line("-", 155))
 
 
 def print_epoch_dump(
@@ -132,8 +135,7 @@ def print_trend_decision(
         decision_dt = _safe_get(timing, "decision_dt", default=None)
 
     p = _print_cfg(config)
-    sec_scores = _section_on(config, "td_scores", True)
-    sec_feats = _section_on(config, "td_features", True)
+    slog = get_section_logger(logger, config)
 
     td = _as_mapping(trend_out)
     model_id = td.get("model_id")
@@ -149,8 +151,8 @@ def print_trend_decision(
     next_epoch = _safe_get(timing, "next_epoch", default="?")
 
     # Single, non-duplicated decision line
-    logger.info(f"{_fmt_time(decision_dt)} - Trend Decision ({model_id})")
-    logger.info(
+    slog.TREND_DECISION(f"{_fmt_time(decision_dt)} - Trend Decision ({model_id})")
+    slog.TREND_DECISION(
         f"Epoch data from {curr_epoch} --→ Predict Next Epoch {next_epoch} | "
         f"trend={trend} | confidence={_fmt_float(conf, nd=3)} | model={model_id}"
         + (f" | notes={notes}" if notes is not None else "")
@@ -158,15 +160,15 @@ def print_trend_decision(
     )
 
     # Scores block
-    if sec_scores and p.get("TREND", {}).get("SCORES", True) and isinstance(scores, dict) and scores:
-        logger.info(
+    if p.get("TREND", {}).get("SCORES", True) and isinstance(scores, dict) and scores:
+        slog.TREND_SCORES(
             f"[td_scores] neutral={_fmt_float(scores.get('neutral'), nd=4)} | bull={_fmt_float(scores.get('bull'), nd=4)} | "
             f"bear={_fmt_float(scores.get('bear'), nd=4)} | reversal={_fmt_float(scores.get('reversal'), nd=4)} | "
             f"reason={reason} | model={model_id}"
         )
 
     # Features block
-    if sec_feats and p.get("TREND", {}).get("FEATURES", True) and isinstance(feats, dict) and feats:
+    if p.get("TREND", {}).get("FEATURES", True) and isinstance(feats, dict) and feats:
         preferred = [
             "g83_delta_mid",
             "g83_delta_width",
@@ -185,6 +187,6 @@ def print_trend_decision(
             # fallback: show a compact subset
             for k in sorted(feats.keys())[:12]:
                 parts.append(f"{k}={_fmt_float(feats.get(k), nd=6)}")
-        logger.info(f"[td_features] " + " | ".join(parts))
+        slog.TREND_FEATURES(f"[td_features] " + " | ".join(parts))
 
-    logger.info(_line("=", 155))
+    slog.TREND_DECISION(_line("=", 155))
