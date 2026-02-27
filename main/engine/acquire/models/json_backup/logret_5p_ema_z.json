@@ -1,0 +1,35 @@
+{
+  "method_name": "logret_5p_ema_z",
+  "version": "v1.0",
+  "type": "direction_model",
+  "description": "EMA-smoothed 1-step log return normalized by rolling log-return volatility. Always returns Bull or Bear based on the sign of z. Neutral logic is handled separately by neutral_gate_v1.json.",
+  "inputs": {
+    "price": "BTC_Close"
+  },
+  "parameters": {
+    "ema_window": 10,
+    "vol_window": 20
+  },
+  "equation": {
+    "definitions": {
+      "logret_1": "ln(C_t / C_(t-1))",
+      "logret_ema": "EMA(logret_1, ema_window)",
+      "sigma_logret": "stdev(logret_1 over vol_window)",
+      "z": "logret_ema / sigma_logret"
+    },
+    "logic": {
+      "bull_if": "z > 0.0",
+      "bear_if": "z < -0.0"
+    }
+  },
+  "outputs": {
+    "trend": "Bull or Bear",
+    "raw_z": "z (signed z-score, unthresholded)"
+  },
+  "notes": [
+    "This model never returns Neutral.",
+    "Directional output is based purely on the sign of z.",
+    "Neutral suppression should be applied via neutral_gate_v1.json.",
+    "Designed to be composable with EMA/VWAP committee models."
+  ]
+}

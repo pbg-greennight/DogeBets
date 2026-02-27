@@ -1,0 +1,48 @@
+{
+  "model_version": "new_AuSTD_v1.0",
+  "model_location": "/ts/config/new_AuSTD.json",
+  "window": { "W_MIN": 120, "W_MAX": 600 },
+
+  "smoothers": {
+    "S": { "span": 10,  "passes": 3 },
+    "M": { "span": 30,  "passes": 3 },
+    "L": { "span": 90,  "passes": 3 },
+    "XL":{ "span": 200, "passes": 3 }
+  },
+
+  "vote_weights": { "S": 0.35, "M": 0.45, "L": 0.20 },
+
+  "obv": { "span": 20, "slope_span": 20 },
+  "cmf": { "n": 20 },
+
+  "atr": { "n": 14 },
+
+  "xl_veto": {
+    "alpha": 0.60,
+    "use_atr_scale": true
+  },
+
+  "commit": {
+    "vwap_n": 20,
+    "vwap_drift_max": 0.012,
+    "bb_n": 20,
+    "bb_k": 2.0,
+    "%b_min": -0.08,
+    "%b_max": 1.08
+  },
+
+  "flip_detector": {
+    "use": true,
+    "tail_bars": 3,
+    "dog_small_sigma": 5.0,
+    "min_strength": 0.10
+  },
+
+  "confidence": {
+    "w_vote": 0.70,
+    "w_flow": 0.20,
+    "w_regime": 0.10,
+    "atr_penalty_z": 1.5,
+    "clip": [0.0, 1.0]
+  }
+}

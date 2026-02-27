@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.env/
+
+# Node
+node_modules/
+
+# PyCharm
+.idea/
+
+# Your custom exclusions
+Back_Up/
+Process_BU/
+Trend Uploads/
+data/
+calculations/
+csv/
+logs/
+
+removed_data.csv
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Runtime JSON state
+main/engine/ts/json/*.json
+main/engine/ts/json/New folder/

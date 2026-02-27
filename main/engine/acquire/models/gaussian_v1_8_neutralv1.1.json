@@ -1,0 +1,551 @@
+{
+  "pack_name": "gaussian_engine_plus_neutral_pack",
+  "pack_version": "v1.8+N1.1",
+  "created_utc": "2025-12-29T05:21:06Z",
+  "purpose": "Deployable bundle: run trend engine (v1.8) first to produce Bull/Bear, then apply neutral override (neutral_v1.1 profit chase) to optionally return Neutral/Invalid. Engine JSON should remain locked; neutral can be iterated independently.",
+  "execution_order": [
+    {
+      "id": "engine",
+      "ref": "gaussian_v1_8_locked.json",
+      "role": "trend_engine",
+      "output": "engine_pred (Bull/Bear/Neutral/Invalid), confidence"
+    },
+    {
+      "id": "neutral",
+      "ref": "gaussian_v1_8_neutral_v1_1_profit_locked.json",
+      "role": "neutral_override",
+      "input": "engine_pred + confidence + causal gaussian derivatives",
+      "output": "final_pred (Bull/Bear/Neutral/Invalid)"
+    }
+  ],
+  "io_contract": {
+    "inputs_required": [
+      "epoch_timing (NextEpochTime)",
+      "tick_ochlv at 2.5s resolution",
+      "decision_close at (NextEpochTime - 15s)",
+      "validity_gate v1.0 (ticks>=85, history sufficient)"
+    ],
+    "outputs": [
+      "final_pred",
+      "engine_pred",
+      "confidence",
+      "neutral_reason (optional)"
+    ]
+  },
+  "linked_files": {
+    "engine_json": "gaussian_v1_8_locked.json",
+    "neutral_json": "gaussian_v1_8_neutral_v1_1_profit_locked.json"
+  },
+  "payout_and_wager": {
+    "source": "gaussian_v1_6_runtime.json",
+    "note": "P/L simulation uses WIN_MULT and LOSS_MULT and MAX_WAGER from runtime; production deployment may wire to live platform payout."
+  },
+  "locked_components": {
+    "engine_locked_sha_note": "Engine v1.8 is to remain unchanged; all future risk/coverage tuning should be done in neutral JSON."
+  },
+  "engine": {
+    "stack_name": "gaussian_v1_8",
+    "version": "v1.8",
+    "purpose": "Recovered locked method: v1.7 base engine + trap stack (1,2,3,5,6B,7 best) producing ~12.7449 net P/L on expanded CSV under v1.6 payout. This is the canonical recovered evaluation baseline.",
+    "created_utc": "2025-12-29T04:52:51Z",
+    "global_assumptions": {
+      "decision_time_rule": "decision_time = NextEpochTime - 15 seconds",
+      "no_forward_leakage": true,
+      "sampling": "Use tick OCHLV sampled ~2.5s; decision_close is last tick close at or before decision_time.",
+      "gaussian_smoothing": "Causal one-sided Gaussian kernel k=0..ceil(4\u03c3), w[k]=exp(-0.5*(k/\u03c3)^2); normalized; apply convolution and edge-correct by partial-sum normalization for first L points."
+    },
+    "validity_gate_v1_0": {
+      "enabled": true,
+      "rules": [
+        {
+          "id": "ticks_ge_85",
+          "description": "Epoch is INVALID if tick_count_last_epoch < 85 (or missing)."
+        },
+        {
+          "id": "lookback_ready",
+          "description": "Epoch is INVALID if any required lookback window for features is unavailable (e.g., beginning of file)."
+        },
+        {
+          "id": "missing_primitives",
+          "description": "Epoch is INVALID if required primitives (decision_close, epoch timing, required sigma series inputs) are missing/NaN."
+        }
+      ],
+      "invalid_behavior": "Return Neutral/Invalid (no wager)."
+    },
+    "signals": {
+      "sigmas": {
+        "micro_flip_sentinel": [
+          9,
+          12,
+          15
+        ],
+        "primary_engine": [
+          20,
+          23,
+          26
+        ],
+        "secondary_engine": [
+          32,
+          34,
+          36
+        ],
+        "context_map": [
+          42,
+          50,
+          65,
+          80
+        ]
+      },
+      "derived_metrics": {
+        "G\u03c3": "causal_gaussian(decision_close, \u03c3)",
+        "S\u03c3": "first difference S\u03c3[t]=G\u03c3[t]-G\u03c3[t-1]",
+        "A\u03c3": "second difference A\u03c3[t]=S\u03c3[t]-S\u03c3[t-1]",
+        "band_slope": "s_band = mean(S20,S23,S26)",
+        "band_accel": "a_band = mean(A20,A23,A26)",
+        "context_slope": "ctx_s = mean(S42,S50,S65,S80)",
+        "micro_bull": "(G9>G12>G15) and (S12>0)",
+        "micro_bear": "(G9<G12<G15) and (S12<0)",
+        "order_primary": "order_bull_count = 1[S20>S23] + 1[S23>S26] (0=inv,1=mixed,2=aligned)",
+        "spread_primary": "spread_s = max(S20,S23,S26) - min(S20,S23,S26); bins by dataset quantiles (q50,q80) => tight/mid/shear"
+      }
+    },
+    "base_engine": {
+      "source": "gaussian_v1_7_locked.json",
+      "embedded": {
+        "name": "gaussian_v1_7_locked",
+        "version": "v1.7",
+        "sigmas": {
+          "micro": [
+            9,
+            12,
+            15
+          ],
+          "primary": [
+            20,
+            23,
+            26
+          ],
+          "secondary": [
+            32,
+            34,
+            36
+          ],
+          "context": [
+            42,
+            50,
+            65,
+            80
+          ]
+        },
+        "tuned_params": {
+          "override_micro_required": 1,
+          "hb_nm": 0.25,
+          "hb_wm": 0.65,
+          "hr_nm": 0.35,
+          "hr_wm": 0.65,
+          "med_nm": 0.75,
+          "soft_nm": 0.9,
+          "boost": 1.0,
+          "objective": "score = net_pnl + 2.0*max_drawdown (drawdown negative)"
+        },
+        "definitions": {
+          "context_strong_bull": "S50>0 & S65>0 & S80>0",
+          "context_strong_bear": "S50<0 & S65<0 & S80<0",
+          "secondary_bull": "G32>G34>G36 & S34>0",
+          "secondary_bear": "G32<G34<G36 & S34<0",
+          "micro_bull": "G9>G12>G15 & S12>0",
+          "micro_bear": "G9<G12<G15 & S12<0",
+          "boundary": "is_flip_trend | is_run_start | is_run_end"
+        },
+        "notes": [
+          "Start from v1.6A base pred/conf_core after validity gate.",
+          "Compute causal Gaussians on per-epoch startPrice series; slopes are first differences.",
+          "Apply macro override only when strong context + secondary alignment (and optionally micro confirmation on boundary epochs).",
+          "Apply confidence damping/boost; no additional neutrals beyond validity gate."
+        ]
+      }
+    },
+    "post_engine_trap_stack": {
+      "applies_when": "valid==True and base_engine_pred=='Bull' (only bull->bear flips).",
+      "trap_order": [
+        "trap1",
+        "trap2",
+        "trap3",
+        "trap5",
+        "trap6b",
+        "trap7"
+      ],
+      "traps": {
+        "trap1": {
+          "description": "Weak InsideRun bull with micro disagree + sufficient negative a_band -> flip to Bear.",
+          "when": {
+            "structure": "InsideRun",
+            "strength_bin": "Weak",
+            "base_pred": "Bull"
+          },
+          "conditions": [
+            {
+              "expr": "micro_disagree == True",
+              "note": "micro_disagree = (not micro_bull) OR micro_bear"
+            },
+            {
+              "expr": "a_band < -thr1",
+              "note": "thr1 = median of (-a_band) over eligible rows where (-a_band)>0, computed per dataset run"
+            }
+          ],
+          "action": "pred='Bear'"
+        },
+        "trap2": {
+          "description": "Bull with micro_bull + bullish context but strong negative band acceleration => bear trap flip.",
+          "conditions": [
+            {
+              "expr": "micro_bull == True"
+            },
+            {
+              "expr": "ctx_s > 0"
+            },
+            {
+              "expr": "a_band < -1.36306"
+            }
+          ],
+          "action": "pred='Bear'"
+        },
+        "trap3": {
+          "description": "Bull with positive S23 but strong negative A23 (deceleration) => flip to Bear.",
+          "conditions": [
+            {
+              "expr": "S23 > 0"
+            },
+            {
+              "expr": "A23 < -0.408106"
+            }
+          ],
+          "action": "pred='Bear'"
+        },
+        "trap5": {
+          "description": "Bull with bullish context + S23>0 but inverted primary order plus micro slope turning down => flip.",
+          "conditions": [
+            {
+              "expr": "ctx_s > 0"
+            },
+            {
+              "expr": "S23 > 0"
+            },
+            {
+              "expr": "order_primary == 'inv'"
+            },
+            {
+              "expr": "S12 < 0"
+            },
+            {
+              "expr": "A12 < 0"
+            }
+          ],
+          "action": "pred='Bear'"
+        },
+        "trap6b": {
+          "description": "Weak InsideRun bull while context is bearish and both band accel + micro accel are negative enough => flip.",
+          "when": {
+            "structure": "InsideRun",
+            "strength_bin": "Weak",
+            "base_pred": "Bull"
+          },
+          "conditions": [
+            {
+              "expr": "S23 > 0"
+            },
+            {
+              "expr": "ctx_s < 0"
+            },
+            {
+              "expr": "a_band < -0.124131"
+            },
+            {
+              "expr": "A12 < -0.182281"
+            }
+          ],
+          "action": "pred='Bear'"
+        },
+        "trap7": {
+          "description": "Weak InsideRun bull in bullish context with band slope positive and S23>0; if band accel and micro accel are negative enough and (spread tight OR A23 very negative) => flip.",
+          "when": {
+            "structure": "InsideRun",
+            "strength_bin": "Weak",
+            "ctx_sign": "bull_ctx",
+            "base_pred": "Bull"
+          },
+          "parameters": {
+            "t_ab7": 0.111196,
+            "t_a127": 0.19623,
+            "t_a237_quantile": 0.7,
+            "t_a237_definition": "t_a237 = quantile_q of (-A23) over broad7 rows where broad7: valid & pred==Bull & InsideRun & Weak & ctx_sign==bull_ctx & s_band>0 & S23>0 & A23<0; clamp (-A23) to >=0 before quantile."
+          },
+          "conditions": [
+            {
+              "expr": "s_band > 0"
+            },
+            {
+              "expr": "S23 > 0"
+            },
+            {
+              "expr": "a_band < -0.111196"
+            },
+            {
+              "expr": "A12 < -0.196230"
+            },
+            {
+              "expr": "spread_bin == 'tight' OR (A23 < -t_a237)"
+            }
+          ],
+          "action": "pred='Bear'"
+        }
+      }
+    },
+    "confidence_and_wager": {
+      "note": "If you are only using direction (Bull/Bear), you may ignore this section. Included to reproduce P/L studies.",
+      "max_wager": 0.015,
+      "bear_conf_min": 0.15,
+      "bull_conf_min": 0.1,
+      "mapping": {
+        "Bull": "wager = max_wager * clip((conf - bull_conf_min)/(1-bull_conf_min), 0, 1)",
+        "Bear": "wager = max_wager * clip((conf - bear_conf_min)/(1-bear_conf_min), 0, 1)",
+        "Neutral/Invalid": "wager = 0"
+      },
+      "payout_model": {
+        "win_profit_multiplier": "Use runtime win multiplier (2.0 - 0.08 = 1.92 profit on wager) OR the stored runtime value if present.",
+        "loss_multiplier": "Use runtime loss multiplier (-1.0 - 0.03 = -1.03 profit on wager) OR the stored runtime value if present.",
+        "fees": "8% on win, 3% on loss, none on neutral"
+      }
+    },
+    "duplication_notes": {
+      "steps": [
+        "1) Build decision_close series: for each epoch, decision_time = NextEpochTime - 15s, decision_close is last tick close at or before decision_time.",
+        "2) Apply validity gate v1.0: mark epoch invalid if tick_count<85, missing primitives, or insufficient history for lookbacks.",
+        "3) Compute causal Gaussian curves G\u03c3 for all required \u03c3 using the one-sided kernel and edge-correction.",
+        "4) Compute S\u03c3 and A\u03c3 (first/second differences), then compute band and context aggregates (s_band, a_band, ctx_s).",
+        "5) Run base engine exactly as in embedded gaussian_v1_7_locked.json to produce base direction and confidence.",
+        "6) Apply traps 1\u21927 in order; each trap may flip Bull\u2192Bear (never Bear\u2192Bull).",
+        "7) (Optional) Convert confidence to wager and compute P/L using the payout model."
+      ],
+      "reproducibility_checks": [
+        "Verify counts of valid/invalid epochs match your reference run.",
+        "Verify Gaussian edge-correction: first L points use partial-sum normalization.",
+        "Verify trap thresholds (thr1 and t_a237) are recomputed per dataset run using the stated quantiles."
+      ]
+    },
+    "reference_metrics": {
+      "dataset": "expanded CSV (new) with validity gate v1.0 applied (ticks>=85); trades=8778",
+      "accuracy_pct": 72.522215,
+      "total_wager": 52.292568,
+      "net_pnl": 12.744939,
+      "roi_pct": 24.372372,
+      "max_drawdown": -0.140057
+    }
+  },
+  "neutral": {
+    "stack_name": "gaussian_v1_7a_neutral",
+    "version": "v1.1",
+    "purpose": "Secondary neutral override layer to pair with gaussian_v1_7a_locked. Runs AFTER v1.7a produces Bull/Bear (or Invalid). May override Bull/Bear -> Neutral under specific low-edge/uncertainty conditions. Does NOT change labels to the opposite side.",
+    "created_utc": "2025-12-29T05:14:50Z",
+    "integration_contract": {
+      "inputs_required": [
+        "epoch_id",
+        "is_valid (from validity_gate_v1_0)",
+        "base_pred (Bull/Bear/Neutral/Invalid) from v1.7a",
+        "conf (0..1) from v1.7a",
+        "decision_close series and derived Gaussian signals used by v1.7a"
+      ],
+      "output": {
+        "final_pred": "Bull/Bear/Neutral/Invalid",
+        "override_reason": "string|null"
+      },
+      "execution_order": [
+        "1) If base_pred is Neutral or Invalid -> pass-through (no change).",
+        "2) If is_valid==False -> force Invalid (or Neutral) per your runtime convention.",
+        "3) Evaluate neutral rules in order; first triggered rule sets final_pred=Neutral and stops."
+      ]
+    },
+    "signals_used": {
+      "sigmas": {
+        "micro_flip_sentinel": [
+          9,
+          12,
+          15
+        ],
+        "primary_engine": [
+          20,
+          23,
+          26
+        ],
+        "context_map": [
+          42,
+          50,
+          65,
+          80
+        ]
+      },
+      "derived": {
+        "G\u03c3": "causal_gaussian(decision_close, \u03c3)",
+        "S\u03c3": "first difference of G\u03c3",
+        "A\u03c3": "second difference of G\u03c3",
+        "s_band": "mean(S20,S23,S26)",
+        "a_band": "mean(A20,A23,A26)",
+        "ctx_s": "mean(S42,S50,S65,S80)",
+        "micro_bull": "(G9>G12>G15) & (S12>0)",
+        "micro_bear": "(G9<G12<G15) & (S12<0)",
+        "micro_other": "not micro_bull and not micro_bear",
+        "order_primary": "order_bull_count = 1[S20>S23] + 1[S23>S26] (0=inv,1=mixed,2=aligned)",
+        "spread_primary": "spread_s = max(S20,S23,S26) - min(S20,S23,S26); bins by dataset quantiles (q50,q80) => tight/mid/shear"
+      }
+    },
+    "neutral_rules": {
+      "stop_on_first_match": true,
+      "rules_order": [
+        "N1_low_confidence",
+        "N5_exhaustion_neutral"
+      ],
+      "rules": {
+        "N1_low_confidence": {
+          "enabled": true,
+          "description": "If v1.7a confidence is too low for the predicted side, override to Neutral.",
+          "conditions": [
+            {
+              "if": "base_pred=='Bull'",
+              "then": "conf < bull_conf_neutral_min"
+            },
+            {
+              "if": "base_pred=='Bear'",
+              "then": "conf < bear_conf_neutral_min"
+            }
+          ],
+          "params": {
+            "bull_conf_neutral_min": 0.08,
+            "bear_conf_neutral_min": 0.13
+          },
+          "reason": "neutral_low_conf"
+        },
+        "N2_plateau_flat_slope": {
+          "enabled": false,
+          "description": "Detect plateau/near-flat movement: tight spread + small |S23| and small |s_band| and weak curvature.",
+          "conditions": [
+            "spread_bin == 'tight'",
+            "abs(S23) < s23_abs_max",
+            "abs(s_band) < sband_abs_max",
+            "abs(a_band) < aband_abs_max"
+          ],
+          "params": {
+            "s23_abs_max": 0.35,
+            "sband_abs_max": 0.3,
+            "aband_abs_max": 0.25
+          },
+          "reason": "neutral_plateau_flat"
+        },
+        "N3_micro_context_disagree_low_edge": {
+          "enabled": false,
+          "description": "If micro and context disagree with the base direction AND edge is small (low slope/curvature), neutralize.",
+          "conditions": [
+            {
+              "if": "base_pred=='Bull'",
+              "then_all": [
+                "(micro_bear or micro_other)",
+                "ctx_s < ctx_disagree_max_for_bull",
+                "S23 > 0",
+                "S23 < s23_small_edge_max",
+                "a_band > -aband_not_strong_neg_min"
+              ]
+            },
+            {
+              "if": "base_pred=='Bear'",
+              "then_all": [
+                "(micro_bull or micro_other)",
+                "ctx_s > ctx_disagree_min_for_bear",
+                "S23 < 0",
+                "-S23 < s23_small_edge_max",
+                "a_band < aband_not_strong_pos_max"
+              ]
+            }
+          ],
+          "params": {
+            "ctx_disagree_max_for_bull": 0.0,
+            "ctx_disagree_min_for_bear": 0.0,
+            "s23_small_edge_max": 0.55,
+            "aband_not_strong_neg_min": -0.1,
+            "aband_not_strong_pos_max": 0.1
+          },
+          "reason": "neutral_disagree_low_edge"
+        },
+        "N4_primary_squeeze_uncertain": {
+          "enabled": false,
+          "description": "If the primary band is squeezed (tight spread) and order is mixed (not clearly aligned/inverted), treat as uncertain and neutralize when edge is modest.",
+          "conditions": [
+            "spread_bin == 'tight'",
+            "order_primary == 'mixed'",
+            "abs(S23) < s23_moderate_max",
+            "abs(a_band) < aband_moderate_max"
+          ],
+          "params": {
+            "s23_moderate_max": 0.85,
+            "aband_moderate_max": 0.45
+          },
+          "reason": "neutral_primary_squeeze"
+        },
+        "N5_exhaustion_neutral": {
+          "enabled": true,
+          "description": "Exhaustion: direction still positive/negative but curvature is strongly opposing (deceleration) while spread is tight -> could be reversal/whipsaw; neutralize.",
+          "conditions": [
+            {
+              "if": "base_pred=='Bull'",
+              "then_all": [
+                "S23 > 0",
+                "A23 < -a23_exhaust_min",
+                "spread_bin == 'tight'"
+              ]
+            },
+            {
+              "if": "base_pred=='Bear'",
+              "then_all": [
+                "S23 < 0",
+                "A23 > a23_exhaust_min",
+                "spread_bin == 'tight'"
+              ]
+            }
+          ],
+          "params": {
+            "a23_exhaust_min": 0.17
+          },
+          "reason": "neutral_exhaustion"
+        }
+      }
+    },
+    "duplication_notes": {
+      "how_to_use": [
+        "Load gaussian_v1_7a_locked.json and compute base_pred and conf (and any intermediate features already computed for traps).",
+        "Compute the signals listed above (you already have them in v1.7a runtime).",
+        "Apply this neutral layer exactly as described in integration_contract.",
+        "Log override_reason whenever a rule triggers so we can tune thresholds by bucket."
+      ],
+      "tuning_plan": [
+        "Sweep bull_conf_neutral_min and bear_conf_neutral_min for profit/drawdown trade-off.",
+        "Tune plateau thresholds (s23_abs_max, sband_abs_max, aband_abs_max) by searching for graph5-like plateau epochs.",
+        "Tune exhaustion threshold a23_exhaust_min by targeting remaining flip-start bull-loss buckets."
+      ]
+    },
+    "name": "gaussian_neutral_v1_1_profit",
+    "paired_with_engine": "gaussian_v1_8",
+    "notes": "Locked from fine sweep (pure profit chase). Uses only N1 low-confidence and N5 exhaustion (tight-spread) thresholds; other neutral rules remain available but are disabled by default to preserve the tuned profit ridge.",
+    "reference_metrics": {
+      "dataset": "expanded CSV (new) with validity gate v1.0 applied (ticks>=85); evaluated on v1.8 predictions",
+      "objective": "maximize net_pnl (pure profit chase) within fine sweep region",
+      "bull_conf_neu_min": 0.08,
+      "bear_conf_neu_min": 0.13,
+      "a23_exhaust_min": 0.17,
+      "coverage_pct_valid": 85.82820688083847,
+      "trades": 7534.0,
+      "acc_pct": 78.77621449429255,
+      "total_wager": 45.82526834492843,
+      "net_pnl": 17.794193690306358,
+      "roi_pct": 38.83052807540335,
+      "max_drawdown": -0.08935878094322547
+    }
+  }
+}

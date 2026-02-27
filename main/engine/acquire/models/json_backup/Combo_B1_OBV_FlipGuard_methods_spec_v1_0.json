@@ -1,0 +1,434 @@
+{
+  "name": "Combo B1 + OBV + Bins + FlipGuard methods",
+  "file_version": "v1.0",
+  "description": "Full spec for Combo B1 core, OBV_soft75 filter, bin-based wagering, and FlipGuard (strict and relaxed) with fee-aware betting.",
+  "dataset": {
+    "name": "DB_epoch_ochlv_merged_call15s.csv",
+    "description": "Epoch-level BTC 5-minute prediction dataset with OCHLV+approx_priceDifference merged at epoch anchors.",
+    "label_definition": {
+      "field": "approx_priceDifference",
+      "transform": "sign",
+      "mapping": {
+        "-1": "Bear (endPrice < startPrice)",
+        "0": "Neutral (no effective change)",
+        "1": "Bull (endPrice > startPrice)"
+      }
+    },
+    "anchor_row_definition": {
+      "description": "One anchor row per epoch (previousEpoch), taken as the LAST row for that epoch from the merged OCHLV+epoch table.",
+      "group_by": "previousEpoch",
+      "take": "last_by_Timestamp"
+    }
+  },
+  "shared_features": {
+    "EMA240": {
+      "description": "240-tick EMA of Close over the full OCHLV stream (not just anchors).",
+      "equation": "EMA_t = EMA_{t-1} + alpha * (Close_t - EMA_{t-1})",
+      "alpha": "2 / (240 + 1)",
+      "seed": "EMA_0 = Close_0 (first available close)",
+      "anchor_value": "At each anchor Timestamp, take the EMA240 from the underlying stream row with the matching Timestamp."
+    },
+    "EMA240_slope": {
+      "description": "First difference of EMA240 over underlying stream, then attached to anchor rows by Timestamp.",
+      "equation": "EMA240_slope_t = EMA240_t - EMA240_{t-1}"
+    },
+    "VWAP_5m": {
+      "description": "5-minute VWAP window aligned to anchor Timestamp t.",
+      "window": "All OCHLV ticks with Timestamp in [t-5min, t].",
+      "equation": "VWAP_5m(t) = sum_i( Close_i * Volume_i ) / sum_i( Volume_i ) over the 5-minute window."
+    },
+    "VWAP_drift": {
+      "description": "Relative drift of anchor close vs 5m VWAP.",
+      "equation": "VWAP_drift = (Close_anchor - VWAP_5m) / VWAP_5m"
+    },
+    "OBV": {
+      "description": "On-Balance Volume on the full OCHLV stream.",
+      "equation": [
+        "OBV_0 = 0",
+        "If Close_t > Close_{t-1}: OBV_t = OBV_{t-1} + Volume_t",
+        "If Close_t < Close_{t-1}: OBV_t = OBV_{t-1} - Volume_t",
+        "Else: OBV_t = OBV_{t-1}"
+      ],
+      "anchor_value": "At each anchor Timestamp, take OBV from the underlying stream row with the matching Timestamp."
+    },
+    "OBV_slope": {
+      "description": "First difference of OBV over the stream, then attached to anchors by Timestamp.",
+      "equation": "OBV_slope_t = OBV_t - OBV_{t-1}"
+    },
+    "plateau_flag": {
+      "description": "Marks whether the last 5 minutes are relatively flat.",
+      "window": "All OCHLV ticks with Timestamp in [t-5min, t].",
+      "equation": [
+        "range_ratio(t) = (max(Close_i) - min(Close_i)) / VWAP_5m(t) over the window",
+        "Compute thr_range = median(range_ratio over all anchor rows).",
+        "is_plateau(t) = (range_ratio(t) < thr_range)."
+      ]
+    },
+    "flip_flag": {
+      "description": "Detects changes in label direction between consecutive epochs.",
+      "equation": [
+        "label_t = sign(approx_priceDifference_t) in {-1, 0, +1}.",
+        "flip_t = True if label_{t-1} != 0, label_t != 0 and label_t != label_{t-1}, else False."
+      ]
+    },
+    "gaussian_smoothing": {
+      "description": "Causal Gaussian smoothing of anchor Close series, used for FlipGuard curvature.",
+      "series": "Close_anchor ordered by increasing Timestamp.",
+      "kernel": "For sigma (\u03c3), take radius r = floor(3\u03c3). Define x = -r, ..., +r. kernel(x) = exp(-0.5 * (x/\u03c3)^2). Normalize kernel so sum(kernel) = 1.",
+      "boundary": "Pad the series at both ends with edge values (mode='edge') before convolution.",
+      "equation": "g\u03c3 = conv( padded Close, kernel ) with 'valid' mode, aligned back to the original indices."
+    },
+    "gaussian_slopes": {
+      "description": "First differences of Gaussian-smoothed Close.",
+      "equation": [
+        "gS = gaussian_smoothing(Close, sigma_short=3)",
+        "gM = gaussian_smoothing(Close, sigma_mid=10)",
+        "gS1_t = gS_t - gS_{t-1}",
+        "gM1_t = gM_t - gM_{t-1}"
+      ],
+      "alignment": "Attach gS1, gM1 directly to anchor rows by index (same ordering as smoothed series)."
+    }
+  },
+  "core_classifiers": {
+    "B1_EMA_VWAP": {
+      "name": "Combo B1 core classifier",
+      "version": "v1.0",
+      "notes": "EMA240 slope is primary; VWAP drift sign confirms weak EMA regimes.",
+      "inputs": [
+        "ema_slope = EMA240_slope at anchor",
+        "ema_abs   = |ema_slope|",
+        "ema_sign  = sign(ema_slope) in {-1,0,+1}",
+        "vwap_drift_sign = sign(VWAP_drift) in {-1,0,+1}"
+      ],
+      "logic": [
+        "If ema_abs is NaN: predict 0 (Neutral).",
+        "If ema_abs >= 0.4: predict ema_sign (Bull if >0, Bear if <0).",
+        "Else (ema_abs < 0.4):",
+        "   If ema_sign != 0 and ema_sign == vwap_drift_sign: predict ema_sign.",
+        "   Else: predict 0 (Neutral)."
+      ],
+      "output": "pred_B1 in {-1, 0, +1}."
+    },
+    "OBV_soft75_filter": {
+      "name": "OBV conflict veto (soft75)",
+      "version": "v1.0",
+      "notes": "Veto trades in weak EMA regimes where OBV strongly disagrees with B1.",
+      "calibration": [
+        "Let abs_obv = |OBV_slope| over all anchor rows.",
+        "Compute thr75 = quantile(abs_obv, 0.75)."
+      ],
+      "inputs": [
+        "pred_B1 in {-1,0,+1}",
+        "ema_abs = |EMA240_slope|",
+        "obv_sign = sign(OBV_slope) in {-1,0,+1}",
+        "abs_obv = |OBV_slope|",
+        "thr75 from calibration"
+      ],
+      "logic": [
+        "If pred_B1 == 0: predict 0.",
+        "If ema_abs is NaN OR ema_abs >= 0.4: predict pred_B1 (skip OBV veto in strong EMA regimes).",
+        "Else (weak EMA):",
+        "   If obv_sign != 0 AND obv_sign != pred_B1 AND abs_obv > thr75:",
+        "        predict 0 (Neutral, OBV veto).",
+        "   Else: predict pred_B1."
+      ],
+      "output": "pred_OBV in {-1,0,+1}."
+    }
+  },
+  "binning_and_wager": {
+    "name": "Bin-based confidence + bet sizing",
+    "version": "v1.0",
+    "notes": "Bins defined on EMA strength, VWAP strength, plateau/flip status, and OBV alignment.",
+    "bin_definition": {
+      "ema_bin": {
+        "source": "ema_abs on rows where pred_OBV != 0.",
+        "quantiles": "q1 = 0.33-quantile, q2 = 0.66-quantile of ema_abs among pred_OBV != 0 rows.",
+        "rules": [
+          "If ema_abs is NaN: ema_bin = 'unk'.",
+          "If ema_abs < q1: ema_bin = 'weak'.",
+          "Else if ema_abs < q2: ema_bin = 'mid'.",
+          "Else: ema_bin = 'strong'."
+        ]
+      },
+      "vwap_bin": {
+        "source": "vwap_abs = |VWAP_drift| on rows where pred_OBV != 0.",
+        "threshold": "vwap_thr = median(vwap_abs) among pred_OBV != 0 rows.",
+        "rules": [
+          "If vwap_abs is NaN: vwap_bin = 'unk'.",
+          "If vwap_abs < vwap_thr: vwap_bin = 'weak'.",
+          "Else: vwap_bin = 'strong'."
+        ]
+      },
+      "plateau_bin": {
+        "rules": [
+          "If is_plateau == True: plateau_bin = 'plateau'.",
+          "Else: plateau_bin = 'non_plateau'."
+        ]
+      },
+      "flip_bin": {
+        "rules": [
+          "If flip_flag == True: flip_bin = 'flip'.",
+          "Else: flip_bin = 'non_flip'."
+        ]
+      },
+      "obv_align": {
+        "definition": "Alignment of OBV_slope with pred_OBV.",
+        "rules": [
+          "If pred_OBV == 0 OR obv_sign == 0: obv_align = 'neutral'.",
+          "Else if obv_sign == pred_OBV: obv_align = 'with'.",
+          "Else: obv_align = 'against'."
+        ]
+      },
+      "bin_key": "bin_OBV = (ema_bin, vwap_bin, obv_align, plateau_bin, flip_bin)."
+    },
+    "bet_fraction": {
+      "calibration_logic": [
+        "For each bin b:",
+        "   Consider rows where bin_OBV == b and pred_OBV != 0.",
+        "   Let n_b = number of such rows.",
+        "   Let wins_b = count(pred_OBV == label).",
+        "   win_rate_b = wins_b / n_b.",
+        "Define bin_bet_frac[b] = max(0, (win_rate_b - 0.5) / 0.5).",
+        "Thus: 50% win_rate -> 0, 75% -> 0.5, 100% -> 1.0."
+      ],
+      "usage": "Per trade, bet_fraction_base = bin_bet_frac[bin_OBV]; bet_amt_base = BASE_BET * bet_fraction_base if pred != 0, else 0."
+    }
+  },
+  "flipguard": {
+    "shared_curvature_features": {
+      "aligned_short_tail": {
+        "name": "gS1_tail_mean_aligned",
+        "sigma_short": 3,
+        "tail_length_K": 3,
+        "equation": [
+          "For each anchor index i with pred_OBV != 0:",
+          "   dir = pred_OBV_i in {-1,+1}.",
+          "   tail indices j = max(0, i-K+1)...i.",
+          "   gS1_tail_mean_aligned_i = mean_j( gS1_j * dir )."
+        ]
+      },
+      "aligned_mid": {
+        "name": "gM1_aligned",
+        "equation": "gM1_aligned_i = gM1_i * pred_OBV_i."
+      }
+    },
+    "scope_bin": {
+      "description": "FlipGuard only operates in the weakest bin: weak EMA, weak VWAP, plateau, flip.",
+      "bin_condition": [
+        "ema_bin == 'weak'",
+        "vwap_bin == 'weak'",
+        "plateau_bin == 'plateau'",
+        "flip_bin == 'flip'",
+        "pred_OBV != 0"
+      ]
+    },
+    "vwap_floor": {
+      "VW_MIN": 0.00017,
+      "description": "Minimum VWAP_drift magnitude required to consider a flip trade in the weak/weak/plateau/flip bin."
+    },
+    "v1_0_strict": {
+      "name": "FlipGuard strict",
+      "version": "v1.0",
+      "notes": "VWAP floor plus spike hard-veto and soft down-weighting.",
+      "thresholds": {
+        "S_s_soft_max": 5.0,
+        "S_s_hard_max": 10.0,
+        "S_m_soft_max": 4.0,
+        "S_m_hard_max": 8.0
+      },
+      "logic": [
+        "Only apply if in scope_bin and pred_OBV != 0.",
+        "Let VW = vwap_abs.",
+        "If VW < VW_MIN:",
+        "   pred_FG = 0, weight_FG = 0.0 (hard veto).",
+        "Else:",
+        "   Let S_s = gS1_tail_mean_aligned, S_m = gM1_aligned.",
+        "   spiky_short = (|S_s| > S_s_hard_max).",
+        "   spiky_mid   = (S_m > S_m_hard_max).",
+        "   warn_short  = (|S_s| > S_s_soft_max).",
+        "   warn_mid    = (S_m > S_m_soft_max).",
+        "   If spiky_short or spiky_mid:",
+        "       pred_FG = 0, weight_FG = 0.0 (hard veto spike).",
+        "   Else if warn_short or warn_mid:",
+        "       pred_FG = pred_OBV, weight_FG = 0.3 (down-weight).",
+        "   Else:",
+        "       pred_FG = pred_OBV, weight_FG = 1.0."
+      ],
+      "outside_scope": "If not in scope_bin: pred_FG = pred_OBV, weight_FG = 1.0."
+    },
+    "v1_1_relaxed": {
+      "name": "FlipGuard relaxed",
+      "version": "v1.1",
+      "notes": "VWAP floor + only soft down-weight; no spike hard-veto. Designed to preserve more raw PnL while still cleaning junk.",
+      "thresholds": {
+        "S_s_soft_max": 5.0,
+        "S_m_soft_max": 4.0
+      },
+      "logic": [
+        "Only apply if in scope_bin and pred_OBV != 0.",
+        "Let VW = vwap_abs.",
+        "If VW < VW_MIN:",
+        "   pred_FG_relaxed = 0, weight_FG_relaxed = 0.0 (no VWAP, no trade).",
+        "Else:",
+        "   Let S_s = gS1_tail_mean_aligned, S_m = gM1_aligned.",
+        "   warn_short = (|S_s| > S_s_soft_max).",
+        "   warn_mid   = (S_m > S_m_soft_max).",
+        "   If warn_short or warn_mid:",
+        "       pred_FG_relaxed = pred_OBV, weight_FG_relaxed = 0.5.",
+        "   Else:",
+        "       pred_FG_relaxed = pred_OBV, weight_FG_relaxed = 1.0."
+      ],
+      "outside_scope": "If not in scope_bin: pred_FG_relaxed = pred_OBV, weight_FG_relaxed = 1.0."
+    }
+  },
+  "methods": {
+    "Combo_B1_OBV_bins_baseline_fee015": {
+      "name": "Combo B1 + OBV_soft75 + bin-based wagering (no FlipGuard)",
+      "version": "v1.0-fee015",
+      "description": "Core Combo B1 classifier filtered by OBV_soft75, with bin-based confidence wager. Base bet 0.015 BNB, 8% fee on wins, 2% fee on losses.",
+      "betting": {
+        "BASE_BET": 0.015,
+        "FEE_WIN": 0.08,
+        "FEE_LOSS": 0.02,
+        "payout_model": [
+          "If trade wins: pnl = bet_amt * (1 - FEE_WIN).",
+          "If trade loses: pnl = -bet_amt * (1 + FEE_LOSS).",
+          "No fee when not betting (bet_amt = 0)."
+        ],
+        "per_trade_bet": [
+          "pred = pred_OBV from core_classifiers.",
+          "bin = bin_OBV from binning_and_wager.",
+          "bet_fraction = bin_bet_frac[bin] (precomputed from this dataset as described).",
+          "bet_amt = BASE_BET * bet_fraction if pred != 0, else 0."
+        ]
+      },
+      "prediction_pipeline": [
+        "Compute shared_features for all anchors.",
+        "Compute pred_B1 via core_classifiers.B1_EMA_VWAP.",
+        "Compute pred_OBV via core_classifiers.OBV_soft75_filter.",
+        "If pred_OBV == 0: no bet.",
+        "Else: compute bins and bin_OBV, then bet_amt_base and pnl_base with fees as in betting section."
+      ],
+      "metrics_on_dataset": {
+        "total_epochs": 2651,
+        "trades": 2174,
+        "coverage": 0.8200678989,
+        "wins": 1848,
+        "losses": 326,
+        "win_rate": 0.8500459982,
+        "total_bet_BNB": 23.04,
+        "total_pnl_BNB": 16.8110772412,
+        "roi": 0.7296474497,
+        "pnl_per_trade_BNB": 0.0077327862
+      }
+    },
+    "Combo_B1_OBV_bins_FlipGuard_strict_fee015": {
+      "name": "Combo B1 + OBV_soft75 + bins + FlipGuard strict",
+      "version": "v1.1-fee015",
+      "description": "Same as baseline, but add FlipGuard v1.0 strict in the weak/weak/plateau/flip bin. Uses weight_FG_strict to scale bets.",
+      "betting": {
+        "BASE_BET": 0.015,
+        "FEE_WIN": 0.08,
+        "FEE_LOSS": 0.02,
+        "payout_model": [
+          "If trade wins: pnl = bet_amt_FG_strict * (1 - FEE_WIN).",
+          "If trade loses: pnl = -bet_amt_FG_strict * (1 + FEE_LOSS)."
+        ],
+        "per_trade_bet": [
+          "pred0 = pred_OBV.",
+          "Compute bin_OBV and base bet_fraction = bin_bet_frac[bin_OBV].",
+          "Apply FlipGuard.v1_0_strict to get pred_FG_strict and weight_FG_strict.",
+          "If pred_FG_strict == 0: bet_amt_FG_strict = 0.",
+          "Else: bet_frac_FG_strict = bet_fraction * weight_FG_strict.",
+          "bet_amt_FG_strict = BASE_BET * bet_frac_FG_strict."
+        ]
+      },
+      "prediction_pipeline": [
+        "Compute shared_features and core predictions as baseline.",
+        "Apply FlipGuard strict only in weak/weak/plateau/flip bin.",
+        "Use pred_FG_strict and weight_FG_strict for bets and pnl."
+      ],
+      "metrics_on_dataset": {
+        "total_epochs": 2651,
+        "trades": 1943,
+        "coverage": 0.7329309694,
+        "wins": 1700,
+        "losses": 243,
+        "win_rate": 0.8749356665,
+        "total_bet_BNB": 21.577424,
+        "total_pnl_BNB": 16.3753440412,
+        "roi": 0.7580101975,
+        "pnl_per_trade_BNB": 0.0084203476
+      },
+      "weak_weak_plateau_flip_bin_effect": {
+        "baseline_bin": {
+          "trades": 290,
+          "wins": 200,
+          "losses": 90,
+          "win_rate": 0.6896551724
+        },
+        "after_FG_strict": {
+          "trades_kept": 59,
+          "wins": 52,
+          "losses": 7,
+          "win_rate": 0.8813559322,
+          "trades_killed": 231
+        }
+      }
+    },
+    "Combo_B1_OBV_bins_FlipGuard_relaxed_fee015": {
+      "name": "Combo B1 + OBV_soft75 + bins + FlipGuard relaxed",
+      "version": "v1.2-fee015",
+      "description": "Same as baseline, but add FlipGuard v1.1 relaxed in the weak/weak/plateau/flip bin. VWAP floor still enforced; spike regions down-weighted instead of hard-vetoed.",
+      "betting": {
+        "BASE_BET": 0.015,
+        "FEE_WIN": 0.08,
+        "FEE_LOSS": 0.02,
+        "per_trade_bet": [
+          "pred0 = pred_OBV.",
+          "Compute bin_OBV and base bet_fraction = bin_bet_frac[bin_OBV].",
+          "Apply FlipGuard.v1_1_relaxed to get pred_FG_relaxed and weight_FG_relaxed.",
+          "If pred_FG_relaxed == 0: bet_amt_FG_relaxed = 0.",
+          "Else: bet_frac_FG_relaxed = bet_fraction * weight_FG_relaxed (0.5 in slope-warning region, 1.0 otherwise).",
+          "bet_amt_FG_relaxed = BASE_BET * bet_frac_FG_relaxed."
+        ],
+        "payout_model": [
+          "If trade wins: pnl = bet_amt_FG_relaxed * (1 - FEE_WIN).",
+          "If trade loses: pnl = -bet_amt_FG_relaxed * (1 + FEE_LOSS)."
+        ]
+      },
+      "prediction_pipeline": [
+        "Compute shared_features and core predictions as baseline.",
+        "Apply FlipGuard relaxed only in weak/weak/plateau/flip bin.",
+        "Use pred_FG_relaxed and weight_FG_relaxed for bets and pnl."
+      ],
+      "metrics_on_dataset": {
+        "total_epochs": 2651,
+        "trades": 2079,
+        "coverage": 0.7842346211,
+        "wins": 1760,
+        "losses": 319,
+        "win_rate": 0.8466791746,
+        "total_bet_BNB": 22.051344,
+        "total_pnl_BNB": 16.6694434412,
+        "roi": 0.7558111612,
+        "pnl_per_trade_BNB": 0.008090977
+      },
+      "weak_weak_plateau_flip_bin_effect": {
+        "baseline_bin": {
+          "trades": 290,
+          "wins": 200,
+          "losses": 90,
+          "win_rate": 0.6896551724
+        },
+        "after_FG_relaxed": {
+          "trades_kept": 162,
+          "wins": 132,
+          "losses": 30,
+          "win_rate": 0.8148148148,
+          "trades_killed": 128
+        }
+      }
+    }
+  }
+}

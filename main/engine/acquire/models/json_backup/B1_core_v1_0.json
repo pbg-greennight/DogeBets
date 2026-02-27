@@ -1,0 +1,75 @@
+{
+  "name": "B1 core EMA+VWAP classifier",
+  "file_version": "v1.0",
+  "description": "Pure core B1 method using EMA240 slope and VWAP drift sign. No OBV, no binning, no FlipGuard, no wagering.",
+  "dataset": {
+    "name": "DB_epoch_ochlv_merged_call15s.csv",
+    "description": "Epoch-level BTC 5-minute prediction dataset with OCHLV+approx_priceDifference merged at epoch anchors.",
+    "label_definition": {
+      "field": "approx_priceDifference",
+      "transform": "sign",
+      "mapping": {
+        "-1": "Bear (endPrice < startPrice)",
+        "0": "Neutral (no effective change)",
+        "1": "Bull (endPrice > startPrice)"
+      }
+    },
+    "anchor_row_definition": {
+      "description": "One anchor row per epoch (previousEpoch), taken as the LAST row for that epoch from the merged OCHLV+epoch table.",
+      "group_by": "previousEpoch",
+      "take": "last_by_Timestamp"
+    }
+  },
+  "features": {
+    "EMA240": {
+      "description": "240-tick EMA of Close over the full OCHLV stream (not just anchors).",
+      "equation": "EMA_t = EMA_{t-1} + alpha * (Close_t - EMA_{t-1})",
+      "alpha": "2 / (240 + 1)",
+      "seed": "EMA_0 = Close_0 (first available close)",
+      "anchor_value": "At each anchor Timestamp, take the EMA240 from the underlying stream row with the matching Timestamp."
+    },
+    "EMA240_slope": {
+      "description": "First difference of EMA240 over underlying stream, then attached to anchor rows by Timestamp.",
+      "equation": "EMA240_slope_t = EMA240_t - EMA240_{t-1}"
+    },
+    "VWAP_5m": {
+      "description": "5-minute VWAP window aligned to anchor Timestamp t.",
+      "window": "All OCHLV ticks with Timestamp in [t-5min, t].",
+      "equation": "VWAP_5m(t) = sum_i( Close_i * Volume_i ) / sum_i( Volume_i ) over the 5-minute window."
+    },
+    "VWAP_drift": {
+      "description": "Relative drift of anchor close vs 5m VWAP.",
+      "equation": "VWAP_drift = (Close_anchor - VWAP_5m) / VWAP_5m"
+    }
+  },
+  "classifier": {
+    "name": "B1_EMA_VWAP",
+    "version": "v1.0",
+    "notes": "EMA240 slope is primary; VWAP drift sign confirms weak EMA regimes.",
+    "inputs": [
+      "ema_slope = EMA240_slope at anchor",
+      "ema_abs   = |ema_slope|",
+      "ema_sign  = sign(ema_slope) in {-1,0,+1}",
+      "vwap_drift_sign = sign(VWAP_drift) in {-1,0,+1}"
+    ],
+    "logic": [
+      "If ema_abs is NaN: predict 0 (Neutral).",
+      "If ema_abs >= 0.4: predict ema_sign (Bull if >0, Bear if <0).",
+      "Else (ema_abs < 0.4):",
+      "   If ema_sign != 0 and ema_sign == vwap_drift_sign: predict ema_sign.",
+      "   Else: predict 0 (Neutral)."
+    ],
+    "output": "pred_B1 in {-1, 0, +1}."
+  },
+  "prediction_pipeline": [
+    "1. Load OCHLV stream and epoch metadata from DB_epoch_ochlv_merged_call15s.csv.",
+    "2. Build anchor rows: group by previousEpoch and take the last row by Timestamp.",
+    "3. Compute EMA240 over the full OCHLV Close stream with alpha = 2/(240+1) and EMA_0 = Close_0.",
+    "4. Compute EMA240_slope = EMA240_t - EMA240_{t-1} on the stream and attach to anchors by Timestamp.",
+    "5. For each anchor Timestamp t, compute VWAP_5m over all ticks with Timestamp in [t-5min, t].",
+    "6. Compute VWAP_drift = (Close_anchor - VWAP_5m) / VWAP_5m.",
+    "7. For each anchor, compute ema_sign = sign(EMA240_slope) and vwap_drift_sign = sign(VWAP_drift).",
+    "8. Apply the B1_EMA_VWAP logic to get pred_B1 in {-1,0,+1}.",
+    "9. Compare pred_B1 to label = sign(approx_priceDifference) for evaluation."
+  ]
+}

@@ -1,0 +1,126 @@
+{
+  "method_name": "Combo_B1_OBV_bins_baseline",
+  "version": "v1.1",
+  "description": "B1 core + OBV_soft75 filter + bin-based confidence + fee-aware P&L with 0.015 BNB base bet and 8%/2% win/loss fees. No FlipGuard.",
+  "data_spec": {
+    "source_csv": "DB_epoch_ochlv_merged_call15s.csv",
+    "anchor_definition": "Group by previousEpoch; last row by Timestamp is anchor.",
+    "label_column": "priceDifference",
+    "label_mapping": {
+      "Bull": "priceDifference > 0",
+      "Bear": "priceDifference < 0"
+    },
+    "epoch_key": "previousEpoch"
+  },
+  "features": {
+    "inherit_from": "Combo_B1_core_v1.00",
+    "ema240": {
+      "type": "ema",
+      "span": 240,
+      "column": "Close",
+      "output_column": "EMA240"
+    },
+    "ema240_slope": {
+      "type": "first_difference",
+      "source_column": "EMA240",
+      "output_column": "EMA240_slope"
+    },
+    "vwap_5m": {
+      "type": "rolling_vwap",
+      "window": "5min",
+      "close_column": "Close",
+      "volume_column": "Volume",
+      "output_column": "VWAP_5m"
+    },
+    "vwap_drift": {
+      "type": "relative_deviation",
+      "formula": "(Close_anchor - VWAP_5m) / VWAP_5m",
+      "output_column": "VWAP_drift"
+    },
+    "obv": {
+      "type": "obv_stream",
+      "description": "On-Balance Volume over the full OCHLV stream.",
+      "logic": [
+        "Initialize OBV_0 = 0.",
+        "For each stream row t > 0:",
+        "  if Close_t > Close_{t-1}: OBV_t = OBV_{t-1} + Volume_t",
+        "  if Close_t < Close_{t-1}: OBV_t = OBV_{t-1} - Volume_t",
+        "  else: OBV_t = OBV_{t-1}"
+      ],
+      "output_column": "OBV"
+    },
+    "obv_slope": {
+      "type": "first_difference",
+      "source_column": "OBV",
+      "output_column": "OBV_slope"
+    }
+  },
+  "obv_filter": {
+    "name": "OBV_soft75",
+    "description": "Soft OBV veto in weak-EMA regimes when OBV strongly disagrees with B1 direction.",
+    "parameters": {
+      "ema_strong_threshold": 0.4,
+      "obv_percentile": 75
+    },
+    "logic": [
+      "Let pred_B1 be the B1_core prediction for the anchor.",
+      "Compute abs_OBV = |OBV_slope| over all anchors, derive thr75 as 75th percentile of non-NaN abs_OBV.",
+      "If pred_B1 == 0: pred_OBV = 0.",
+      "Else:",
+      "  Let ema_abs = |EMA240_slope|.",
+      "  If ema_abs is NaN or ema_abs >= ema_strong_threshold: pred_OBV = pred_B1 (OBV ignored in strong EMA).",
+      "  Else (weak EMA):",
+      "     If sign(OBV_slope) != 0 and sign(OBV_slope) != pred_B1 and |OBV_slope| > thr75: pred_OBV = 0 (veto).",
+      "     Else: pred_OBV = pred_B1."
+    ],
+    "output_column": "pred_OBV"
+  },
+  "binning_and_confidence": {
+    "bin_axes": {
+      "ema_bin": "weak/mid/strong based on EMA240_slope absolute value tertiles",
+      "vwap_bin": "weak/strong based on |VWAP_drift| median",
+      "plateau_bin": "plateau/non_plateau (low vs high range_ratio over VWAP_5m)",
+      "flip_bin": "flip/non_flip based on label_sign change between consecutive epochs",
+      "obv_align": "with/against/neutral based on sign(OBV_slope) vs pred_OBV"
+    },
+    "bin_key_format": "ema_bin|vwap_bin|obv_align|plateau_bin|flip_bin",
+    "confidence_from_winrate": {
+      "calibration": "For each bin, compute win_rate = (#correct trades)/(#trades) using pred_OBV vs true label_sign.",
+      "mapping": "bet_frac = max(0, (win_rate - 0.5)/0.5), clipped to [0,1].",
+      "unseen_bins": "default bet_frac = 0.25."
+    }
+  },
+  "wager_model": {
+    "base_bet_BNB": 0.015,
+    "fee_win": 0.08,
+    "fee_loss": 0.02,
+    "effective_bet": "bet = base_bet_BNB * bet_frac (0\u20131)."
+  },
+  "evaluation_snapshot": {
+    "dataset": "DB_epoch_ochlv_merged_call15s.csv",
+    "metrics": {
+      "total_epochs": 2651,
+      "trades": 2174,
+      "coverage": 0.8200678989,
+      "accuracy": 0.8500459982,
+      "win_rate": 0.8500459982,
+      "total_bet_BNB": 23.04,
+      "total_pnl_BNB": 16.8110772412,
+      "roi": 0.7296474497,
+      "pnl_per_trade_BNB": 0.0077327862
+    }
+  },
+  "equations": {
+    "EMA240": "EMA_t = alpha * Close_t + (1 - alpha) * EMA_{t-1}, where alpha = 2 / (240 + 1).",
+    "VWAP_5m": "VWAP_5m(t) = (\u2211_{i \u2208 window_5m(t)} Close_i * Volume_i) / (\u2211_{i \u2208 window_5m(t)} Volume_i).",
+    "VWAP_drift": "VWAP_drift(t) = (Close_anchor(t) - VWAP_5m(t)) / VWAP_5m(t).",
+    "B1_core_logic": "Let e = EMA240_slope(t), v = VWAP_drift(t). Let s_e = sign(e), s_v = sign(v), a_e = |e|. If e is NaN \u2192 pred=0. If a_e \u2265 \u03b8_strong (0.4) \u2192 pred = s_e. Else if s_e \u2260 0 and s_e = s_v \u2192 pred = s_e. Else \u2192 pred=0.",
+    "OBV": "OBV_0 = 0; OBV_t = OBV_{t-1} + Volume_t if Close_t > Close_{t-1}; OBV_t = OBV_{t-1} - Volume_t if Close_t < Close_{t-1}; else OBV_t = OBV_{t-1}.",
+    "OBV_slope": "OBV_slope_t = OBV_t - OBV_{t-1}.",
+    "OBV_soft75_logic": "Let p_B1 = B1_core pred, o = OBV_slope(t), s_o = sign(o), a_o = |o|, thr75 = 75th percentile of a_o over anchors. If p_B1 = 0 \u2192 p_OBV=0. Else if |EMA240_slope| \u2265 \u03b8_strong \u2192 p_OBV = p_B1. Else (weak EMA): if s_o \u2260 0 and s_o \u2260 p_B1 and a_o > thr75 \u2192 p_OBV=0; else p_OBV=p_B1.",
+    "bin_key": "bin = (ema_bin, vwap_bin, obv_align, plateau_bin, flip_bin) encoded as 'ema_bin|vwap_bin|obv_align|plateau_bin|flip_bin'.",
+    "bin_bet_frac": "For each bin b: win_rate(b) = correct_trades(b) / total_trades(b). bet_frac(b) = max(0, min(1, (win_rate(b) - 0.5) / 0.5)).",
+    "PnL_win": "For a winning trade: pnl_win = bet * (1 - fee_win).",
+    "PnL_loss": "For a losing trade: pnl_loss = -bet * (1 + fee_loss)."
+  }
+}

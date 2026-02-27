@@ -1,0 +1,66 @@
+{
+  "method_name": "Combo_B1_OBV_bins_FG_strict",
+  "version": "v1.1",
+  "description": "Combo_B1_OBV_bins_baseline + strict FlipGuard applied in weak/weak/plateau/flip bins, reducing coverage but lifting accuracy and EV per trade.",
+  "base_method": "Combo_B1_OBV_bins_baseline_v1.00",
+  "flipguard": {
+    "mode": "strict",
+    "scope_bin": "ema_bin=weak, vwap_bin=weak, plateau_bin=plateau, flip_bin=flip",
+    "vwap_gate": {
+      "VW_min": 0.00017,
+      "logic": "If |VWAP_drift| < VW_min in the scope_bin, hard veto: pred_FG = 0, weight=0."
+    },
+    "curvature_features": {
+      "gS1": "first difference of sigma=3 Gaussian-smoothed anchor close series",
+      "gM1": "first difference of sigma=10 Gaussian-smoothed anchor close series",
+      "tail_length": 3
+    },
+    "curvature_thresholds": {
+      "S_s_soft_max": 5.0,
+      "S_m_soft_max": 4.0
+    },
+    "logic": [
+      "For anchors with pred_OBV != 0 in the scope_bin:",
+      "  Compute dir = pred_OBV (+1 for Bull, -1 for Bear).",
+      "  Compute gS1_tail_mean_aligned = mean(gS1[i-K+1..i] * dir).",
+      "  Compute gM1_aligned = gM1[i] * dir.",
+      "  If |VWAP_drift| < VW_min: pred_FG = 0, weight=0 (hard veto).",
+      "  Else:",
+      "     If |gS1_tail_mean_aligned| > S_s_soft_max or gM1_aligned > S_m_soft_max:",
+      "         pred_FG = 0, weight=0 (strict veto).",
+      "     Else: pred_FG = pred_OBV, weight=1."
+    ],
+    "confidence_combination": "final_conf = bin_bet_frac[bin_key] * weight."
+  },
+  "evaluation_snapshot": {
+    "dataset": "DB_epoch_ochlv_merged_call15s.csv",
+    "metrics": {
+      "total_epochs": 2651,
+      "trades": 1943,
+      "coverage": 0.7329309694,
+      "accuracy": 0.8749356665,
+      "win_rate": 0.8749356665,
+      "total_bet_BNB": 21.577424,
+      "total_pnl_BNB": 16.3753440412,
+      "roi": 0.7580101975,
+      "pnl_per_trade_BNB": 0.0084203476
+    }
+  },
+  "equations": {
+    "EMA240": "EMA_t = alpha * Close_t + (1 - alpha) * EMA_{t-1}, where alpha = 2 / (240 + 1).",
+    "VWAP_5m": "VWAP_5m(t) = (\u2211_{i \u2208 window_5m(t)} Close_i * Volume_i) / (\u2211_{i \u2208 window_5m(t)} Volume_i).",
+    "VWAP_drift": "VWAP_drift(t) = (Close_anchor(t) - VWAP_5m(t)) / VWAP_5m(t).",
+    "B1_core_logic": "Let e = EMA240_slope(t), v = VWAP_drift(t). Let s_e = sign(e), s_v = sign(v), a_e = |e|. If e is NaN \u2192 pred=0. If a_e \u2265 \u03b8_strong (0.4) \u2192 pred = s_e. Else if s_e \u2260 0 and s_e = s_v \u2192 pred = s_e. Else \u2192 pred=0.",
+    "OBV": "OBV_0 = 0; OBV_t = OBV_{t-1} + Volume_t if Close_t > Close_{t-1}; OBV_t = OBV_{t-1} - Volume_t if Close_t < Close_{t-1}; else OBV_t = OBV_{t-1}.",
+    "OBV_slope": "OBV_slope_t = OBV_t - OBV_{t-1}.",
+    "OBV_soft75_logic": "Let p_B1 = B1_core pred, o = OBV_slope(t), s_o = sign(o), a_o = |o|, thr75 = 75th percentile of a_o over anchors. If p_B1 = 0 \u2192 p_OBV=0. Else if |EMA240_slope| \u2265 \u03b8_strong \u2192 p_OBV = p_B1. Else (weak EMA): if s_o \u2260 0 and s_o \u2260 p_B1 and a_o > thr75 \u2192 p_OBV=0; else p_OBV=p_B1.",
+    "bin_key": "bin = (ema_bin, vwap_bin, obv_align, plateau_bin, flip_bin) encoded as 'ema_bin|vwap_bin|obv_align|plateau_bin|flip_bin'.",
+    "bin_bet_frac": "For each bin b: win_rate(b) = correct_trades(b) / total_trades(b). bet_frac(b) = max(0, min(1, (win_rate(b) - 0.5) / 0.5)).",
+    "PnL_win": "For a winning trade: pnl_win = bet * (1 - fee_win).",
+    "PnL_loss": "For a losing trade: pnl_loss = -bet * (1 + fee_loss).",
+    "Gaussian": "g_sigma(t) = (\u2211_{k=-K}^{K} w_k * Close_{t+k}), w_k \u221d exp(-(k^2) / (2 * sigma^2)), normalized so \u2211 w_k = 1.",
+    "Gaussian_slope": "g1_sigma(t) = g_sigma(t) - g_sigma(t-1).",
+    "FlipGuard_VW_gate": "If |VWAP_drift(t)| < VW_min then in scope bins: pred_FG=0, weight=0.",
+    "FlipGuard_curvature_strict": "Let d = pred_OBV(t) \u2208 {\u22121, +1}. gS1_tail_mean_aligned = mean(gS1(j) * d) for j in [t-K+1, t]. gM1_aligned = gM1(t) * d. If |gS1_tail_mean_aligned| > S_s_soft_max or gM1_aligned > S_m_soft_max \u2192 pred_FG=0, weight=0."
+  }
+}

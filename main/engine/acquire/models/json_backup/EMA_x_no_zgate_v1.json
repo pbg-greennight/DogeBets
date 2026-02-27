@@ -1,0 +1,59 @@
+{
+  "name": "EMA-x (NO z gate)",
+  "id": "ema_x_no_zgate_v1",
+  "version": "v1.0",
+  "description": "Recovered decision-system config: EMA cross + Vd + Z majority vote; NO z neutral gate; ticks guard; z_nan => Neutral. Intended for live dry-run (timeout/no wager).",
+  "truth_target": "call15 (derived externally when backtesting); live uses next-epoch outcome unknown.",
+  "guards": {
+    "ticks_min": 85,
+    "z_nan_neutral": true
+  },
+  "ema": {
+    "fast_span": 12,
+    "slow_span": 26,
+    "ema_ok": {
+      "enabled": true,
+      "mad_window": 200,
+      "mad_k": 0.15,
+      "note": "ema_ok = |ema_fast-ema_slow| > mad_k * MAD(diff) over rolling window"
+    }
+  },
+  "zscore": {
+    "enabled": true,
+    "window": 200,
+    "min_trade_z": 0.0,
+    "use_as_neutral_gate": false,
+    "note": "NO z gate. Z vote still used in majority."
+  },
+  "vd": {
+    "definition": "sign(vwap_tail_drift)",
+    "tail_window_sec": 90,
+    "chunks_sec": [
+      30,
+      30
+    ],
+    "note": "Vd = sign(VWAP(last 30s of tail) - VWAP(first 30s of tail))."
+  },
+  "flip": {
+    "enabled": true,
+    "k_persist": 2,
+    "definition": "flip when (E and Z disagree) persists K epochs",
+    "flip_mode_rule": "if flip and ema_ok then follow Vd else majority"
+  },
+  "vote": {
+    "majority_terms": [
+      "E",
+      "Vd",
+      "Z"
+    ],
+    "tie_breaker": "prefer Z if nonzero else E",
+    "neutral_value": 0
+  },
+  "outputs": {
+    "labels": {
+      "bull": 1,
+      "bear": -1,
+      "neutral": 0
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "method_name": "neutral_gate_v2_multi",
+  "version": "v2.0",
+  "type": "neutral_override",
+  "description": "Unified neutral override gate. Contains per-engine neutral rules. Intended to be applied after the core engine produces a Bull/Bear/Neutral prediction.",
+  "engines": {
+    "EMA_RB_v3c": {
+      "source_core_json": "EMA_RB_v3c.json",
+      "inputs": {
+        "pred_label": "Bull/Bear/Neutral from EMA_RB_v3c",
+        "z": "z-score used by EMA_RB_v3c",
+        "near0": "bool near0 volume flag",
+        "dir_lr": "sign(z) in {-1,0,+1}"
+      },
+      "parameters": {
+        "min_trade_z": 0.065,
+        "near0_force_neutral": false
+      },
+      "logic": [
+        "If pred_label in {Bull,Bear} and abs(z) <= min_trade_z then Neutral (weak-z neutral band).",
+        "Optional: if near0_force_neutral==true and near0==true then Neutral.",
+        "Otherwise pass-through pred_label."
+      ],
+      "notes": [
+        "EMA_RB_v3c already contains internal neutral logic (DISAGREE corner + near0 handling). This external gate is an extra safety band you can widen/tighten without editing EMA_RB_v3c.json."
+      ]
+    },
+    "B1_core_v1_1": {
+      "source_core_json": "B1_core_v1_1.json",
+      "inputs": {
+        "pred_label": "Bull/Bear/Neutral from B1 core",
+        "ema_slope": "EMA240_slope at anchor",
+        "vwap_drift": "VWAP drift at anchor"
+      },
+      "parameters": {
+        "min_trade_ema_slope_abs": 0.0,
+        "min_trade_vwap_abs": 0.0
+      },
+      "logic": [
+        "If pred_label in {Bull,Bear} and abs(ema_slope) <= min_trade_ema_slope_abs and abs(vwap_drift) <= min_trade_vwap_abs then Neutral.",
+        "Otherwise pass-through."
+      ],
+      "notes": [
+        "Defaults are 0 (disabled). Enable only if you want an external neutral band on B1 during offline testing."
+      ]
+    }
+  }
+}

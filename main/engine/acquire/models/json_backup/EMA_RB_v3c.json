@@ -1,0 +1,149 @@
+{
+  "name": "rollback_winner_v3c_full_locked_v1_0",
+  "version": "1.0",
+  "intent": "Per-epoch rollback guardrails that tune z_weak and z_fill_min using last-N backtest; decision engine is Winner C with soft-fill alignment in weak-z zones.",
+  "data_contract": {
+    "required_inputs": [
+      "DB_epoch_ochlv_merged_with_call15_ochlv.csv (epoch-level rows; must include call15_C, truth_call15, Next Epoch Time, previousEpoch)",
+      "DB_epoch_ochlv_merged.csv (raw OCHLV tick rows; must include Timestamp, Close, Volume, previousEpoch)"
+    ],
+    "time_basis": {
+      "decision_time": "NextEpochTime - 15 seconds",
+      "truth_label": "truth_call15 (Bull=+1, Bear=-1, Neutral=0 if applicable)"
+    },
+    "notes": [
+      "call15_C is used ONLY for logret/z computation at decision_time.",
+      "Tick OCHLV stream is used for EMA20 slope (fast sign), VWAP300 sign, and near0 volume gate (mean vol over last 90s ending at decision_time)."
+    ]
+  },
+  "fixed_constants": {
+    "wager_bnb_default": 0.015,
+    "pnl_model": {
+      "win_rate": 0.08,
+      "lose_rate": 0.03,
+      "neutral_rate": 0.0
+    },
+    "vol_near0_threshold": 0.05,
+    "near0_mean_vol_window_sec": 90,
+    "vwap_window_sec": 300,
+    "ema_fast_span_ticks": 20,
+    "logret_ema_span_epochs": 20,
+    "logret_sigma_window_epochs": 240,
+    "flip_flag": {
+      "k": 3,
+      "z_small": 0.25
+    },
+    "b1_core": {
+      "k_mad": 0.2,
+      "weak_agree_rule": "if not strong then allow fast_sign only when fast_sign == vwap_sign"
+    }
+  },
+  "soft_alignment": {
+    "enabled": true,
+    "z_align": 0.28,
+    "rule": "During fill step ONLY: if |z| < z_align then require dir_lr == fast_sign and fast_sign != 0; else allow fill normally."
+  },
+  "global_thresholds": {
+    "slope_weak_threshold": {
+      "type": "global_quantile",
+      "source_series": "abs(EMA20_slope_at_anchor)",
+      "quantile": 0.40,
+      "value_when_locked_full_dataset": 0.9256478173047071,
+      "rule": "Used ONLY inside DISAGREE-neutral corner: if abs(slope) < slope_thr and abs(z) < z_weak then Neutral when DISAGREE+flip_flag."
+    }
+  },
+  "winner_c_engine": {
+    "stages": [
+      {
+        "stage": "B1 core pre-signal",
+        "output": "pred_b1",
+        "rule": "pred_b1 = fast_sign if strong; else pred_b1 = fast_sign only if fast_sign == vwap_sign; else 0"
+      },
+      {
+        "stage": "Logret-z direction",
+        "output": "dir_lr",
+        "rule": "dir_lr = sign(z) where z = EMA(logret(call15_C), 20) / STD(logret(call15_C), 240)"
+      },
+      {
+        "stage": "Fill (non-flip only)",
+        "output": "pred_fill",
+        "rule": "If pred_b1==0 AND not near0 AND not flip_flag AND dir_lr!=0 AND |z|>=z_fill_min then pred_fill=dir_lr; else pred_fill=pred_b1",
+        "notes": [
+          "Soft alignment rule applies only inside this fill stage."
+        ]
+      },
+      {
+        "stage": "near0 volume gate",
+        "output": "pred_after_near0",
+        "rule": "If near0 then only keep prediction when (pred_fill!=0 AND pred_fill==dir_lr); otherwise force 0; if not near0 keep pred_fill"
+      },
+      {
+        "stage": "DISAGREE neutral corner (flip tie-break)",
+        "output": "final_pred",
+        "rule": "Define DISAGREE = (not near0) AND flip_flag AND (pred_b1!=0) AND (dir_lr!=0) AND (pred_b1!=dir_lr). If DISAGREE AND |z|<z_weak AND |slope|<slope_thr then final_pred=0 else final_pred=pred_after_near0"
+      }
+    ]
+  },
+  "rollback_policy": {
+    "lookback_epochs": 30,
+    "objective": {
+      "type": "lexicographic",
+      "primary": "maximize run_accuracy over last lookback (BullRun+BearRun subset)",
+      "secondary": "maximize pnl_bnb over last lookback (using pnl_model and wager_bnb_default)",
+      "tertiary": "maximize coverage over last lookback"
+    },
+    "adapted_knobs": [
+      "z_weak",
+      "z_fill_min"
+    ],
+    "initial_values": {
+      "z_weak": 0.16,
+      "z_fill_min": 0.0
+    },
+    "candidate_grid_per_epoch": {
+      "z_weak": [
+        "current",
+        "current + 0.01 (clamped)"
+      ],
+      "z_fill_min": [
+        "current",
+        "current + 0.05 (clamped)"
+      ]
+    },
+    "shrinkage_update": {
+      "rule": "new = 0.7*current + 0.3*best",
+      "clamps": {
+        "z_weak": [0.12, 0.22],
+        "z_fill_min": [0.0, 0.30]
+      }
+    },
+    "notes": [
+      "Each epoch i: evaluate candidate grid on window [i-L, i-1], pick best lexicographically, shrink-update knobs, then predict epoch i using updated knobs.",
+      "VOL_NEAR0, K_MAD, flip_flag params are FIXED in this locked version."
+    ]
+  },
+  "recovery_notes": {
+    "what_was_tested": [
+      "Winner chosen on FULL dataset vs baseline Winner C fixed (same eval range): +1.187pp overall accuracy, +0.846pp run-accuracy mean, +1.494pp flip accuracy, with ~5.04pp lower coverage."
+    ],
+    "how_to_recompute_slope_thr": [
+      "Compute EMA20 on tick Close stream (tick-level).",
+      "Compute slope20 = diff(EMA20).",
+      "For each epoch (previousEpoch), take the LAST tick row belonging to that epoch as the anchor.",
+      "Collect abs(slope20_anchor) across all epochs used, then set slope_thr = quantile(abs_slope, 0.40).",
+      "If dataset changes, update slope_thr value accordingly and re-lock."
+    ],
+    "how_to_recompute_near0": [
+      "At decision_time (NextEpochTime-15s), compute mean Volume over last 90 seconds from tick stream; near0 = mean_vol <= 0.05."
+    ],
+    "how_to_recompute_vwap_sign": [
+      "At epoch anchor time, compute VWAP over last 300 seconds from tick stream (sum(price*vol)/sum(vol)); vwap_sign = sign((Close_anchor - VWAP)/VWAP)."
+    ],
+    "truth_definition": [
+      "truth_call15 must reflect the epoch outcome you are targeting (Bull/Bear) using the 15-sec call window truth convention."
+    ],
+    "minimum_viable_debug_prints": [
+      "For each epoch: i, previousEpoch, z, dir_lr, flip_flag, mean_vol_90s, near0, fast_sign, vwap_sign, pred_b1, pred_fill, DISAGREE, z_weak, z_fill_min, final_pred, truth"
+    ]
+  }
+}

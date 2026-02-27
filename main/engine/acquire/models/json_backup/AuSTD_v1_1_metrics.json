@@ -1,0 +1,100 @@
+{
+  "n_epochs_total": 2900,
+  "n_epochs_labeled": 2900,
+  "label_name": "direction_3",
+  "feature_names": [
+    "body_frac",
+    "realized_vol_block",
+    "max_runup_norm",
+    "max_drawdown_norm",
+    "vol_z_20",
+    "range_norm_end",
+    "volume_epoch",
+    "C_over_ema5",
+    "C_over_ema10",
+    "slope_C_5",
+    "slope_C_10",
+    "rsi_14",
+    "macd_hist",
+    "pctB_20",
+    "diff_mean_5",
+    "diff_std_5",
+    "bb_width_20",
+    "atr_14"
+  ],
+  "primary_kind": "gb",
+  "split": {
+    "mode": "tail_eval",
+    "tail_size_requested": 50,
+    "train_count": 2103,
+    "tail_count": 50
+  },
+  "models": {
+    "rf": {
+      "kind": "rf",
+      "accuracy_tail": 0.8,
+      "confusion_matrix_tail": [
+        [
+          18,
+          0,
+          2
+        ],
+        [
+          2,
+          0,
+          5
+        ],
+        [
+          1,
+          0,
+          22
+        ]
+      ],
+      "n_hist": 2103,
+      "n_tail": 50,
+      "class_dist_hist": {
+        "0": 961,
+        "1": 150,
+        "2": 992
+      },
+      "class_dist_tail": {
+        "0": 20,
+        "1": 7,
+        "2": 23
+      }
+    },
+    "gb": {
+      "kind": "gb",
+      "accuracy_tail": 0.82,
+      "confusion_matrix_tail": [
+        [
+          19,
+          1,
+          0
+        ],
+        [
+          2,
+          1,
+          4
+        ],
+        [
+          2,
+          0,
+          21
+        ]
+      ],
+      "n_hist": 2103,
+      "n_tail": 50,
+      "class_dist_hist": {
+        "0": 961,
+        "1": 150,
+        "2": 992
+      },
+      "class_dist_tail": {
+        "0": 20,
+        "1": 7,
+        "2": 23
+      }
+    }
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "method_name": "confidence_v2_multi",
+  "version": "v2.0",
+  "type": "confidence_model",
+  "description": "Unified confidence scoring for live bot. Provides a scalar confidence in [0,1] for supported core engines. Each engine section defines required inputs and scoring.",
+  "engines": {
+    "EMA_RB_v3c": {
+      "source_core_json": "EMA_RB_v3c.json",
+      "intent": "Confidence for rollback_winner_v3c (Winner C engine). Uses z strength, slope strength, and agreement between fast_sign/vwap_sign and dir_lr; penalizes near0 and flip risk.",
+      "inputs": {
+        "final_pred_dir": "final prediction direction (+1 Bull, -1 Bear, 0 Neutral)",
+        "z": "z-score used by EMA_RB (float)",
+        "dir_lr": "sign(z) in {-1,0,+1}",
+        "fast_sign": "sign(EMA20_slope_at_anchor) in {-1,0,+1}",
+        "vwap_sign": "sign(VWAP300_drift_at_anchor) in {-1,0,+1}",
+        "slope_abs": "abs(EMA20_slope_at_anchor) (float)",
+        "slope_mad": "MAD scale of EMA20_slope_at_anchor (float)",
+        "near0": "bool (mean_vol_90s <= vol_near0_threshold)",
+        "flip_flag": "bool flip risk flag"
+      },
+      "parameters": {
+        "z_cap": 1.0,
+        "slope_full_scale_factor": 2.0,
+        "penalty_near0": 0.25,
+        "penalty_flip": 0.15,
+        "weights": {
+          "agreement": 0.35,
+          "z_mag": 0.45,
+          "slope_mag": 0.2
+        }
+      },
+      "equations": {
+        "agree_fast": "1 if fast_sign != 0 and fast_sign == final_pred_dir else 0",
+        "agree_vwap": "1 if vwap_sign != 0 and vwap_sign == final_pred_dir else 0",
+        "agree_z": "1 if dir_lr != 0 and dir_lr == final_pred_dir else 0",
+        "agree_score": "(agree_fast + agree_vwap + agree_z) / 3.0",
+        "z_norm": "clip(abs(z)/z_cap,0,1)",
+        "slope_norm": "clip(slope_abs/(slope_full_scale_factor*slope_mad),0,1)  # if slope_mad>0 else 0",
+        "raw": "w_agree*agree_score + w_z*z_norm + w_slope*slope_norm",
+        "penalty": "penalty_near0*(1 if near0 else 0) + penalty_flip*(1 if flip_flag else 0)",
+        "confidence": "clip(raw - penalty, 0, 1)"
+      },
+      "notes": [
+        "Confidence is computed AFTER final_pred is determined. If final_pred_dir==0 then confidence=0.",
+        "This scoring is designed to work purely from EMA_RB_v3c inputs (no legacy VWAP/EMA committee)."
+      ]
+    },
+    "B1_core_v1_1": {
+      "source_core_json": "B1_core_v1_1.json",
+      "intent": "Confidence for offline/back-up B1 core. Uses EMA240 slope strength and VWAP drift agreement. Penalizes near0 volume if available.",
+      "inputs": {
+        "pred_dir": "B1 prediction direction (+1 Bull, -1 Bear, 0 Neutral)",
+        "ema_slope": "EMA240_slope at anchor",
+        "ema_strong_threshold": "ema_strong threshold used by B1 core (float)",
+        "vwap_drift": "VWAP drift at anchor",
+        "vwap_min": "VWAP min threshold (float)",
+        "near0": "optional bool; if missing assume False"
+      },
+      "parameters": {
+        "ema_full_scale_factor": 2.0,
+        "vwap_full_scale_factor": 2.0,
+        "penalty_near0": 0.2,
+        "weights": {
+          "ema_mag": 0.65,
+          "vwap_mag": 0.35
+        }
+      },
+      "equations": {
+        "ema_mag": "clip(abs(ema_slope)/(ema_full_scale_factor*ema_strong_threshold),0,1)",
+        "vwap_mag": "clip(abs(vwap_drift)/(vwap_full_scale_factor*vwap_min),0,1) if sign(vwap_drift)==pred_dir else 0",
+        "raw": "w_ema*ema_mag + w_vwap*vwap_mag",
+        "confidence": "clip(raw - penalty_near0*(1 if near0 else 0), 0, 1)"
+      },
+      "notes": [
+        "If pred_dir==0 then confidence=0.",
+        "This block exists so the same confidence.json can be used for offline evaluation of B1_core_v1_1."
+      ]
+    }
+  },
+  "output": {
+    "confidence": "float in [0,1]",
+    "signed_confidence": "prediction_dir * confidence"
+  }
+}

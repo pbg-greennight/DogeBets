@@ -1,0 +1,29 @@
+{
+  "method_name": "logret_1",
+  "version": "v1.0",
+  "type": "custom_equation",
+  "description": "Always-betting 1-step log return on raw BTC_Close between last two live ticks. Bull if logret_1 > 0, Bear if logret_1 < 0.",
+  "equation": {
+    "feature": "logret_1",
+    "threshold": 0.0,
+    "logic": {
+      "bull_if": "logret_1 > 0",
+      "bear_if": "logret_1 < 0",
+      "neutral_if": "logret_1 == 0"
+    }
+  },
+  "classifier": {
+    "parameters": {
+      "note": "This JSON is routed as a custom_equation; standard B1 thresholds are unused."
+    }
+  },
+  "flipguard": {
+    "mode": "off"
+  },
+  "obv": {
+    "use": false
+  },
+  "bins": {
+    "use": false
+  }
+}
