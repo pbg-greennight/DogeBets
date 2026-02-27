@@ -131,7 +131,7 @@ def print_sigma_tailing_snapshots(
     # MSBC headers / LEG 1
     if sec_leg1:
         logger.info(
-            f"[pv_MSBC_Leg1]  Multi Sigma Bell Curve Segments for (Epoch {prev_epoch}) used for (Epoch {next_epoch}) Trend Determination"
+            f"[MSBC_Leg1]  Multi Sigma Bell Curve Segments for (Epoch {prev_epoch}) used for (Epoch {next_epoch}) Trend Determination"
         )
 
         logger.info(
@@ -191,7 +191,7 @@ def print_sigma_tailing_snapshots(
     # LEG 2 header
     if sec_leg2:
         logger.info(
-            f"[pv_MSBC_Leg2]  Multi Sigma Bell Curve Segments for (Epoch {prev_epoch}) used for (Epoch {next_epoch}) Trend Determination"
+            f"[MSBC_Leg2]  Multi Sigma Bell Curve Segments for (Epoch {prev_epoch}) used for (Epoch {next_epoch}) Trend Determination"
         )
         logger.info(
             f"LEG 2 ({last_kind}→NOW) ({_fmt_time(t_last)} → {_fmt_time(last_ts)})  |  leg 2 tail continuation"

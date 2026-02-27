@@ -13,7 +13,7 @@ from main.engine.process.DB_process_types import TrendDecision
 
 
 # Default model location (you confirmed this folder structure)
-DEFAULT_MODEL_FILE = "dev_method_v1_0_hookdown_neu.json"
+DEFAULT_MODEL_FILE = "method_hyster_v1.0.json"
 DEFAULT_MODEL_PATH = str(Path(__file__).resolve().parent / "models" / DEFAULT_MODEL_FILE)
 
 

@@ -171,8 +171,6 @@ def process_epoch_window(
             config=config,
         )
 
-        # ✅ FIX: print_gaussian_channel_pv_tail expects (timing, windows, pv_tail_status_dict, config, ...)
-        # NOT (timing, windows, catalog, pv_ref_sigma, config)
         try:
             pv_tail_dict = catalog.get("channels.pv_tail", {})  # will be populated if ensure_calc ran above
             pv_tail_status = print_gaussian_channel_pv_tail(
