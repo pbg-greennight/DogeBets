@@ -164,7 +164,12 @@ def process_epoch_window(
     pv_tail_status = "skipped"
     if config.get("LOG_GAUSS_CHANNELS", True):
         # Gaussian channel snapshot is sourced from FeatureCatalog computations
-        print_gaussian_channel_snapshot(timing, windows, catalog, config)
+        print_gaussian_channel_snapshot(
+            timing=timing,
+            windows=windows,
+            catalog=catalog,
+            config=config,
+        )
 
         # ✅ FIX: print_gaussian_channel_pv_tail expects (timing, windows, pv_tail_status_dict, config, ...)
         # NOT (timing, windows, catalog, pv_ref_sigma, config)
