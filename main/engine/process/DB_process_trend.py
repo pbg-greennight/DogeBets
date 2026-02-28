@@ -5,10 +5,10 @@ from __future__ import annotations
 import math
 import statistics
 import logging
+import json
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from main.engine.process.DB_process_calc import data_process_calc
 from main.engine.process.DB_process_types import TrendDecision
 
 
@@ -182,6 +182,139 @@ def _build_per_sigma_inputs(
     return out
 
 
+def _load_hyster_method_config(model_path: str) -> Dict[str, Any]:
+    p = Path(model_path)
+    with p.open("r", encoding="utf-8") as f:
+        cfg = json.load(f)
+    if not isinstance(cfg, dict):
+        raise ValueError("[method_hyster] config must be a JSON object")
+    if "method_id" not in cfg:
+        raise ValueError("[method_hyster] missing required key: method_id")
+    return cfg
+
+
+def _mean(x: list[float]) -> float:
+    return float(sum(x) / max(len(x), 1)) if x else 0.0
+
+
+def _safe_tail_slope(x: list[float], k: int) -> float:
+    if len(x) < 2:
+        return 0.0
+    kk = min(max(k, 1), len(x) - 1)
+    return float((x[-1] - x[-1 - kk]) / max(kk, 1))
+
+
+def _score_hyster_method(per_sigma: Dict[int, Dict[str, Any]], cfg: Dict[str, Any]) -> Dict[str, Any]:
+    stacks = cfg.get("stacks", {}).get("ladder", []) or []
+    vote_weights = cfg.get("stacks", {}).get("vote_weights", {}) or {}
+    dyn = cfg.get("dynamic_thresholds", {}) or {}
+    drift_cfg = dyn.get("drift", {}) or {}
+
+    flat_abs_m_norm_max = float(drift_cfg.get("flat_abs_m_norm_max", 0.5) or 0.5)
+    trend_abs_m_norm_min = float(drift_cfg.get("trend_abs_m_norm_min", 1.0) or 1.0)
+
+    per_stack: Dict[str, Dict[str, float]] = {}
+    vote_raw = 0.0
+    vote_denom = 0.0
+    collapse_hits = 0
+    expand_hits = 0
+    disorder_hits = 0
+
+    for sdef in stacks:
+        sid = str(sdef.get("id", ""))
+        sigs = [int(x) for x in (sdef.get("sigmas") or [])]
+        if not sid or not sigs:
+            continue
+
+        rows = [per_sigma.get(s, {}) for s in sigs]
+        if any(not r or not r.get("values") for r in rows):
+            continue
+
+        sign_votes = [int(r.get("sign_to", 0)) for r in rows]
+        hooks = [int(r.get("hook", 0)) for r in rows]
+        flats = [float(r.get("flat", 1.0)) for r in rows]
+        values_last = [float(r["values"][-1]) for r in rows]
+
+        slope_tail = _mean([_safe_tail_slope(list(r["values"]), 12) for r in rows])
+        slope_long = _mean([_safe_tail_slope(list(r["values"]), 36) for r in rows])
+        m_norm = slope_tail / (abs(slope_long) + 1e-9)
+
+        direction = 1 if sum(sign_votes) > 0 else (-1 if sum(sign_votes) < 0 else 0)
+        spread = max(values_last) - min(values_last)
+        spread_ref = max(abs(_mean(values_last)), 1e-9)
+        spread_norm = spread / spread_ref
+        dW_norm = _mean([abs(_safe_tail_slope(list(r["values"]), 8)) for r in rows])
+        dW_norm *= -1.0 if _mean(hooks) > 0.5 else 1.0
+        eff_order = max(abs(_mean(sign_votes)), 0.0) * (1.0 - min(1.0, _mean(flats)))
+        cross_rate = float(sum(1 for h in hooks if h > 0)) / max(len(hooks), 1)
+
+        if dW_norm < -1.0:
+            collapse_hits += 1
+        if dW_norm > 1.0:
+            expand_hits += 1
+        if cross_rate >= 0.5 or eff_order < 0.2:
+            disorder_hits += 1
+
+        weight = float(vote_weights.get(sid, 0.0) or 0.0)
+        quality = max(0.0, min(1.0, abs(m_norm) * (0.6 + 0.4 * eff_order)))
+        vote_raw += weight * direction * quality
+        vote_denom += abs(weight * quality)
+
+        per_stack[sid] = {
+            "direction": float(direction),
+            "m_norm": float(m_norm),
+            "spread_norm": float(spread_norm),
+            "dW_norm": float(dW_norm),
+            "eff_order": float(eff_order),
+            "cross_rate": float(cross_rate),
+            "weight": float(weight),
+            "quality": float(quality),
+        }
+
+    vote_norm = abs(vote_raw) / max(vote_denom, 1e-9)
+    signed_vote = 1 if vote_raw > 0 else (-1 if vote_raw < 0 else 0)
+
+    if disorder_hits >= 2:
+        regime = "DISORDER"
+        trend = "Neutral"
+        confidence = min(0.5, vote_norm)
+    elif collapse_hits >= 1 and signed_vote != 0:
+        regime = "FAN_COLLAPSE"
+        trend = "Bull" if signed_vote > 0 else "Bear"
+        confidence = min(1.0, vote_norm * 0.8)
+    elif expand_hits >= 1 and signed_vote != 0:
+        regime = "FAN_EXPAND"
+        trend = "Bull" if signed_vote > 0 else "Bear"
+        confidence = min(1.0, vote_norm)
+    elif abs(vote_raw) > 0 and vote_norm >= trend_abs_m_norm_min:
+        regime = "TIGHT_DRIFT"
+        trend = "Bull" if signed_vote > 0 else "Bear"
+        confidence = min(1.0, vote_norm * 1.05)
+    elif vote_norm <= flat_abs_m_norm_max:
+        regime = "FLAT_NEUTRAL"
+        trend = "Neutral"
+        confidence = max(0.0, 1.0 - vote_norm)
+    else:
+        regime = "NEUTRAL_GUARD"
+        trend = "Neutral"
+        confidence = max(0.0, 0.7 - vote_norm)
+
+    return {
+        "trend": trend,
+        "confidence": max(0.0, min(1.0, float(confidence))),
+        "regime": regime,
+        "scores": {
+            "neutral": float(1.0 - confidence) if trend == "Neutral" else float(max(0.0, 1.0 - vote_norm)),
+            "bull": float(confidence if trend == "Bull" else 0.0),
+            "bear": float(confidence if trend == "Bear" else 0.0),
+            "reversal": 0.0,
+        },
+        "vote_raw": float(vote_raw),
+        "vote_norm": float(vote_norm),
+        "per_stack": per_stack,
+    }
+
+
 def calculate_trend(
     curr_epoch: int,
     next_epoch: int,
@@ -225,7 +358,8 @@ def calculate_trend(
             debug=debug,
         )
 
-        processed = data_process_calc(per_sigma=per_sigma, model_path=mp)
+        method_cfg = _load_hyster_method_config(mp)
+        processed = _score_hyster_method(per_sigma=per_sigma, cfg=method_cfg)
 
         raw_trend = str(processed.get("trend", "Neutral"))
         scores = processed.get("scores", {}) or {}
@@ -250,14 +384,18 @@ def calculate_trend(
         else:  # Bear
             confidence = max(0.0, min(1.0, bear_score))
 
-        model_id = str(processed.get("model_id", "DEV_METHOD_v1.0_HOOKDOWN_NEU"))
-        reason = str(processed.get("reason", ""))
+        model_id = str(method_cfg.get("method_id", "method_hyster_v1.0"))
+        reason = str(processed.get("regime", "NEUTRAL_GUARD"))
 
         extras = {
             "raw_trend": raw_trend,
             "reason": reason,
             "scores": {"neutral": neutral_score, "bull": bull_score, "bear": bear_score, "reversal": rev_score},
-            "features": processed.get("features", {}) or {},
+            "features": {
+                "vote_raw": processed.get("vote_raw", 0.0),
+                "vote_norm": processed.get("vote_norm", 0.0),
+                "per_stack": processed.get("per_stack", {}),
+            },
             "per_sigma_inputs": {int(k): {kk: (vv if kk != "values" else f"n={len(vv)}") for kk, vv in v.items()} for k, v in per_sigma.items()},
         }
 
