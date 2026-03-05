@@ -1,3 +1,5 @@
+# main/engine/process/printing/DB_process_printing_csd_dcsd.py
+
 from __future__ import annotations
 
 import logging
@@ -10,9 +12,10 @@ logger = logging.getLogger(__name__)
 # Helpers
 # =====================================================================================================================
 from main.engine.process.printing.DB_process_printing_utils import (
-    _safe_get, _fmt_time, _fmt_float, _line, _fmt_price, _section_on, _series_preview, _as_mapping, _fmt_iso,
+    _safe_get, _fmt_time, _fmt_float, _line, _fmt_price, _series_preview, _as_mapping, _fmt_iso,
     _arrow, _print_cfg
 )
+from main.engine.process.printing.DB_process_SectionLogger import get_section_logger
 
 def print_gaussian_channel_pv_tail(timing, windows, pv_tail_status, config, per_sigma_full=None, pv_ref=None):
     """
@@ -40,6 +43,7 @@ def print_gaussian_channel_pv_tail(timing, windows, pv_tail_status, config, per_
     """
     import logging
     log = logging.getLogger(__name__)
+    slog = get_section_logger(log, config)
 
     # Respect config toggle (your codebase uses this flag name)
     if not bool(_safe_get(config, "LOG_GAUSS_PV_TAIL", default=True)):
@@ -72,7 +76,7 @@ def print_gaussian_channel_pv_tail(timing, windows, pv_tail_status, config, per_
 
     # If we have nothing to print, bail
     if not per_leg1 and not per_leg2:
-        log.info("[pv_tail] PV-tail: no leg data (per_sigma_leg1/per_sigma_leg2 missing)")
+        slog.PV_TAIL_CHANNELS("[pv_tail] PV-tail: no leg data (per_sigma_leg1/per_sigma_leg2 missing)")
         return "empty"
 
     # --- Helpers
@@ -124,8 +128,11 @@ def print_gaussian_channel_pv_tail(timing, windows, pv_tail_status, config, per_
     def _print_leg(tag_csd, tag_dcsd, leg_name, per_sigma_dict):
         # Header line like your example
         epoch_str = f"(Epoch {epoch_used} used for Epoch {epoch_next})" if epoch_used and epoch_next else ""
-        log.info(_line("-", 155))
-        log.info(f"[{tag_csd}]  CHANNEL SERIES DUMP {epoch_str} ({leg_name})")
+        slog.PV_TAIL_CHANNELS(_line("-", 155))
+        if tag_csd == "csd_leg1":
+            slog.CSD_DCSD_Leg1_CSD(f"[{tag_csd}]  CHANNEL SERIES DUMP {epoch_str} ({leg_name})")
+        else:
+            slog.CSD_DCSD_Leg2_CSD(f"[{tag_csd}]  CHANNEL SERIES DUMP {epoch_str} ({leg_name})")
 
         # Sort sigmas numerically
         for sigma in sorted(per_sigma_dict.keys(), key=lambda x: int(x)):
@@ -138,15 +145,26 @@ def print_gaussian_channel_pv_tail(timing, windows, pv_tail_status, config, per_
             pos = _position(mid, lower, upper)
 
             # CHANNEL SERIES block
-            log.info(f"σ={int(sigma):3d} | Midline     : {_fmt_series(mid, 2)}")
-            log.info(f"       | Lower Band  : {_fmt_series(lower, 2)}")
-            log.info(f"       | Upper Band  : {_fmt_series(upper, 2)}")
-            log.info(f"       | ChannelWidth: {_fmt_series(width, 2)}")
-            log.info(f"       | Position    : {_fmt_series(pos, 2)}")
-            log.info("")
+            if tag_csd == "csd_leg1":
+                slog.CSD_DCSD_Leg1_CSD(f"σ={int(sigma):3d} | Midline     : {_fmt_series(mid, 2)}")
+                slog.CSD_DCSD_Leg1_CSD(f"       | Lower Band  : {_fmt_series(lower, 2)}")
+                slog.CSD_DCSD_Leg1_CSD(f"       | Upper Band  : {_fmt_series(upper, 2)}")
+                slog.CSD_DCSD_Leg1_CSD(f"       | ChannelWidth: {_fmt_series(width, 2)}")
+                slog.CSD_DCSD_Leg1_CSD(f"       | Position    : {_fmt_series(pos, 2)}")
+                slog.CSD_DCSD_Leg1_CSD("")
+            else:
+                slog.CSD_DCSD_Leg2_CSD(f"σ={int(sigma):3d} | Midline     : {_fmt_series(mid, 2)}")
+                slog.CSD_DCSD_Leg2_CSD(f"       | Lower Band  : {_fmt_series(lower, 2)}")
+                slog.CSD_DCSD_Leg2_CSD(f"       | Upper Band  : {_fmt_series(upper, 2)}")
+                slog.CSD_DCSD_Leg2_CSD(f"       | ChannelWidth: {_fmt_series(width, 2)}")
+                slog.CSD_DCSD_Leg2_CSD(f"       | Position    : {_fmt_series(pos, 2)}")
+                slog.CSD_DCSD_Leg2_CSD("")
 
         # DERIVED SERIES block (Δ lines)
-        log.info(f"[{tag_dcsd}]  DERIVED SERIES {epoch_str} ({leg_name})")
+        if tag_dcsd == "dcsd_leg1":
+            slog.CSD_DCSD_Leg1_DCSD(f"[{tag_dcsd}]  DERIVED SERIES {epoch_str} ({leg_name})")
+        else:
+            slog.CSD_DCSD_Leg2_DCSD(f"[{tag_dcsd}]  DERIVED SERIES {epoch_str} ({leg_name})")
 
         for sigma in sorted(per_sigma_dict.keys(), key=lambda x: int(x)):
             pack = per_sigma_dict.get(sigma) or {}
@@ -168,11 +186,18 @@ def print_gaussian_channel_pv_tail(timing, windows, pv_tail_status, config, per_
             d_lower = _diff(lower)
             d_upper = _diff(upper)
 
-            log.info(f"σ={int(sigma):3d} | MidlineSlope(Δ) : {_fmt_series(d_mid, 2)}")
-            log.info(f"       | WidthChange(Δw) : {_fmt_series(d_width, 2)}")
-            log.info(f"       | LowerSlope(Δlo) : {_fmt_series(d_lower, 2)}")
-            log.info(f"       | UpperSlope(Δhi) : {_fmt_series(d_upper, 2)}")
-            log.info("")
+            if tag_dcsd == "dcsd_leg1":
+                slog.CSD_DCSD_Leg1_DCSD(f"σ={int(sigma):3d} | MidlineSlope(Δ) : {_fmt_series(d_mid, 2)}")
+                slog.CSD_DCSD_Leg1_DCSD(f"       | WidthChange(Δw) : {_fmt_series(d_width, 2)}")
+                slog.CSD_DCSD_Leg1_DCSD(f"       | LowerSlope(Δlo) : {_fmt_series(d_lower, 2)}")
+                slog.CSD_DCSD_Leg1_DCSD(f"       | UpperSlope(Δhi) : {_fmt_series(d_upper, 2)}")
+                slog.CSD_DCSD_Leg1_DCSD("")
+            else:
+                slog.CSD_DCSD_Leg2_DCSD(f"σ={int(sigma):3d} | MidlineSlope(Δ) : {_fmt_series(d_mid, 2)}")
+                slog.CSD_DCSD_Leg2_DCSD(f"       | WidthChange(Δw) : {_fmt_series(d_width, 2)}")
+                slog.CSD_DCSD_Leg2_DCSD(f"       | LowerSlope(Δlo) : {_fmt_series(d_lower, 2)}")
+                slog.CSD_DCSD_Leg2_DCSD(f"       | UpperSlope(Δhi) : {_fmt_series(d_upper, 2)}")
+                slog.CSD_DCSD_Leg2_DCSD("")
 
     # --- LEG 1 (prev -> last) and LEG 2 (last -> now)
     # If pv_pair is missing, we still print, just use generic labels.
@@ -183,7 +208,7 @@ def print_gaussian_channel_pv_tail(timing, windows, pv_tail_status, config, per_
         _print_leg("csd_leg1", "dcsd_leg1", leg1_label, per_leg1)
     else:
         # Don’t spam; just note once
-        log.info("[pv_tail] no LEG 1 data (per_sigma_leg1 empty)")
+        slog.PV_TAIL_CHANNELS("[pv_tail] no LEG 1 data (per_sigma_leg1 empty)")
 
     if per_leg2:
         _print_leg("csd_leg2", "dcsd_leg2", leg2_label, per_leg2)

@@ -1,0 +1,47 @@
+{
+  "method_id": "trend_method_v2",
+  "name": "Trend Method v2 (Hysteresis + Diagnostics Fusion)",
+  "version": "2.0",
+  "description": [
+    "Trend method using a primary hysteresis episode boundary pair (default g38 vs g83) to define episodes,",
+    "a ladder of Gaussian fan stacks (23\u201383, 38\u201383, 53\u201383, 68\u201383) to measure drift/structure/shape,",
+    "dynamic thresholds based on rolling 60-minute baselines (percentiles + MAD),",
+    "and an early-probe pair (g23 vs g83) to detect early collapse/exhaustion inside an episode.",
+    "Outputs Bull/Bear/Neutral + confidence + stage + ETA-to-end when collapsing."
+  ],
+  "notes": {
+    "g8_usage": [
+      "g8 is not part of structural ladder voting.",
+      "It may be used later as a micro-burst overlay to lower confidence during instability or flag early breakout watch."
+    ],
+    "neutral_policy": [
+      "Prefer Neutral when DISORDER dominates or drift is flat, even if short-lived g23 movements occur.",
+      "TIGHT_DRIFT may override guardrails except when regime is DISORDER/TRANSITION."
+    ],
+    "future_tuning": [
+      "Percentiles (25/75) and normalized thresholds (0.5/1.0) are initial defaults and can be tuned by backtest.",
+      "Episode duration baseline should accumulate online (median duration per boundary pair)."
+    ]
+  },
+  "includes": [
+    "parts/trend_method_time_inputs_pairs.json",
+    "parts/trend_method_stacks.json",
+    "parts/trend_method_features_thresholds.json",
+    "parts/trend_method_gaussian_engine.json",
+    "parts/trend_method_hysteresis_engine.json",
+    "parts/trend_method_guardrails.json",
+    "parts/trend_method_engine_layer.json",
+    "parts/trend_method_engine_library.json"
+  ],
+  "toggles": {
+    "hysteresis": {
+      "enabled": false
+    },
+    "gaussian": {
+      "enabled": true
+    },
+    "guardrails": {
+      "enabled": true
+    }
+  }
+}

@@ -37,7 +37,7 @@ LABELS = ("Bull", "Bear", "Neutral")
 
 # Option 2 reset style: set this to the epoch you want stats to start from.
 # When you want to reset coverage/accuracy, just change this number.
-STATS_BASELINE_EPOCH = 315580  # e.g., 315231
+STATS_BASELINE_EPOCH = 318748  # e.g., 315231
 
 
 def _parse_money(x: Any) -> Optional[float]:

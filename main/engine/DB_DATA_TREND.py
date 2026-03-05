@@ -19,7 +19,7 @@ from datetime import datetime
 from main.engine.DB_round_fetch import fetch_last_epoch_info
 
 BASE_DIR = Path(__file__).resolve().parent
-TS_DIR = BASE_DIR / "ts"
+TS_DIR = (BASE_DIR / ".." / "ts").resolve()
 TREND_LOG_FILE = TS_DIR / "json" / "DB_rounds_trend.json"
 
 # Logging config
@@ -62,40 +62,18 @@ def epoch_trend():
     try:
         _, _, _, _, next_epoch, _ = fetch_last_epoch_info()
 
-        # Pull the same config used by orchestrator (exact same TREND_OUT_JSON)
-        try:
-            from main.engine.process.DB_process_config import cfg
-        except Exception:
-            # fallback if launched with different import root
-            from main.engine.process.DB_process_config import cfg
+        from main.engine.process.DB_process_trend import calculate_trend
 
-        config = cfg()
-        out_path = config.get("TREND_OUT_JSON")
-
-        if not out_path:
-            logging.error("[epoch_trend] cfg().TREND_OUT_JSON is not set. Orchestrator will not publish trend JSON.")
-            logging.info("=" * 120)
-            return "Neutral", 0.0, next_epoch
-
-        p = Path(out_path)
-
-        if not p.exists():
-            logging.error(f"[epoch_trend] TREND_OUT_JSON not found: {p}")
-            logging.info("=" * 120)
-            return "Neutral", 0.0, next_epoch
-
-        payload = json.loads(p.read_text(encoding="utf-8"))
-
-        trend_label = str(payload.get("trend", "Neutral"))
-        confidence = float(payload.get("confidence", 0.0) or 0.0)
-        model_version = str(payload.get("model", ""))
-        notes = str(payload.get("notes", ""))
-        next_epoch_json = payload.get("next_epoch", None)
+        trend_label = "trend", "Neutral"
+        confidence = "confidence", 0.0
+        model_version = "model_id", ""
+        mode = "reason", ""
+        next_epoch_json = "next_epoch", None
         final_next_epoch = int(next_epoch_json) if next_epoch_json is not None else next_epoch
 
         logging.info(
             f"🔚 Final Recorded Trend for Next Epoch: {final_next_epoch}  =  {trend_label}   "
-            f"| (confidence={confidence:.3f}, model={model_version}, notes={notes})"
+            f"| (confidence={confidence:.3f}, model={model_version}, notes={mode})"
         )
         logging.info("=" * 139)
 

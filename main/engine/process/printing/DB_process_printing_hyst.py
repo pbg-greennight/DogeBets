@@ -1,16 +1,18 @@
 # main/engine/process/printing/DB_process_printing_hyst.py
 
+import math
+import statistics
 import logging
 import numpy as np
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
-
 from .DB_process_printing_utils import (
     _safe_get,
     _fmt_time,
     _line,
-    _section_on,
+    _print_cfg,
 )
+from main.engine.process.printing.DB_process_SectionLogger import get_section_logger
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +27,7 @@ _HYST_TRACKER: Dict[str, Any] = {
     "episode_pair": None,
     "last_primary_flip_ts": None,
 }
+
 
 # ======================================================================================
 # PUBLIC EXPORTS (for DB_process_calc / DB_process_trend later)
@@ -45,6 +48,14 @@ def _sign(x: float, eps: float = 1e-12) -> int:
     if x < -eps:
         return -1
     return 0
+
+
+def _tail_preview(label: str, arr: np.ndarray, n: int = 10) -> str:
+    """Debug helper to show last n values of a diff series."""
+    if arr.size == 0:
+        return f"{label}=<empty>"
+    tail = arr[-n:] if arr.size >= n else arr
+    return f"{label}=[" + ", ".join(f"{x:+.6f}" for x in tail) + "]"
 
 
 def _mad(arr: np.ndarray) -> float:
@@ -80,6 +91,30 @@ def _compute_slope(ts: List[datetime], vals: np.ndarray) -> float:
         return 0.0
 
 
+def _compute_accel(ts: List[datetime], vals: np.ndarray) -> float:
+    """
+    Quadratic acceleration vs seconds (2nd derivative).
+    Uses y = a*x^2 + b*x + c => y'' = 2a.
+    vals may contain NaN (caller may pass unfiltered).
+    """
+    if len(ts) < 7:
+        return 0.0
+    x = np.array([(t - ts[0]).total_seconds() for t in ts], dtype=float)
+    y = vals.astype(float)
+    if not np.isfinite(y).any():
+        return 0.0
+    m = np.isfinite(y)
+    if m.sum() < 7:
+        return 0.0
+    x2 = x[m]
+    y2 = y[m]
+    try:
+        a = float(np.polyfit(x2, y2, 2)[0])
+        return float(2.0 * a)
+    except Exception:
+        return 0.0
+
+
 def _find_last_sign_flip(ts: List[datetime], vals: np.ndarray) -> Optional[datetime]:
     """Find most recent index where sign changes between two adjacent non-zero signs."""
     if len(ts) < 3 or vals.size < 3:
@@ -94,10 +129,10 @@ def _find_last_sign_flip(ts: List[datetime], vals: np.ndarray) -> Optional[datet
 
 
 def _nearest_align(
-    base_ts: List[datetime],
-    other_ts: List[datetime],
-    other_vals: np.ndarray,
-    tol_seconds: float = 3.0,
+        base_ts: List[datetime],
+        other_ts: List[datetime],
+        other_vals: np.ndarray,
+        tol_seconds: float = 3.0,
 ) -> np.ndarray:
     """
     Nearest neighbor alignment (Phase 1).
@@ -135,274 +170,214 @@ def _nearest_align(
 # ======================================================================================
 
 def compute_hysteresis_features(
-    per_sigma_hist: Dict[int, Dict[str, Any]],
-    decision_dt: datetime,
-    lookback_seconds: int = 3600,
-    tail_seconds: int = 120,
-    align_tol_seconds: float = 3.0,
-    primary_default: Tuple[int, int] = (38, 83),
-    primary_slow: Tuple[int, int] = (53, 83),
-    probe_pair: Tuple[int, int] = (23, 83),
-) -> Dict[str, Any]:
+    per_sigma_hist: dict,
+    decision_dt,
+    config: dict | None = None,
+    logger=None,
+) -> dict:
     """
-    Compute hysteresis episode + ladder stack metrics.
-    DOES NOT produce Bull/Bear/Neutral or confidence.
-    Returns a hyst_obj dict usable by trend/calc modules.
-    """
+    Compute hysteresis features used by:
+      - print_hysteresis_fan_stack()
+      - trend_method_v2 (DISORDER / ORDER checks)
+    This function is intentionally defensive: it always returns a dict with
+    stable keys, even when inputs/config are missing.
 
-    # ---- basic guards
-    required = {23, 38, 53, 68, 83}
-    missing = sorted([s for s in required if s not in per_sigma_hist])
-    if missing:
+    Expected per_sigma_hist:
+        {sigma: {"values": [...], "times": [...]}} OR {sigma: {"values": [...]}}
+        times are optional; when absent we won't compute cross timestamps.
+
+    Config (optional):
+        time_inputs_pairs: {"pairs": {"episode_primary_default":[38,83], ...}}
+        hysteresis_engine: ... (not required here)
+    """
+    cfg = config or {}
+    pairs_cfg = (cfg.get("time_inputs_pairs") or {}).get("pairs") or {}
+
+    def _get_series(sigma: int) -> list[float]:
+        blob = per_sigma_hist.get(sigma) or {}
+        vals = blob.get("values") if isinstance(blob, dict) else None
+        if vals is None and isinstance(blob, (list, tuple)):
+            vals = list(blob)
+        return list(vals or [])
+
+    def _diff_series(a: int, b: int) -> list[float]:
+        va = _get_series(a)
+        vb = _get_series(b)
+        n = min(len(va), len(vb))
+        if n <= 0:
+            return []
+        return [va[-n + i] - vb[-n + i] for i in range(n)]
+
+    def _sign(x: float) -> int:
+        return 1 if x > 0 else (-1 if x < 0 else 0)
+
+    def _safe_mad(xs: list[float]) -> float:
+        if not xs:
+            return 0.0
+        m = statistics.median(xs)
+        dev = [abs(x - m) for x in xs]
+        return statistics.median(dev)
+
+    def _tail_slope(xs: list[float], tail: int = 60) -> float:
+        if not xs:
+            return 0.0
+        seg = xs[-min(tail, len(xs)):]
+        if len(seg) < 2:
+            return 0.0
+        # simple slope per-sample
+        return (seg[-1] - seg[0]) / float(len(seg) - 1)
+
+    def _cross_rate(xs: list[float], tail: int = 300) -> float:
+        if not xs:
+            return 0.0
+        seg = xs[-min(tail, len(xs)):]
+        if len(seg) < 3:
+            return 0.0
+        s_prev = _sign(seg[0])
+        flips = 0
+        steps = 0
+        for v in seg[1:]:
+            s = _sign(v)
+            if s == 0:
+                continue
+            if s_prev == 0:
+                s_prev = s
+                continue
+            steps += 1
+            if s != s_prev:
+                flips += 1
+                s_prev = s
+        return (flips / steps) if steps else 0.0
+
+    def _percentile_rank(abs_now: float, abs_series: list[float]) -> float:
+        if not abs_series:
+            return 0.0
+        less = sum(1 for x in abs_series if x <= abs_now)
+        return less / float(len(abs_series))
+
+    # --- Choose primary + probe pairs (default to (38,83) and (23,83)) ---
+    primary_pair = pairs_cfg.get("episode_primary_default") or [38, 83]
+    probe_pair = pairs_cfg.get("episode_probe_default") or [23, 83]
+
+    try:
+        p_a, p_b = int(primary_pair[0]), int(primary_pair[1])
+    except Exception:
+        p_a, p_b = 38, 83
+    try:
+        q_a, q_b = int(probe_pair[0]), int(probe_pair[1])
+    except Exception:
+        q_a, q_b = 23, 83
+
+    d_primary = _diff_series(p_a, p_b)
+    d_probe = _diff_series(q_a, q_b)
+
+    # Fallback if series missing: return minimal structure to avoid KeyErrors downstream
+    if not d_primary:
         return {
-            "meta": {
-                "skipped": True,
-                "skip_reason": f"missing_sigmas:{missing}",
-                "missing_sigmas": missing,
-            }
+            "pair_used": [p_a, p_b],
+            "eta": None,
+            "episode": {"pair_used": [p_a, p_b]},
+            "primary": {"pair": [p_a, p_b], "now": None, "sign": 0, "last_cross": None},
+            "probe": {"pair": [q_a, q_b], "now": None, "sign": 0, "last_cross": None},
+            "stacks": {"S1": {"stacks": {}, "note": "missing primary diff series"}},
         }
 
-    def _series(sigma: int) -> Tuple[List[datetime], np.ndarray]:
-        ts = per_sigma_hist[sigma]["ts"]
-        vals = np.array(per_sigma_hist[sigma]["values"], dtype=float)
-        return ts, vals
+    now_p = float(d_primary[-1])
+    now_q = float(d_probe[-1]) if d_probe else 0.0
 
-    # base grid = g83 timestamps (slowest)
-    ts83, g83 = _series(83)
+    # ETA to cross (very rough): time to reach 0 given tail slope
+    slope_p = _tail_slope(d_primary, tail=60)
+    eta = None
+    if slope_p != 0.0:
+        eta_samp = (-now_p) / slope_p
+        if eta_samp > 0:
+            # we don't know seconds/sample reliably here; treat as samples
+            eta = float(eta_samp)
 
-    # baseline window mask
-    cutoff = decision_dt - timedelta(seconds=lookback_seconds)
-    mask_base = np.array([t >= cutoff for t in ts83], dtype=bool)
+    abs_p = [abs(x) for x in d_primary]
+    mad_p = _safe_mad(abs_p) or 1e-12
+    W_now = abs(now_p) / mad_p
+    W_p75 = (sorted(abs_p)[int(0.75 * (len(abs_p) - 1))] / mad_p) if len(abs_p) >= 2 else W_now
+    W_pct = _percentile_rank(abs(now_p), abs_p)
 
-    # ---- choose primary pair (38,83) unless no crossing seen in lookback -> (53,83)
-    mode = "DEFAULT"
-    pair = primary_default
+    cross_rate = _cross_rate(d_primary, tail=300)
+    eff_order = max(0.0, 1.0 - cross_rate)
 
-    def _d_pair(a: int, b: int) -> Tuple[np.ndarray, Optional[datetime]]:
-        ts_a, g_a = _series(a)
-        g_a_al = _nearest_align(ts83, ts_a, g_a, tol_seconds=align_tol_seconds)
-        d = g_a_al - g83  # b assumed 83 base here
-        last_flip = _find_last_sign_flip(ts83, d[mask_base])
-        # last_flip found in masked array uses masked indices; simplest: recompute on full array:
-        last_flip_full = _find_last_sign_flip(ts83, d)
-        return d, last_flip_full
+    # "order" scores: simplistic but stable
+    order_bull = 1.0 if now_p > 0 else 0.0
+    order_bear = 1.0 if now_p < 0 else 0.0
 
-    d38_83, last_flip_38 = _d_pair(38, 83)
+    # normalized slope magnitude
+    m_norm = abs(slope_p) / mad_p
 
-    # "slow switch": if there is no recent crossing (within lookback), we use (53,83)
-    # We approximate that by: no crossing found at all OR last_flip is older than cutoff.
-    if last_flip_38 is None or last_flip_38 < cutoff:
-        d53_83, last_flip_53 = _d_pair(53, 83)
-        if last_flip_53 is not None:
-            pair = primary_slow
-            d_primary = d53_83
-            last_cross = last_flip_53
-            mode = "SLOW_SWITCH"
-        else:
-            d_primary = d38_83
-            last_cross = last_flip_38
-    else:
-        d_primary = d38_83
-        last_cross = last_flip_38
-
-    # Episode start anchor = last crossing within lookback if available
-    start_ts = last_cross if (last_cross is not None and last_cross >= cutoff) else None
-    elapsed = (decision_dt - start_ts).total_seconds() if start_ts else None
-    stage = "IN_PROGRESS"  # true stage classification belongs in DB_process_trend/calc
-
-    # ---- probe pair (23,83) flags (no trend decision, only signals)
-    ts23, g23 = _series(probe_pair[0])
-    g23_al = _nearest_align(ts83, ts23, g23, tol_seconds=align_tol_seconds)
-    d23_83 = g23_al - g83
-    probe_last_flip = _find_last_sign_flip(ts83, d23_83)
-
-    flip_watch = False
-    if start_ts and probe_last_flip and probe_last_flip > start_ts:
-        # probe flipped after episode start (primary not necessarily ended yet)
-        flip_watch = True
-
-    # fast collapse flag (simple Phase 1 proxy): |d_probe| slope strongly negative over tail
-    tail_cut = decision_dt - timedelta(seconds=tail_seconds)
-    mask_tail = np.array([t >= tail_cut for t in ts83], dtype=bool)
-    ts_tail = [ts83[i] for i in range(len(ts83)) if mask_tail[i]]
-    dprobe_tail = np.abs(d23_83[mask_tail])
-    dprobe_slope = _compute_slope(ts_tail, dprobe_tail)  # negative means collapsing
-    fast_collapse = bool(dprobe_slope < 0)
-
-    # ---- ladder stacks metrics (raw features; no vote/fusion)
-    ladder_defs = {
-        "S0": [23, 38, 53, 68, 83],
-        "S1": [38, 53, 68, 83],
-        "S2": [53, 68, 83],
-        "S3": [68, 83],
+    # Build S1 summary expected by trend_method_v2
+    s1 = {
+        "pair_used": [p_a, p_b],
+        "probe_pair": [q_a, q_b],
+        "d_now": now_p,
+        "probe_now": now_q,
+        "cross_rate": cross_rate,
+        "eff_order": eff_order,
+        "order_bull": order_bull,
+        "order_bear": order_bear,
+        "W_now": W_now,
+        "W_p75": W_p75,
+        "W_pct": W_pct,
+        "m_norm": m_norm,
+        "eta_samples": eta,
     }
 
-    stacks: Dict[str, Any] = {}
-    for sid, sigs in ladder_defs.items():
-        series_map = {}
-        for s in sigs:
-            ts_s, g_s = _series(s)
-            series_map[s] = _nearest_align(ts83, ts_s, g_s, tol_seconds=align_tol_seconds)
-
-        vals_stack = np.vstack([series_map[s] for s in sigs])  # shape: (k, n)
-        mean_curve = np.nanmean(vals_stack, axis=0)
-
-        # tail series
-        mean_tail = mean_curve[mask_tail]
-        m = _compute_slope(ts_tail, mean_tail)
-
-        # baseline drift scale (MAD of mean curve changes over baseline)
-        mean_base = mean_curve[mask_base]
-        m_scale = _mad(mean_base)
-        m_norm = float(m / (m_scale + 1e-12)) if np.isfinite(m_scale) else 0.0
-
-        # spread series
-        spread_series = np.nanmax(vals_stack, axis=0) - np.nanmin(vals_stack, axis=0)
-        W_now = float(spread_series[-1]) if np.isfinite(spread_series[-1]) else float("nan")
-
-        spread_base = spread_series[mask_base]
-        W_p25 = _percentile(spread_base, 25)
-        W_p75 = _percentile(spread_base, 75)
-
-        # percentile position (0..100) of current W vs baseline
-        if spread_base.size > 10 and np.isfinite(W_now):
-            W_pct = float(np.mean(spread_base <= W_now) * 100.0)
-        else:
-            W_pct = float("nan")
-
-        # spread velocity on tail
-        spread_tail = spread_series[mask_tail]
-        dW = _compute_slope(ts_tail, spread_tail)
-
-        dW_scale = _mad(spread_base)
-        dW_norm = float(dW / (dW_scale + 1e-12)) if np.isfinite(dW_scale) else 0.0
-
-        # order scores (adjacent inequalities at last point)
-        last_vals = vals_stack[:, -1]
-        # need all finite to assess order reliably
-        if np.all(np.isfinite(last_vals)):
-            bull_ok = np.all(np.diff(last_vals) < 0)  # g_fastest > g_next > ...
-            bear_ok = np.all(np.diff(last_vals) > 0)
-            order_bull = 1.0 if bull_ok else 0.0
-            order_bear = 1.0 if bear_ok else 0.0
-        else:
-            order_bull = 0.0
-            order_bear = 0.0
-
-        # simple cross-rate: count sign flips in adjacent differences over tail
-        cross_count = 0
-        pairs = list(zip(sigs[:-1], sigs[1:]))
-        for a, b in pairs:
-            da = series_map[a][mask_tail] - series_map[b][mask_tail]
-            sgn = np.array([_sign(x) for x in da], dtype=int)
-            # count non-zero sign changes
-            for i in range(1, len(sgn)):
-                if sgn[i] != 0 and sgn[i - 1] != 0 and sgn[i] != sgn[i - 1]:
-                    cross_count += 1
-        tail_minutes = max(tail_seconds / 60.0, 1e-9)
-        cross_rate = float(cross_count / tail_minutes)
-
-        # stability proxy: 1/(1+cross_rate)
-        order_stability = float(1.0 / (1.0 + cross_rate))
-        eff_order = float(max(order_bull, order_bear) * order_stability)
-
-        # "ok" threshold for eff_order relative to baseline (p60 of eff_order baseline)
-        # Phase 1 baseline: approximate using spread tightness as proxy when computing eff_order history is expensive
-        # -> return eff_order + let trend/calc decide thresholds using full baseline later
-        eff_order_ok = None  # leave decision to DB_process_trend/calc
-
-        stacks[sid] = {
-            "sigmas": sigs,
-            "m": float(m),
-            "m_norm": float(m_norm),
-            "W_now": W_now,
-            "W_pct": W_pct,
-            "W_p25": W_p25,
-            "W_p75": W_p75,
-            "dW": float(dW),
-            "dW_norm": float(dW_norm),
-            "order_bull": float(order_bull),
-            "order_bear": float(order_bear),
-            "order_stability": float(order_stability),
-            "eff_order": float(eff_order),
-            "eff_order_ok": eff_order_ok,
-            "cross_rate": float(cross_rate),
-            "valid": True,
-            "notes": "",
-        }
-
-    # ---- optional ETA metric (purely descriptive, not a decision)
-    # Use S1 by default as a stable source for collapse ETA if dW < 0 and W meaningful
-    eta_to_end_seconds = None
-    eta_source = None
-    s1 = stacks.get("S1")
-    if s1 and np.isfinite(s1["W_now"]) and s1["dW"] < 0:
-        eta_to_end_seconds = float(abs(s1["W_now"] / max(abs(s1["dW"]), 1e-12)))
-        eta_source = "S1"
-
-    hyst_obj = {
-        "method_id": "method_hyster_v1.0",
+    return {
+        "pair_used": [p_a, p_b],
+        "eta": eta,
         "episode": {
-            "pair_used": [pair[0], pair[1]],
-            "mode": mode,
-            "lookback_seconds": lookback_seconds,
-            "start_ts": start_ts,
-            "last_cross_ts": last_cross,
-            "elapsed_seconds": elapsed,
-            "stage": stage,
-            "d_now": float(d_primary[-1]) if d_primary.size else float("nan"),
-            "sign_now": int(_sign(float(d_primary[-1]))) if d_primary.size else 0,
+            "pair_used": [p_a, p_b],
+            "pair_probe": [q_a, q_b],
+        },
+        "primary": {
+            "pair": [p_a, p_b],
+            "now": now_p,
+            "sign": _sign(now_p),
+            "d_abs_slope_tail": abs(slope_p),
         },
         "probe": {
-            "pair": [probe_pair[0], probe_pair[1]],
-            "d_now": float(d23_83[-1]) if d23_83.size else float("nan"),
-            "sign_now": int(_sign(float(d23_83[-1]))) if d23_83.size else 0,
-            "flip_watch": bool(flip_watch),
-            "fast_collapse": bool(fast_collapse),
-            "d_abs_slope_tail": float(dprobe_slope),
-            "last_flip_ts": probe_last_flip,
+            "pair": [q_a, q_b],
+            "now": now_q,
+            "sign": _sign(now_q),
         },
-        "eta": {
-            "eta_to_end_seconds": eta_to_end_seconds,
-            "source_stack": eta_source,
-        },
-        "stacks": stacks,
-        "meta": {
-            "decision_time": decision_dt,
-            "tail_window_seconds": tail_seconds,
-            "baseline_window_seconds": lookback_seconds,
-            "align_tol_seconds": align_tol_seconds,
-            "missing_sigmas": [],
-            "skipped": False,
-            "skip_reason": None,
-        }
+        "stacks": {"S1": {"stacks": s1}},
     }
-
-    return hyst_obj
-
-
-# ======================================================================================
-# PRINTING ENTRYPOINT (LOG-ONLY)
-# ======================================================================================
-
 def print_hysteresis_fan_stack(
-    timing: Any = None,
-    windows: Any = None,
-    decision_dt: Optional[datetime] = None,
-    catalog: Any = None,
-    config: Any = None,
-    **_kwargs,
+        timing: Any = None,
+        windows: Any = None,
+        decision_dt: Optional[datetime] = None,
+        catalog: Any = None,
+        config: Any = None,
+        **_kwargs,
 ) -> Dict[str, Any]:
     """
     Logging-only printer.
     Returns hyst_obj features for downstream trend/calc code (but does not decide trend).
     """
 
-    if not config or not config.get("LOG_HYSTERESIS", True):
+    if config is None:
+        config = {}
+
+    p = _print_cfg(config)
+    hcfg = p.get("HYSTERESIS", {}) if isinstance(p.get("HYSTERESIS", {}), dict) else {}
+    enabled = bool(hcfg.get("ENABLED", True))
+    # Legacy fallback
+    if not enabled and not bool(config.get("LOG_HYSTERESIS", True)):
         return {}
 
-    if not _section_on(config, "hyst_header", True):
-        return {}
+    on_header = bool((hcfg.get("HEADER", {}) if isinstance(hcfg.get("HEADER", {}), dict) else {}).get("ENABLED", True))
+    on_episode = bool((hcfg.get("EPISODE", {}) if isinstance(hcfg.get("EPISODE", {}), dict) else {}).get("ENABLED", True))
+    on_probe = bool((hcfg.get("PROBE", {}) if isinstance(hcfg.get("PROBE", {}), dict) else {}).get("ENABLED", True))
+    on_eta = bool((hcfg.get("ETA", {}) if isinstance(hcfg.get("ETA", {}), dict) else {}).get("ENABLED", True))
+    on_ladder = bool((hcfg.get("LADDER", {}) if isinstance(hcfg.get("LADDER", {}), dict) else {}).get("ENABLED", True))
+    on_debug = bool((hcfg.get("DEBUG", {}) if isinstance(hcfg.get("DEBUG", {}), dict) else {}).get("ENABLED", False))
+
+    slog = get_section_logger(logger, config)
 
     if decision_dt is None:
         decision_dt = datetime.now()
@@ -427,42 +402,44 @@ def print_hysteresis_fan_stack(
     # ----------------------------------------------------------------------------------
     ep = hyst["episode"]
     pr = hyst["probe"]
-    eta = hyst["eta"]
+    # Some runs may not compute ETA yet; never hard-fail printing.
+    eta = hyst.get("eta", {})
     stacks = hyst["stacks"]
 
-    logger.info(_line("=", 155))
-    logger.info("HYSTERESIS FAN STACK (method_hyster_v1.0)")
-    logger.info(_line("-", 155))
+    if on_header:
+        slog.HYST_HEADER(_line("=", 155))
+        slog.HYST_HEADER("HYSTERESIS FAN STACK (method_hyster_v1.0)")
+        slog.HYST_HEADER(_line("-", 155))
 
-    if _section_on(config, "hyst_episode", True):
-        logger.info(
+    if on_episode:
+        slog.HYST_EPISODE(
             f"[hyst_episode] decision_time={_fmt_time(decision_dt)} | "
-            f"pair=({ep['pair_used'][0]},{ep['pair_used'][1]}) | "
+            f"pair=({(ep.get('pair_used') or [None,None])[0]},{(ep.get('pair_used') or [None,None])[1]}) | "
             f"start={_fmt_time(ep['start_ts']) if ep['start_ts'] else 'NONE'} | "
             f"elapsed={(ep['elapsed_seconds'] if ep['elapsed_seconds'] is not None else 0.0):.1f}s | "
             f"stage={ep['stage']}"
         )
-        logger.info(
+        slog.HYST_EPISODE(
             f"[hyst_primary] d{ep['pair_used'][0]}_{ep['pair_used'][1]} now={ep['d_now']:+.6f} | "
             f"sign={ep['sign_now']} | "
             f"last_cross={_fmt_time(ep['last_cross_ts']) if ep['last_cross_ts'] else 'NONE'} | "
             f"lookback=60m | mode={ep['mode']}"
         )
 
-    if _section_on(config, "hyst_probe", True):
-        logger.info(
+    if on_probe:
+        slog.HYST_PROBE(
             f"[hyst_probe] pair=(23,83) | d23_83 now={pr['d_now']:+.6f} | "
             f"sign={pr['sign_now']} | flip_watch={int(pr['flip_watch'])} | "
             f"fast_collapse={int(pr['fast_collapse'])} | d_abs_slope_tail={pr['d_abs_slope_tail']:+.6f}"
         )
 
-    if _section_on(config, "hyst_eta", True) and eta.get("eta_to_end_seconds") is not None:
-        logger.info(
-            f"[hyst_eta] eta={eta['eta_to_end_seconds']:.1f}s (~{eta['eta_to_end_seconds']/300.0:.2f} epochs) | "
+    if eta.get("eta_to_end_seconds") is not None:
+        slog.HYST_ETA(
+            f"[hyst_eta] eta={eta['eta_to_end_seconds']:.1f}s (~{eta['eta_to_end_seconds'] / 300.0:.2f} epochs) | "
             f"source={eta.get('source_stack')}"
         )
 
-    if _section_on(config, "hyst_ladder", True):
+    if on_ladder:
         for sid in ["S0", "S1", "S2", "S3"]:
             lm = stacks.get(sid)
             if not lm:
@@ -470,7 +447,7 @@ def print_hysteresis_fan_stack(
             sigs = ",".join(map(str, lm["sigmas"]))
             W_pct = lm["W_pct"]
             W_pct_s = "nan" if not np.isfinite(W_pct) else f"{int(round(W_pct)):>3d}"
-            logger.info(
+            slog.HYST_LADDER(
                 f"  [hyst_{sid}] sigmas={sigs:<14} | "
                 f"m_norm={lm['m_norm']:+.3f} | "
                 f"W_pct={W_pct_s} | "
@@ -479,13 +456,42 @@ def print_hysteresis_fan_stack(
                 f"cross={lm['cross_rate']:.2f}/m"
             )
 
-    if _section_on(config, "hyst_debug", False):
-        logger.info(
+            # ---- appended GEOM line (same section: obeys slog.HYST_LADDER toggles)
+            W_now_s = "nan" if not np.isfinite(lm.get("W_now", float("nan"))) else f"{lm['W_now']:.4f}"
+            W_z_s = "nan" if not np.isfinite(lm.get("W_z", float("nan"))) else f"{lm['W_z']:+.2f}"
+            W_ratio_s = "nan" if not np.isfinite(lm.get("W_ratio", float("nan"))) else f"{lm['W_ratio']:.2f}"
+            ddW_s = f"{lm.get('ddW_norm', 0.0):+.3f}"
+            dom_s = f"{lm.get('dom', 0.0):.2f}"
+            lead_max = lm.get("leader_max_sigma")
+            lead_min = lm.get("leader_min_sigma")
+            leader_s = f"{lead_max}->{lead_min}" if (lead_max is not None and lead_min is not None) else "NONE"
+
+            # cross pair breakdown (only show pairs with crossings)
+            cross_pairs = lm.get("cross_pairs") or {}
+            parts = []
+            for k, v in cross_pairs.items():
+                try:
+                    c = int(v.get("count", 0))
+                except Exception:
+                    c = 0
+                if c > 0:
+                    parts.append(f"{k}:{c}")
+            cross_pairs_s = ",".join(parts) if parts else "none"
+
+            slog.HYST_LADDER(
+                f"  [hyst_{sid}_GEOM] "
+                f"W_now={W_now_s} | W_z={W_z_s} | W_ratio={W_ratio_s} | "
+                f"ddW_norm={ddW_s} | m2_norm={lm.get('m2_norm', 0.0):+.3f} | "
+                f"dom={dom_s} | leader={leader_s} | crosses={cross_pairs_s}"
+            )
+
+    if on_debug:
+        slog.HYST_DEBUG(
             f"  [hyst_dbg] tail={hyst['meta']['tail_window_seconds']}s | "
             f"baseline={hyst['meta']['baseline_window_seconds']}s | "
             f"align_tol={hyst['meta']['align_tol_seconds']:.1f}s"
         )
 
-    logger.info(_line("-", 155))
+    slog.HYST_HEADER(_line("-", 155))
 
     return hyst

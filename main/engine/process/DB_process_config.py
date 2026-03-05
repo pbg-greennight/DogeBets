@@ -54,6 +54,10 @@ def cfg() -> Dict[str, Any]:
         # Timing
         "WAKE_OFFSET_SECONDS": 12,  # target_sleep = max(0, seconds_until - 12)
 
+        # Orchestrator wake/debug
+        "DEBUG_WAKE_TIMING": True,
+        "POST_TRIGGER_COOLDOWN_SECONDS": 45.0,
+
         # NOTE: Legacy fixed tail snapshot windows are deprecated.
         # We now use PV-leg → NOW bell segments as the primary diagnostic window.
 
@@ -65,6 +69,9 @@ def cfg() -> Dict[str, Any]:
 
         # Gaussian Channel params
         "GAUSS_CHANNEL_K": 2.0,              # channel spread multiplier (robust_std)
+        "CHANNEL_K": 2.0,                  # legacy alias for GAUSS_CHANNEL_K
+        "GAUSS_CHANNEL_CONFIG": {},          # optional extra per-sigma overrides
+        "PV_TAIL_CHANNEL_WINDOW_N": 21,
         "LOG_GAUSS_CHANNEL_SNAPSHOT": True,  # A) snapshot style
         "LOG_GAUSS_CHANNELS": True,          # alias used by orchestrator; keep True so snapshot stays on
         "LOG_GAUSS_CHANNEL_PVTAIL": True,    # B) PV-leg vs Tail style
@@ -81,19 +88,46 @@ def cfg() -> Dict[str, Any]:
         "WIDE_CSV": "gauss_epoch_snapshots_wide.csv",
         "LONG_CSV": "gauss_epoch_snapshots_long.csv",
 
-        # ---------------------------------------------------------------------
-        # PRINT TOGGLES (Nested, per-section)  True / False
-        # NOTE: This is the canonical toggle set used by DB_process_printing.py.
-        # Legacy flat keys are still accepted and will be mapped into PRINT.
-        # ---------------------------------------------------------------------
+        # Canonical trend method (v2 multi-json). Used by DB_process_trend.calculate_trend() (Option A wiring).
+        "MODEL_DIR": str((Path(__file__).resolve().parent / "models").resolve()),
+        "MODEL_PATH": str((Path(__file__).resolve().parent / "models" / "trend_method_v2.json").resolve()),
+
+        # Back-compat toggles for the older engine-layer scaffold
+        "MODEL_hyster": {"MODEL_ID": "trend_method_v2.json", "ENABLED": True},
+        "MODEL_gaussian": {"MODEL_ID": "trend_method_v2.json", "ENABLED": False},
+        "MODEL_guardrails": {"ENABLED": True},
+
+        # Trend feature extraction knobs (used by DB_process_trend and FeatureCatalog helpers)
+        "GAUSS_SIGMAS": [8, 23, 38, 53, 68, 83],
+        "DUMP_DIAG_CHUNK": 12,
+        "TAIL_FEATURE_POINTS": 21,
+        "TAIL_SNAPSHOT_SECONDS": 120,
+        "TAIL_SNAPSHOT_POINTS": 0,
+        "TREND_DEBUG": True,
+
+        # Hysteresis feature builder defaults (used by DB_process_trend.calculate_trend)
+        # These were previously implicit defaults; keep them explicit so tooling/validation
+        # and future tuning have one canonical source.
+        "HYST_LOOKBACK_SECONDS": 3600,
+        "HYST_TAIL_SECONDS": 120,
+        "HYST_ALIGN_TOL_SECONDS": 3.0,
+        "HYST_PRIMARY_DEFAULT_PAIR": (38, 83),
+        "HYST_PRIMARY_SLOW_PAIR": (53, 83),
+        "HYST_PROBE_PAIR": (23, 83),
+
+        # Legacy switches referenced in a few modules
+        "LOG_EPOCH_SERIES_DUMP_LEGACY": False,
+        "LOG_FIXED_TAIL_SNAPSHOTS": False,
+        "LOG_TREND_SCORE_BLOCK": True,
+        "LOG_TREND_SIGMA_INPUTS": True,
+
+        "SAVE_FORECAST_LOG": {"ENABLED": True},
+
         "PRINT": {
             "HEADER": True,
-
-            # Canonical print sections (matches Log_example.txt)
             "PERF": {"ENABLED": True},
             "TAIL_ANCHOR": {"ENABLED": True},
             "PV_REF": {"ENABLED": True},
-
             "MSBC": {
                 "LEG1": {
                     "ENABLED": False,
@@ -105,58 +139,49 @@ def cfg() -> Dict[str, Any]:
                     "SUMMARY": {"ENABLED": True},
                     "SERIES": {"ENABLED": True, "MAX_POINTS": 0, "DECIMATE": True},
                 },
-                # "extra brain" lines (dump-diag)
                 "DIAGNOSTICS": {"ENABLED": True},
             },
-
             "GCS": {"ENABLED": True},
+
             "PV_TAIL_CHANNELS": {
                 "ENABLED": True,
                 "PER_SIGMA": {
                     "ENABLED": True,
-                    "SUMMARY": {"ENABLED": False},
+                    "SUMMARY": {"ENABLED": True},
                     "SERIES": {"ENABLED": True},
                     "MAX_POINTS": 0,
                     "DECIMATE": True,
                 },
             },
 
+            "CSD_DCSD": {
+                "ENABLED": True,
+                "LEG1": {"CSD": {"ENABLED": False}, "DCSD": {"ENABLED": False}},
+                "LEG2": {"CSD": {"ENABLED": True}, "DCSD": {"ENABLED": True}},
+            },
+
+            "GBC": {
+                "ENABLED": True,
+                "SD": {"ENABLED": True},
+                "DIAG": {"ENABLED": True},
+                "BC_DIAG": {"ENABLED": True},
+            },
+
+            "HYSTERESIS": {
+                "ENABLED": True,
+                "HEADER": {"ENABLED": True},
+                "EPISODE": {"ENABLED": True},
+                "PROBE": {"ENABLED": True},
+                "ETA": {"ENABLED": True},
+                "LADDER": {"ENABLED": True},
+                "DEBUG": {"ENABLED": True},
+            },
+
             "TREND": {
                 "DECISION": True,
                 "SCORES": True,
                 "FEATURES": True,
-            },
-
-            "LEGACY_EPOCH_DUMP": False,
-            "PV_STATUS_DEBUG": True,
-
-            # Fine-grained log section toggles (match bracket tags in log)
-            # These are checked by DB_process_printing.py so you can independently
-            # enable/disable each bracketed block without affecting the data plumbing.
-
-            "LOG_HYSTERESIS": True,
-            "SECTIONS": {
-                "pv_MSBC_Leg1": False,
-                "pv_MSBC_Leg2": True,
-                "gcs": True,
-                "gc_leg1": False,
-                "gc_leg2": True,
-                "csd_leg1": False,
-                "csd_leg2": True,
-                "dcsd_leg1": False,
-                "dcsd_leg2": True,
-                "gbc_sd": True,
-                "gbc_diag": True,
-                "bc_diag": True,
-                "td_scores": True,
-                "td_features": True,
-                # ---HYSTERESIS FAN STACK (v1.0)
-                "hyst_header": True,
-                "hyst_episode": True,
-                "hyst_probe": True,
-                "hyst_eta": True,
-                "hyst_ladder": True,
-                "hyst_debug": False,
+                "CALC": True
             },
         },
 
@@ -259,10 +284,6 @@ def _normalize_print_toggles(c: Dict[str, Any]) -> None:
     # Legacy 5-min epoch dump
     if "LOG_EPOCH_SERIES_DUMP_LEGACY" in c:
         p["LEGACY_EPOCH_DUMP"] = bool(c.get("LOG_EPOCH_SERIES_DUMP_LEGACY", False))
-
-    # PV tail status debug line
-    if "DEBUG_PV_TAIL_STATUS" in c:
-        p["PV_STATUS_DEBUG"] = bool(c.get("DEBUG_PV_TAIL_STATUS", True))
 
 
 def tail_print_seconds(cfg_dict: Dict[str, Any]) -> list[int]:

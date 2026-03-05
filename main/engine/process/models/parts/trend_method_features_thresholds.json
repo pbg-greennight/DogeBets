@@ -1,0 +1,100 @@
+{
+  "features": {
+    "per_stack": {
+      "W_now": {
+        "enabled": true
+      },
+      "W_p75": {
+        "enabled": true
+      },
+      "W_pct": {
+        "enabled": true
+      },
+      "W_ratio": {
+        "enabled": true
+      },
+      "W_z": {
+        "enabled": true
+      },
+      "dW_norm": {
+        "enabled": true
+      },
+      "ddW_norm": {
+        "enabled": true
+      },
+      "m_norm": {
+        "enabled": true
+      },
+      "m2_norm": {
+        "enabled": true
+      },
+      "dom": {
+        "enabled": true
+      },
+      "eff_order": {
+        "enabled": true
+      },
+      "cross_rate": {
+        "enabled": true
+      },
+      "leader": {
+        "enabled": true
+      }
+    },
+    "episode": {
+      "elapsed_s": {
+        "enabled": true
+      },
+      "stage": {
+        "enabled": true
+      }
+    },
+    "primary_pair": {
+      "d_now": {
+        "enabled": true
+      },
+      "sign": {
+        "enabled": true
+      }
+    },
+    "probe_pair": {
+      "d_now": {
+        "enabled": true
+      },
+      "sign": {
+        "enabled": true
+      },
+      "d_abs_slope_tail": {
+        "enabled": true
+      }
+    }
+  },
+  "hysteresis": {
+    "stacks": {
+      "S0": {
+        "enabled": true
+      },
+      "S1": {
+        "enabled": true
+      },
+      "S2": {
+        "enabled": true
+      },
+      "S3": {
+        "enabled": true
+      }
+    }
+  },
+  "fan_polarity_flip": {
+    "enabled": true,
+    "min_strength": 0.3
+  },
+  "early_reversal_signal": {
+    "enabled": true,
+    "w_ratio_max": 0.25,
+    "dW_norm_max": -0.005,
+    "probe_abs_slope_min": 0.15,
+    "min_elapsed_s": 45.0,
+    "max_cross_rate": 0.55
+  }
+}

@@ -34,6 +34,9 @@ from DB_process_time import _fmt_ts, compute_windows, get_epoch_timing
 from DB_process_trend import calculate_trend
 from DB_process_types import EpochTiming, Windows
 
+BASE_DIR = Path(__file__).resolve().parent
+TS_DIR = (BASE_DIR / ".." / "ts").resolve()
+TREND_LOG_FILE = TS_DIR / "json" / "DB_rounds_trend.json"
 
 def _write_trend_out_json(timing: EpochTiming, decision_dt: datetime, trend_obj, config: Dict[str, Any]) -> None:
     """Write the latest trend decision for DB_DATA_TREND to consume."""
@@ -183,8 +186,6 @@ def process_epoch_window(
             pv_tail_status = "failed"
             logging.exception("[pv_tail] print_gaussian_channel_pv_tail() failed")
 
-    if bool(config.get("DEBUG_PV_TAIL_STATUS", True)):
-        logging.info(f"PV-TAIL STATUS: {pv_tail_status}")
 
     # Replace the legacy 5-minute dump with the bell-curve PV window dump.
     print_gaussian_bell_curve_series_dump(timing, decision_dt, bell_curve_series, config)
@@ -209,6 +210,10 @@ def process_epoch_window(
     # Stash on catalog for DB_process_trend / DB_process_calc to use later (Phase 2 will formalize this)
     try:
         setattr(catalog, "hyst_obj", hyst_obj)
+        try:
+            setattr(windows, "hyst_obj", hyst_obj)
+        except Exception:
+            pass
     except Exception:
         pass
 
@@ -217,26 +222,14 @@ def process_epoch_window(
         # Keep epoch dump based on per-sigma raw/full payload
         print_epoch_dump(timing, windows, per_sigma_full, config)
 
-    # ------------------------------------------------------------------
-    # CATALOG-FIRST: build the per-sigma payload for trend using model config
-    # ------------------------------------------------------------------
-    model_path = (
-        config.get("TREND_MODEL_PATH")
-        or config.get("MODEL_PATH")
-        or config.get("DEV_MODEL_PATH")
-    )
-
-    # If model_path exists and includes: {"sigmas":{"wanted":[...]}}
-    # then catalog will use that list. Otherwise it falls back to config["GAUSS_SIGMAS"].
-    per_sigma_for_trend = catalog.build_for_model(model_path=model_path, use_hist=False)
-
     trend = calculate_trend(
         timing.curr_epoch,
         timing.next_epoch,
         windows,
-        per_sigma_for_trend,
+        per_sigma_hist,
         config,
-        model_path=model_path,
+        model_path=None,
+        hyst_obj=hyst_obj,
     )
     print_trend_decision(timing, trend, config)
 
