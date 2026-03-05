@@ -174,6 +174,13 @@ def compute_hysteresis_features(
     decision_dt,
     config: dict | None = None,
     logger=None,
+    lookback_seconds: int | None = None,
+    tail_seconds: int | None = None,
+    align_tol_seconds: float | None = None,
+    primary_default: tuple[int, int] | list[int] | None = None,
+    primary_slow: tuple[int, int] | list[int] | None = None,
+    probe_pair: tuple[int, int] | list[int] | None = None,
+    **kwargs,
 ) -> dict:
     """
     Compute hysteresis features used by:
@@ -190,6 +197,25 @@ def compute_hysteresis_features(
         time_inputs_pairs: {"pairs": {"episode_primary_default":[38,83], ...}}
         hysteresis_engine: ... (not required here)
     """
+    # Backward-compatible aliases used by older callers.
+    if lookback_seconds is None and "lookback" in kwargs:
+        lookback_seconds = kwargs.pop("lookback")
+    if tail_seconds is None and "tail" in kwargs:
+        tail_seconds = kwargs.pop("tail")
+    if align_tol_seconds is None and "align_tol" in kwargs:
+        align_tol_seconds = kwargs.pop("align_tol")
+    if primary_default is None and "primary_pair" in kwargs:
+        primary_default = kwargs.pop("primary_pair")
+    if probe_pair is None and "probe_default" in kwargs:
+        probe_pair = kwargs.pop("probe_default")
+    if kwargs:
+        bad = ", ".join(sorted(kwargs.keys()))
+        raise TypeError(f"compute_hysteresis_features() got unexpected keyword argument(s): {bad}")
+
+    # Currently not used by this lightweight feature builder, but accepted so callers can
+    # pass the same config block consistently.
+    _ = (lookback_seconds, tail_seconds, align_tol_seconds, primary_slow)
+
     cfg = config or {}
     pairs_cfg = (cfg.get("time_inputs_pairs") or {}).get("pairs") or {}
 
@@ -256,8 +282,8 @@ def compute_hysteresis_features(
         return less / float(len(abs_series))
 
     # --- Choose primary + probe pairs (default to (38,83) and (23,83)) ---
-    primary_pair = pairs_cfg.get("episode_primary_default") or [38, 83]
-    probe_pair = pairs_cfg.get("episode_probe_default") or [23, 83]
+    primary_pair = primary_default or pairs_cfg.get("episode_primary_default") or [38, 83]
+    probe_pair = probe_pair or pairs_cfg.get("episode_probe_default") or [23, 83]
 
     try:
         p_a, p_b = int(primary_pair[0]), int(primary_pair[1])
