@@ -1,0 +1,421 @@
+{
+  "engine_library": {
+    "avail_params_global": {
+      "decision": {
+        "trend": {
+          "type": "string",
+          "range_hint": null
+        },
+        "confidence": {
+          "type": "float",
+          "range_hint": null
+        },
+        "vote_raw": {
+          "type": "float",
+          "range_hint": null
+        },
+        "vote_norm": {
+          "type": "float",
+          "range_hint": [
+            0,
+            1
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "range_hint": null
+        },
+        "model_id": {
+          "type": "string",
+          "range_hint": null
+        }
+      },
+      "gbc_diag": {
+        "per_sigma": {
+          "shrink": {
+            "type": "float",
+            "range_hint": null
+          },
+          "flat": {
+            "type": "float",
+            "range_hint": null
+          },
+          "hook": {
+            "type": "int",
+            "range_hint": [
+              0,
+              1
+            ]
+          },
+          "prev_abs": {
+            "type": "float",
+            "range_hint": null
+          },
+          "last_abs": {
+            "type": "float",
+            "range_hint": null
+          },
+          "eps": {
+            "type": "float",
+            "range_hint": null
+          },
+          "sign_from": {
+            "type": "int",
+            "range_hint": [
+              -1,
+              0,
+              1
+            ]
+          },
+          "sign_to": {
+            "type": "int",
+            "range_hint": [
+              -1,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "msbc": {
+        "leg_metrics": {
+          "start": {
+            "type": "float",
+            "range_hint": null
+          },
+          "last": {
+            "type": "float",
+            "range_hint": null
+          },
+          "delta": {
+            "type": "float",
+            "range_hint": null
+          },
+          "slope": {
+            "type": "float",
+            "range_hint": null
+          },
+          "curve": {
+            "type": "float",
+            "range_hint": null
+          },
+          "tag": {
+            "type": "string",
+            "range_hint": null
+          },
+          "lin_slope": {
+            "type": "float",
+            "range_hint": null
+          },
+          "lin_r2": {
+            "type": "float",
+            "range_hint": [
+              0,
+              1
+            ]
+          },
+          "quad_tangent": {
+            "type": "float",
+            "range_hint": null
+          },
+          "quad_curv": {
+            "type": "float",
+            "range_hint": null
+          },
+          "quad_r2": {
+            "type": "float",
+            "range_hint": [
+              0,
+              1
+            ]
+          },
+          "z_last": {
+            "type": "float",
+            "range_hint": null
+          },
+          "run_score": {
+            "type": "float",
+            "range_hint": null
+          }
+        },
+        "series": {
+          "values": {
+            "type": "array<float>",
+            "range_hint": null
+          }
+        }
+      },
+      "csd": {
+        "per_sigma": {
+          "mid": {
+            "type": "array<float>",
+            "range_hint": null
+          },
+          "lower": {
+            "type": "array<float>",
+            "range_hint": null
+          },
+          "upper": {
+            "type": "array<float>",
+            "range_hint": null
+          },
+          "width": {
+            "type": "array<float>",
+            "range_hint": null
+          },
+          "position": {
+            "type": "array<float>",
+            "range_hint": [
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "dcsd": {
+        "per_sigma": {
+          "d_mid": {
+            "type": "array<float>",
+            "range_hint": null,
+            "alias": "MidlineSlope(\u0394)"
+          },
+          "d_width": {
+            "type": "array<float>",
+            "range_hint": null,
+            "alias": "WidthChange(\u0394w)"
+          },
+          "d_lower": {
+            "type": "array<float>",
+            "range_hint": null,
+            "alias": "LowerSlope(\u0394lo)"
+          },
+          "d_upper": {
+            "type": "array<float>",
+            "range_hint": null,
+            "alias": "UpperSlope(\u0394hi)"
+          }
+        }
+      },
+      "hyst.episode.stage": "Episode stage: START/IN_PROGRESS/END/UNKNOWN",
+      "hyst.probe.d_abs_slope_tail": "Absolute slope of probe pair difference over tail",
+      "hyst.stacks.S1.m_norm": "MAD-normalized drift slope of S1 mean curve (tail)",
+      "hyst.stacks.S1.W_now": "Current fan spread width for S1",
+      "hyst.stacks.S1.W_p25": "Baseline 25th percentile width for S1",
+      "hyst.stacks.S1.W_p75": "Baseline 75th percentile width for S1",
+      "hyst.stacks.S1.dW_norm": "Normalized spread velocity for S1 (tail)",
+      "hyst.stacks.S1.eff_order": "Effective order score for S1",
+      "hyst.stacks.S1.cross_rate": "Crossing rate over tail for adjacent pairs in S1",
+      "hyst.stacks.S2.m": "Raw tail slope for S2 mean curve"
+    },
+    "namespaces": {
+      "decision": "final decision fields returned to orchestrator/TS bot",
+      "gbc_diag": "Gaussian bell-curve diagnostics (per-sigma)",
+      "msbc": "Multi-sigma bell-curve leg metrics + optional series",
+      "csd": "Gaussian channels (mid/upper/lower/width/position)",
+      "dcsd": "First-diff channel derivatives",
+      "hyst": "Hysteresis episode + ladder + probe diagnostics"
+    },
+    "avail_params_per_sigma": {
+      "gbc_diag.per_sigma": {
+        "shrink": {
+          "type": "float",
+          "range_hint": null
+        },
+        "flat": {
+          "type": "float",
+          "range_hint": null
+        },
+        "hook": {
+          "type": "int",
+          "range_hint": [
+            0,
+            1
+          ]
+        },
+        "prev_abs": {
+          "type": "float",
+          "range_hint": null
+        },
+        "last_abs": {
+          "type": "float",
+          "range_hint": null
+        },
+        "eps": {
+          "type": "float",
+          "range_hint": null
+        },
+        "sign_from": {
+          "type": "int",
+          "range_hint": [
+            -1,
+            0,
+            1
+          ]
+        },
+        "sign_to": {
+          "type": "int",
+          "range_hint": [
+            -1,
+            0,
+            1
+          ]
+        }
+      },
+      "msbc.leg_metrics": {
+        "start": {
+          "type": "float",
+          "range_hint": null
+        },
+        "last": {
+          "type": "float",
+          "range_hint": null
+        },
+        "delta": {
+          "type": "float",
+          "range_hint": null
+        },
+        "slope": {
+          "type": "float",
+          "range_hint": null
+        },
+        "curve": {
+          "type": "float",
+          "range_hint": null
+        },
+        "tag": {
+          "type": "string",
+          "range_hint": null
+        },
+        "lin_slope": {
+          "type": "float",
+          "range_hint": null
+        },
+        "lin_r2": {
+          "type": "float",
+          "range_hint": [
+            0,
+            1
+          ]
+        },
+        "quad_tangent": {
+          "type": "float",
+          "range_hint": null
+        },
+        "quad_curv": {
+          "type": "float",
+          "range_hint": null
+        },
+        "quad_r2": {
+          "type": "float",
+          "range_hint": [
+            0,
+            1
+          ]
+        },
+        "z_last": {
+          "type": "float",
+          "range_hint": null
+        },
+        "run_score": {
+          "type": "float",
+          "range_hint": null
+        }
+      },
+      "csd.per_sigma": {
+        "mid": {
+          "type": "array<float>",
+          "range_hint": null
+        },
+        "lower": {
+          "type": "array<float>",
+          "range_hint": null
+        },
+        "upper": {
+          "type": "array<float>",
+          "range_hint": null
+        },
+        "width": {
+          "type": "array<float>",
+          "range_hint": null
+        },
+        "position": {
+          "type": "array<float>",
+          "range_hint": [
+            0,
+            1
+          ]
+        }
+      },
+      "dcsd.per_sigma": {
+        "d_mid": {
+          "type": "array<float>",
+          "range_hint": null,
+          "alias": "MidlineSlope(\u0394)"
+        },
+        "d_width": {
+          "type": "array<float>",
+          "range_hint": null,
+          "alias": "WidthChange(\u0394w)"
+        },
+        "d_lower": {
+          "type": "array<float>",
+          "range_hint": null,
+          "alias": "LowerSlope(\u0394lo)"
+        },
+        "d_upper": {
+          "type": "array<float>",
+          "range_hint": null,
+          "alias": "UpperSlope(\u0394hi)"
+        }
+      },
+      "hyst": {
+        "episode.stage": {
+          "type": "string",
+          "range_hint": [
+            "EARLY",
+            "MID",
+            "LATE",
+            "TRANSITION",
+            "IN_PROGRESS"
+          ]
+        },
+        "episode.elapsed_s": {
+          "type": "float",
+          "range_hint": null
+        },
+        "primary.pair": {
+          "type": "array<int>",
+          "range_hint": null
+        },
+        "primary.d_now": {
+          "type": "float",
+          "range_hint": null
+        },
+        "primary.sign": {
+          "type": "int",
+          "range_hint": [
+            -1,
+            0,
+            1
+          ]
+        },
+        "probe.pair": {
+          "type": "array<int>",
+          "range_hint": null
+        },
+        "probe.d_now": {
+          "type": "float",
+          "range_hint": null
+        },
+        "probe.d_abs_slope_tail": {
+          "type": "float",
+          "range_hint": null
+        },
+        "eta.seconds": {
+          "type": "float",
+          "range_hint": null
+        }
+      }
+    }
+  }
+}
