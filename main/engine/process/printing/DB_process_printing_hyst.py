@@ -214,7 +214,13 @@ def compute_hysteresis_features(
 
     # Currently not used by this lightweight feature builder, but accepted so callers can
     # pass the same config block consistently.
-    _ = (lookback_seconds, tail_seconds, align_tol_seconds, primary_slow)
+    _ = primary_slow
+
+    # Keep defaults explicit so callers/printers can safely introspect `meta` even when
+    # the lightweight path does not compute all advanced fields.
+    lookback_seconds = int(lookback_seconds if lookback_seconds is not None else 3600)
+    tail_seconds = int(tail_seconds if tail_seconds is not None else 120)
+    align_tol_seconds = float(align_tol_seconds if align_tol_seconds is not None else 3.0)
 
     cfg = config or {}
     pairs_cfg = (cfg.get("time_inputs_pairs") or {}).get("pairs") or {}
@@ -300,6 +306,12 @@ def compute_hysteresis_features(
     # Fallback if series missing: return minimal structure to avoid KeyErrors downstream
     if not d_primary:
         return {
+            "meta": {
+                "lookback_window_seconds": lookback_seconds,
+                "baseline_window_seconds": lookback_seconds,
+                "tail_window_seconds": tail_seconds,
+                "align_tol_seconds": align_tol_seconds,
+            },
             "pair_used": [p_a, p_b],
             "eta": None,
             "episode": {"pair_used": [p_a, p_b]},
@@ -354,6 +366,12 @@ def compute_hysteresis_features(
     }
 
     return {
+        "meta": {
+            "lookback_window_seconds": lookback_seconds,
+            "baseline_window_seconds": lookback_seconds,
+            "tail_window_seconds": tail_seconds,
+            "align_tol_seconds": align_tol_seconds,
+        },
         "pair_used": [p_a, p_b],
         "eta": eta,
         "episode": {
@@ -428,9 +446,23 @@ def print_hysteresis_fan_stack(
     # ----------------------------------------------------------------------------------
     ep = hyst.get("episode") or {}
     pr = hyst.get("probe") or {}
-    # Some runs may not compute ETA yet; never hard-fail printing.
-    eta = hyst.get("eta", {})
-    stacks = hyst["stacks"]
+
+    # Some builders return ETA as scalar/None while others return a dict.
+    # Normalize so log formatting never throws.
+    raw_eta = hyst.get("eta", {})
+    if isinstance(raw_eta, dict):
+        eta = raw_eta
+    elif raw_eta is None:
+        eta = {}
+    else:
+        try:
+            eta_val = float(raw_eta)
+        except Exception:
+            eta = {}
+        else:
+            eta = {"eta_to_end_seconds": eta_val, "source_stack": "S1"}
+
+    stacks = hyst.get("stacks") or {}
 
     if on_header:
         slog.HYST_HEADER(_line("=", 155))
@@ -441,7 +473,10 @@ def print_hysteresis_fan_stack(
         ep_pair = ep.get("pair_used") or [None, None]
         ep_pair_a = ep_pair[0] if len(ep_pair) > 0 else None
         ep_pair_b = ep_pair[1] if len(ep_pair) > 1 else None
-        ep_start_ts = ep.get("start_ts")
+        # Older/newer feature payloads may expose start timestamp under different keys.
+        ep_start_ts = ep.get("start_ts") if isinstance(ep, dict) else None
+        if ep_start_ts is None and isinstance(ep, dict):
+            ep_start_ts = ep.get("episode_start_ts")
         ep_elapsed = ep.get("elapsed_seconds")
         ep_stage = ep.get("stage") or "UNKNOWN"
 
@@ -483,16 +518,17 @@ def print_hysteresis_fan_stack(
             lm = stacks.get(sid)
             if not lm:
                 continue
-            sigs = ",".join(map(str, lm["sigmas"]))
-            W_pct = lm["W_pct"]
+            sigmas = lm.get("sigmas") if isinstance(lm, dict) else None
+            sigs = ",".join(map(str, sigmas or []))
+            W_pct = float(lm.get("W_pct", float("nan"))) if isinstance(lm, dict) else float("nan")
             W_pct_s = "nan" if not np.isfinite(W_pct) else f"{int(round(W_pct)):>3d}"
             slog.HYST_LADDER(
                 f"  [hyst_{sid}] sigmas={sigs:<14} | "
-                f"m_norm={lm['m_norm']:+.3f} | "
+                f"m_norm={float(lm.get('m_norm', 0.0)):+.3f} | "
                 f"W_pct={W_pct_s} | "
-                f"dW_norm={lm['dW_norm']:+.3f} | "
-                f"eff_order={lm['eff_order']:.2f} | "
-                f"cross={lm['cross_rate']:.2f}/m"
+                f"dW_norm={float(lm.get('dW_norm', 0.0)):+.3f} | "
+                f"eff_order={float(lm.get('eff_order', 0.0)):.2f} | "
+                f"cross={float(lm.get('cross_rate', 0.0)):.2f}/m"
             )
 
             # ---- appended GEOM line (same section: obeys slog.HYST_LADDER toggles)
@@ -525,10 +561,11 @@ def print_hysteresis_fan_stack(
             )
 
     if on_debug:
+        meta = hyst.get("meta") or {}
         slog.HYST_DEBUG(
-            f"  [hyst_dbg] tail={hyst['meta']['tail_window_seconds']}s | "
-            f"baseline={hyst['meta']['baseline_window_seconds']}s | "
-            f"align_tol={hyst['meta']['align_tol_seconds']:.1f}s"
+            f"  [hyst_dbg] tail={int(meta.get('tail_window_seconds', 0))}s | "
+            f"baseline={int(meta.get('baseline_window_seconds', 0))}s | "
+            f"align_tol={float(meta.get('align_tol_seconds', 0.0)):.1f}s"
         )
 
     slog.HYST_HEADER(_line("-", 155))
