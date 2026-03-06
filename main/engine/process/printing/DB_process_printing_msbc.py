@@ -207,7 +207,7 @@ def print_sigma_tailing_snapshots(
                 t1_l2 = pack.get('t1') or last_ts
                 slog.MSBC_Leg2(
                     f"σ={int(sigma):>3}  TAIL DIAG   | "
-                    f"({_fmt_time(t0_l2)} → {_fmt_time(t1_l2)}) ({len(vals_l1)} Head D.P.'s) ({len(vals_l2)} Tail D.P.'s) | "
+                    f"({_fmt_time(t0_l2)} → {_fmt_time(t1_l2)}) ({len(vals_l1)} Head D.P.'s to {len(vals_l2)} Tail D.P.'s) | "
                     f"start={_fmt_price(m.get('start'))} last={_fmt_price(m.get('last'))}, "
                     f"Δ={_fmt_price(m.get('delta'))}, slope={_fmt_float(m.get('slope'), nd=6)}, "
                     f"curve={_fmt_float(m.get('curve'), nd=6)}, tag={m.get('tag')}" + _fmt_diag(m)
