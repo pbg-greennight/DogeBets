@@ -177,6 +177,9 @@ def cfg() -> Dict[str, Any]:
         # When enabled, prints the full (or capped) raw Gaussian values for each leg immediately beneath
         # the corresponding PV-leg / TAIL metrics line.
         "LOG_BELL_CURVE_LEG_SERIES_DUMP": True,
+        # Optional legacy override for only LEG2 tail series.
+        # Canonical toggle is PRINT.MSBC.LEG2.SERIES.ENABLED.
+        "LOG_BELL_CURVE_LEG2_SERIES_DUMP": False,
         "BELL_CURVE_LEG_SERIES_DECIMALS": 2,
         "BELL_CURVE_LEG_SERIES_MAX_POINTS": 0,  # 0 => no cap (print full leg)
 
@@ -227,6 +230,13 @@ def _normalize_print_toggles(c: Dict[str, Any]) -> None:
         p["MSBC"]["LEG2"].setdefault("SERIES", {})
         p["MSBC"]["LEG1"]["SERIES"]["ENABLED"] = dump_on
         p["MSBC"]["LEG2"]["SERIES"]["ENABLED"] = dump_on
+
+    # Optional legacy override to drive only LEG2 series dumps.
+    if "LOG_BELL_CURVE_LEG2_SERIES_DUMP" in c:
+        p.setdefault("MSBC", {})
+        p["MSBC"].setdefault("LEG2", {})
+        p["MSBC"]["LEG2"].setdefault("SERIES", {})
+        p["MSBC"]["LEG2"]["SERIES"]["ENABLED"] = bool(c.get("LOG_BELL_CURVE_LEG2_SERIES_DUMP", False))
 
     # Gaussian channels snapshot
     if "LOG_GAUSS_CHANNEL_SNAPSHOT" in c or "LOG_GAUSS_CHANNELS" in c:

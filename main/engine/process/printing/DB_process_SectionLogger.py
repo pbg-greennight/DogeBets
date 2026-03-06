@@ -68,6 +68,12 @@ class SectionLogger:
         msbc = _as_dict(p.get("MSBC"))
         self._log(_enabled(_as_dict(msbc.get("LEG2")), True), msg, *args, **kwargs)
 
+    def MSBC_Leg2_series(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        p = self._print()
+        msbc = _as_dict(p.get("MSBC"))
+        leg2 = _as_dict(msbc.get("LEG2"))
+        self._log(_enabled(_as_dict(leg2.get("SERIES")), False), msg, *args, **kwargs)
+
     def MSBC_DIAGNOSTICS(self, msg: str, *args: Any, **kwargs: Any) -> None:
         p = self._print()
         msbc = _as_dict(p.get("MSBC"))

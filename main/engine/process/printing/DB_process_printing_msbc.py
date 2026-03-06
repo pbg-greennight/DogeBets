@@ -181,10 +181,10 @@ def print_sigma_tailing_snapshots(
             )
 
             if bool(config.get('LOG_BELL_CURVE_LEG_SERIES_DUMP', False)):
-                vals = pack.get('values', []) or []
-                t0 = pack.get('t0') or t_prev
-                t1 = pack.get('t1') or t_last
-                slog.MSBC_Leg1(f"       PV-leg ({_fmt_time(t0)} → {_fmt_time(t1)}) ({len(vals)} Data Points) | {_series_preview(vals, max_items=9999, nd=2)}")
+                vals_l1 = pack.get('values', []) or []
+                t0_l1 = pack.get('t0') or t_prev
+                t1_l1 = pack.get('t1') or t_last
+                slog.MSBC_Leg1(f"       PV-leg ({_fmt_time(t0_l1)} → {_fmt_time(t1_l1)}) ({len(vals_l1)} Data Points) | {_series_preview(vals_l1, max_items=9999, nd=2)}")
 
         slog.PERF(_line('-', 155))
 
@@ -200,17 +200,17 @@ def print_sigma_tailing_snapshots(
                 continue
 
             if bool(config.get('LOG_BELL_CURVE_LEG_SERIES_DUMP', False)):
-                vals = pack.get('values', []) or []
-                t0 = pack.get('t0') or t_last
-                t1 = pack.get('t1') or last_ts
+                vals_l2 = pack.get('values', []) or []
+                t0_l2 = pack.get('t0') or t_last
+                t1_l2 = pack.get('t1') or last_ts
                 slog.MSBC_Leg2(
                     f"σ={int(sigma):>3}  TAIL DIAG   | "
-                    f"({_fmt_time(t0)} → {_fmt_time(t1)}) ({len(vals)} Data Points)   | "
+                    f"({_fmt_time(t0_l2)} → {_fmt_time(t1_l2)}) ({len(vals_l1)} Head D.P.'s) ({len(vals_l2)} Tail D.P.'s)   | "
                     f"start={_fmt_price(m.get('start'))} last={_fmt_price(m.get('last'))}, "
                     f"Δ={_fmt_price(m.get('delta'))}, slope={_fmt_float(m.get('slope'), nd=6)}, "
                     f"curve={_fmt_float(m.get('curve'), nd=6)}, tag={m.get('tag')}" + _fmt_diag(m)
                 )
-                slog.MSBC_Leg2(f"       TAIL SERIES | {_series_preview(vals, max_items=9999, nd=2)}")
+                slog.MSBC_Leg2_series(f"       TAIL SERIES | {_series_preview(vals_l2, max_items=9999, nd=2)}")
 
 
 
