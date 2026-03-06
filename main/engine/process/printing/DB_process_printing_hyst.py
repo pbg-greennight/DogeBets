@@ -426,8 +426,8 @@ def print_hysteresis_fan_stack(
     # ----------------------------------------------------------------------------------
     # LOG BLOCK (matches the layout we designed)
     # ----------------------------------------------------------------------------------
-    ep = hyst["episode"]
-    pr = hyst["probe"]
+    ep = hyst.get("episode") or {}
+    pr = hyst.get("probe") or {}
     # Some runs may not compute ETA yet; never hard-fail printing.
     eta = hyst.get("eta", {})
     stacks = hyst["stacks"]
@@ -438,25 +438,38 @@ def print_hysteresis_fan_stack(
         slog.HYST_HEADER(_line("-", 155))
 
     if on_episode:
+        ep_pair = ep.get("pair_used") or [None, None]
+        ep_pair_a = ep_pair[0] if len(ep_pair) > 0 else None
+        ep_pair_b = ep_pair[1] if len(ep_pair) > 1 else None
+        ep_start_ts = ep.get("start_ts")
+        ep_elapsed = ep.get("elapsed_seconds")
+        ep_stage = ep.get("stage") or "UNKNOWN"
+
         slog.HYST_EPISODE(
             f"[hyst_episode] decision_time={_fmt_time(decision_dt)} | "
-            f"pair=({(ep.get('pair_used') or [None,None])[0]},{(ep.get('pair_used') or [None,None])[1]}) | "
-            f"start={_fmt_time(ep['start_ts']) if ep['start_ts'] else 'NONE'} | "
-            f"elapsed={(ep['elapsed_seconds'] if ep['elapsed_seconds'] is not None else 0.0):.1f}s | "
-            f"stage={ep['stage']}"
+            f"pair=({ep_pair_a},{ep_pair_b}) | "
+            f"start={_fmt_time(ep_start_ts) if ep_start_ts else 'NONE'} | "
+            f"elapsed={(ep_elapsed if ep_elapsed is not None else 0.0):.1f}s | "
+            f"stage={ep_stage}"
         )
+
+        ep_d_now = float(ep.get("d_now") or 0.0)
+        ep_sign_now = int(ep.get("sign_now") or 0)
+        ep_last_cross = ep.get("last_cross_ts")
+        ep_mode = ep.get("mode") or "unknown"
         slog.HYST_EPISODE(
-            f"[hyst_primary] d{ep['pair_used'][0]}_{ep['pair_used'][1]} now={ep['d_now']:+.6f} | "
-            f"sign={ep['sign_now']} | "
-            f"last_cross={_fmt_time(ep['last_cross_ts']) if ep['last_cross_ts'] else 'NONE'} | "
-            f"lookback=60m | mode={ep['mode']}"
+            f"[hyst_primary] d{ep_pair_a}_{ep_pair_b} now={ep_d_now:+.6f} | "
+            f"sign={ep_sign_now} | "
+            f"last_cross={_fmt_time(ep_last_cross) if ep_last_cross else 'NONE'} | "
+            f"lookback=60m | mode={ep_mode}"
         )
 
     if on_probe:
         slog.HYST_PROBE(
-            f"[hyst_probe] pair=(23,83) | d23_83 now={pr['d_now']:+.6f} | "
-            f"sign={pr['sign_now']} | flip_watch={int(pr['flip_watch'])} | "
-            f"fast_collapse={int(pr['fast_collapse'])} | d_abs_slope_tail={pr['d_abs_slope_tail']:+.6f}"
+            f"[hyst_probe] pair=(23,83) | d23_83 now={float(pr.get('d_now') or 0.0):+.6f} | "
+            f"sign={int(pr.get('sign_now') or 0)} | flip_watch={int(pr.get('flip_watch') or 0)} | "
+            f"fast_collapse={int(pr.get('fast_collapse') or 0)} | "
+            f"d_abs_slope_tail={float(pr.get('d_abs_slope_tail') or 0.0):+.6f}"
         )
 
     if eta.get("eta_to_end_seconds") is not None:
