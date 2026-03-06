@@ -106,8 +106,8 @@ def cfg() -> Dict[str, Any]:
             "GCS": {
                 "ENABLED": True,
                 "LEG1": {
-                    "ENABLED": True,
-                    "SERIES": {"ENABLED": True},
+                    "ENABLED": False,
+                    "SERIES": {"ENABLED": False},
                 },
                 "LEG2": {
                     "ENABLED": True,
