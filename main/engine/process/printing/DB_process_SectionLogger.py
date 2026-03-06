@@ -82,6 +82,24 @@ class SectionLogger:
     def GCS(self, msg: str, *args: Any, **kwargs: Any) -> None:
         self._log(_enabled(self._print().get("GCS"), True), msg, *args, **kwargs)
 
+    def GCS_Leg1(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        gcs = _as_dict(self._print().get("GCS"))
+        self._log(_enabled(_as_dict(gcs.get("LEG1")), True), msg, *args, **kwargs)
+
+    def GCS_Leg1_series(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        gcs = _as_dict(self._print().get("GCS"))
+        leg1 = _as_dict(gcs.get("LEG1"))
+        self._log(_enabled(_as_dict(leg1.get("SERIES")), False), msg, *args, **kwargs)
+
+    def GCS_Leg2(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        gcs = _as_dict(self._print().get("GCS"))
+        self._log(_enabled(_as_dict(gcs.get("LEG2")), True), msg, *args, **kwargs)
+
+    def GCS_Leg2_series(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        gcs = _as_dict(self._print().get("GCS"))
+        leg2 = _as_dict(gcs.get("LEG2"))
+        self._log(_enabled(_as_dict(leg2.get("SERIES")), False), msg, *args, **kwargs)
+
     def PV_TAIL_CHANNELS(self, msg: str, *args: Any, **kwargs: Any) -> None:
         self._log(_enabled(self._print().get("PV_TAIL_CHANNELS"), True), msg, *args, **kwargs)
 

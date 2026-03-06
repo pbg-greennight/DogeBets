@@ -103,8 +103,17 @@ def cfg() -> Dict[str, Any]:
                 },
                 "DIAGNOSTICS": {"ENABLED": True},
             },
-            "GCS": {"ENABLED": True},
-
+            "GCS": {
+                "ENABLED": True,
+                "LEG1": {
+                    "ENABLED": True,
+                    "SERIES": {"ENABLED": True},
+                },
+                "LEG2": {
+                    "ENABLED": True,
+                    "SERIES": {"ENABLED": True},
+                },
+            },
             "PV_TAIL_CHANNELS": {
                 "ENABLED": True,
                 "PER_SIGMA": {
