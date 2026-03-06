@@ -99,7 +99,7 @@ def cfg() -> Dict[str, Any]:
                 "LEG2": {
                     "ENABLED": True,
                     "SUMMARY": {"ENABLED": True},
-                    "SERIES": {"ENABLED": True, "MAX_POINTS": 0, "DECIMATE": True},
+                    "SERIES": {"ENABLED": False, "MAX_POINTS": 0, "DECIMATE": True},
                 },
                 "DIAGNOSTICS": {"ENABLED": True},
             },

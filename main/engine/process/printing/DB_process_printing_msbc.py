@@ -184,20 +184,14 @@ def print_sigma_tailing_snapshots(
                 vals = pack.get('values', []) or []
                 t0 = pack.get('t0') or t_prev
                 t1 = pack.get('t1') or t_last
-                slog.MSBC_Leg1(
-                    f"       PV-leg ({_fmt_time(t0)} → {_fmt_time(t1)}) ({len(vals)} Data Points) | {_series_preview(vals, max_items=9999, nd=2)}"
-                )
+                slog.MSBC_Leg1(f"       PV-leg ({_fmt_time(t0)} → {_fmt_time(t1)}) ({len(vals)} Data Points) | {_series_preview(vals, max_items=9999, nd=2)}")
 
         slog.PERF(_line('-', 155))
 
     # LEG 2 header
     if sec_leg2:
-        slog.MSBC_Leg2(
-            f"[MSBC_Leg2]  Multi Sigma Bell Curve Segments for (Epoch {prev_epoch}) used for (Epoch {next_epoch}) Trend Determination"
-        )
-        slog.MSBC_Leg2(
-            f"LEG 2 ({last_kind}→NOW) ({_fmt_time(t_last)} → {_fmt_time(last_ts)})  |  leg 2 tail continuation"
-        )
+        slog.MSBC_Leg2(f"[MSBC_Leg2]  Multi Sigma Bell Curve Segments for (Epoch {prev_epoch}) used for (Epoch {next_epoch}) Trend Determination")
+        slog.MSBC_Leg2(f"LEG 2 ({last_kind}→NOW) ({_fmt_time(t_last)} → {_fmt_time(last_ts)})  |  leg 2 tail continuation")
 
         for sigma in sigmas:
             pack = leg2.get(int(sigma)) or leg2.get(str(sigma)) or {}
@@ -205,20 +199,20 @@ def print_sigma_tailing_snapshots(
             if not m or (pack.get('values') is None):
                 continue
 
-            slog.MSBC_Leg2(
-                f"σ={int(sigma):>3}  TAIL   | "
-                f"start={_fmt_price(m.get('start'))} last={_fmt_price(m.get('last'))}, "
-                f"Δ={_fmt_price(m.get('delta'))}, slope={_fmt_float(m.get('slope'), nd=6)}, "
-                f"curve={_fmt_float(m.get('curve'), nd=6)}, tag={m.get('tag')}" + _fmt_diag(m)
-            )
-
             if bool(config.get('LOG_BELL_CURVE_LEG_SERIES_DUMP', False)):
                 vals = pack.get('values', []) or []
                 t0 = pack.get('t0') or t_last
                 t1 = pack.get('t1') or last_ts
                 slog.MSBC_Leg2(
-                    f"       TAIL  ({_fmt_time(t0)} → {_fmt_time(t1)}) ({len(vals)} Data Points) | {_series_preview(vals, max_items=9999, nd=2)}"
+                    f"σ={int(sigma):>3}  TAIL DIAG   | "
+                    f"({_fmt_time(t0)} → {_fmt_time(t1)}) ({len(vals)} Data Points)   | "
+                    f"start={_fmt_price(m.get('start'))} last={_fmt_price(m.get('last'))}, "
+                    f"Δ={_fmt_price(m.get('delta'))}, slope={_fmt_float(m.get('slope'), nd=6)}, "
+                    f"curve={_fmt_float(m.get('curve'), nd=6)}, tag={m.get('tag')}" + _fmt_diag(m)
                 )
+                slog.MSBC_Leg2(f"       TAIL SERIES | {_series_preview(vals, max_items=9999, nd=2)}")
+
+
 
     slog.PERF(_line('-', 155))
     slog.PERF(_line('*', 155))
