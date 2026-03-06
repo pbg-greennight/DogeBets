@@ -1,0 +1,164 @@
+{
+  "features": {
+    "per_stack": {
+      "drift": {
+        "metric": "slope(mean(stack_values))",
+        "normalize": {
+          "type": "MAD",
+          "window": "baseline_window_seconds",
+          "epsilon": 1e-12,
+          "output_name": "m_norm"
+        }
+      },
+      "spread": {
+        "metric": "max(stack_values) - min(stack_values)",
+        "percentiles": {
+          "window": "baseline_window_seconds",
+          "p_tight": 25,
+          "p_fan": 75,
+          "output_names": {
+            "tight_threshold": "W_p25",
+            "fan_threshold": "W_p75",
+            "spread_percentile": "W_pct"
+          }
+        }
+      },
+      "spread_velocity": {
+        "metric": "slope(spread)",
+        "normalize": {
+          "type": "MAD",
+          "window": "baseline_window_seconds",
+          "epsilon": 1e-12,
+          "output_name": "dW_norm"
+        }
+      },
+      "order_integrity": {
+        "metric": "adjacent_inequality_fraction",
+        "definitions": {
+          "bull": "g_fastest > g_next > ... > g_slowest",
+          "bear": "g_fastest < g_next < ... < g_slowest"
+        },
+        "stability": {
+          "metric": "1 - flip_rate(adjacent_signs)",
+          "tail_window_seconds": "tail_window_seconds",
+          "output_name": "order_stability"
+        },
+        "effective": {
+          "formula": "order_score * order_stability",
+          "percentiles": {
+            "window": "baseline_window_seconds",
+            "p_ok": 60,
+            "output_names": {
+              "effective_order": "eff_order",
+              "effective_order_ok": "eff_order_ok"
+            }
+          }
+        }
+      },
+      "cross_rate": {
+        "metric": "adjacent_crossings_per_minute",
+        "tail_window_seconds": "tail_window_seconds",
+        "output_name": "cross_rate"
+      }
+    },
+    "episode": {
+      "d_primary": {
+        "metric": "gA - gB",
+        "pair": "episode_primary_selected",
+        "event": "sign_flip"
+      },
+      "d_probe": {
+        "metric": "g23 - g83",
+        "pair": [
+          23,
+          83
+        ],
+        "event": "sign_flip_or_fast_collapse"
+      }
+    }
+  },
+  "dynamic_thresholds": {
+    "drift": {
+      "flat_abs_m_norm_max": 0.5,
+      "trend_abs_m_norm_min": 1.0,
+      "notes": "Dimensionless; uses MAD-normalized drift."
+    },
+    "spread": {
+      "tight": "W <= W_p25",
+      "fanned": "W >= W_p75"
+    },
+    "order": {
+      "ok": "eff_order > eff_order_p60"
+    },
+    "collapse_expand": {
+      "expand": "dW_norm > +1.0",
+      "collapse": "dW_norm < -1.0"
+    },
+    "disorder": {
+      "cross_rate_high_percentile": 75,
+      "notes": "Treat as DISORDER if cross_rate is in the top quartile of the last-hour baseline OR eff_order is not ok."
+    }
+  },
+  "impulse_exhaustion_pullback_gate": {
+    "enabled": true,
+    "description": "Late-chase protection: if a strong impulse has expanded and is now exhausting + pulling back (fan collapse + probe weakening), gate can force Neutral or reduce confidence/ETA without changing core regime logic.",
+    "trigger_when": [
+      "regime in ['FAN_EXPAND','FAN_COLLAPSE'] OR episode_stage in ['MID','LATE']",
+      "spread is fanned on >=1 of [S0,S1,S2] (W >= W_p75) in recent window",
+      "collapse is present (dW_norm < -1.0) on >=1 of [S0,S1,S2]",
+      "probe shows exhaustion: PROBE_FAST_COLLAPSE OR d_probe sign flip while d_primary not flipped",
+      "drift weakening: abs(m_norm) falling vs prior tail window OR vote_norm decreasing"
+    ],
+    "actions": {
+      "force_neutral": true,
+      "_note_toggle_force_neutral": "If you want this gate to NOT force Neutral (only cap confidence + add notes), change force_neutral to false.",
+      "confidence_cap": 0.4,
+      "confidence_multiplier": 0.75,
+      "eta_multiplier": 0.85,
+      "set_flip_watch": true,
+      "append_notes": [
+        "IMPULSE_EXHAUSTION_PULLBACK_GATE"
+      ]
+    }
+  },
+  "outputs": {
+    "trend_labels": [
+      "Bull",
+      "Bear",
+      "Neutral"
+    ],
+    "return_fields": [
+      "method_id",
+      "trend",
+      "confidence",
+      "episode_pair_used",
+      "episode_start_ts",
+      "episode_stage",
+      "eta_to_end_seconds",
+      "regime",
+      "ladder_best_stack",
+      "ladder_vote",
+      "flip_watch",
+      "debug"
+    ],
+    "debug": {
+      "include_per_stack_metrics": true,
+      "metrics": [
+        "m",
+        "m_norm",
+        "W",
+        "W_pct",
+        "dW",
+        "dW_norm",
+        "order_score_bull",
+        "order_score_bear",
+        "order_stability",
+        "eff_order",
+        "eff_order_ok",
+        "cross_rate",
+        "dir_i",
+        "Q_i"
+      ]
+    }
+  }
+}

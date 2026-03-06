@@ -15,8 +15,7 @@ import os
 from datetime import datetime
 
 from DB_process_orchestrator import main
-from main.engine.process.DB_process_import_debug import dump_import_debug
-dump_import_debug(print)
+
 
 def _fmt_mtime(path: str) -> str:
     try:

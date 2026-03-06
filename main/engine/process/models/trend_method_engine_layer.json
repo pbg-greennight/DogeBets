@@ -1,0 +1,121 @@
+{
+  "regimes": {
+    "TIGHT_DRIFT": {
+      "priority": 1,
+      "override": true,
+      "select_stacks": [
+        "S1",
+        "S2"
+      ],
+      "conditions": [
+        "spread is tight (W <= W_p25)",
+        "|m_norm| >= trend_abs_m_norm_min",
+        "eff_order_ok == true",
+        "direction consensus across >=2 valid stacks"
+      ],
+      "decision": "trend = sign(m) (Bull if +, Bear if -)",
+      "confidence_adjustments": {
+        "stage_factor": 1.05,
+        "notes": "Strong unison drift; can override most guardrails unless explicitly DISORDER."
+      }
+    },
+    "FAN_EXPAND": {
+      "priority": 2,
+      "override": false,
+      "conditions": [
+        "spread is fanned (W >= W_p75)",
+        "expand (dW_norm > +1.0) on >=1 of [S0,S1,S2]",
+        "eff_order_ok == true for direction-consistent order",
+        "sign(m) agrees with order direction"
+      ],
+      "decision": "trend = sign(m)",
+      "confidence_adjustments": {
+        "stage_factor": 1.0
+      }
+    },
+    "FAN_COLLAPSE": {
+      "priority": 3,
+      "override": false,
+      "conditions": [
+        "spread above median baseline (W_pct >= 50)",
+        "collapse (dW_norm < -1.0) on >=1 of [S0,S1,S2]",
+        "eff_order_ok remains true OR only mildly degraded",
+        "trend direction still has ladder consensus"
+      ],
+      "decision": "trend = sign(m) (continuation bias) but runway shorter",
+      "confidence_adjustments": {
+        "stage_factor": 0.8
+      }
+    },
+    "DISORDER": {
+      "priority": 4,
+      "override": false,
+      "conditions": [
+        "cross_rate in top quartile baseline OR eff_order_ok == false on most stacks OR stacks disagree on direction"
+      ],
+      "decision": "trend = Neutral",
+      "confidence_adjustments": {
+        "stage_factor": 0.5
+      }
+    },
+    "FLAT_NEUTRAL": {
+      "priority": 5,
+      "override": false,
+      "conditions": [
+        "spread is tight on most stacks",
+        "|m_norm| <= flat_abs_m_norm_max on most stacks"
+      ],
+      "decision": "trend = Neutral",
+      "confidence_adjustments": {
+        "stage_factor": 0.6
+      }
+    }
+  },
+  "fusion": {
+    "valid_stack_criteria": [
+      "has all sigma series present",
+      "tail window contains enough samples",
+      "not flagged as DISORDER by extreme cross_rate (optional soft exclusion)"
+    ],
+    "direction_vote": {
+      "dir_i": "sign(m_i) with 0 if |m_norm_i| < flat_abs_m_norm_max",
+      "quality_i": "Q_i in [0,1] derived from |m_norm|, eff_order, W_pct, and cross_rate",
+      "quality_formula": "sigmoid(a1*|m_norm| + a2*eff_order_z + a3*W_pct_z - a4*cross_rate_z)",
+      "vote": "sum(w_vote_i * dir_i * Q_i)",
+      "vote_norm": "abs(vote) / sum(w_vote_i * Q_i + eps)"
+    },
+    "confidence": {
+      "base": "vote_norm",
+      "ladder_cap": "drop_penalty_caps[best_valid_stack_id]",
+      "stage_factor": "from selected regime",
+      "final": "clamp(base * ladder_cap * stage_factor, 0, 1)"
+    },
+    "best_valid_stack_selection": {
+      "rule": "choose the highest-resolution stack among valid stacks in order S0,S1,S2,S3",
+      "purpose": "caps confidence when more sensitive sigmas are unavailable or too noisy"
+    }
+  },
+  "probe_logic": {
+    "pair": [
+      23,
+      83
+    ],
+    "role": "early collapse/exhaustion warning inside episode",
+    "signals": [
+      {
+        "name": "PROBE_FLIP_EARLY",
+        "definition": "sign flip in d_probe occurs while d_primary has not flipped",
+        "effect": "reduce confidence and shorten ETA; mark 'flip_watch' true"
+      },
+      {
+        "name": "PROBE_FAST_COLLAPSE",
+        "definition": "abs(d_probe) shrinking rapidly (d|d_probe|/dt strongly negative) while primary still trending",
+        "effect": "reduce confidence; bias regime toward FAN_COLLAPSE"
+      }
+    ],
+    "penalties": {
+      "confidence_multiplier": 0.85,
+      "eta_multiplier": 0.8
+    }
+  }
+}

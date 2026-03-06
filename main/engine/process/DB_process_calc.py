@@ -6,8 +6,6 @@ from functools import lru_cache
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
-from main.engine.process.printing.DB_process_printing_hyst import compute_hysteresis_features
-
 # -----------------------------
 # CONFIG LOAD + VALIDATE
 # -----------------------------
@@ -39,32 +37,48 @@ def _deep_merge_dicts(base: dict, extra: dict) -> dict:
     return base
 
 def _resolve_include_path(model_path: Path, include_ref: str) -> "Path | None":
-    """Resolve an include reference to an on-disk JSON path.
-
-    Current (repo) convention:
-      - Root model JSON lives in: process/models/
-      - Included JSON parts live in: process/models/parts/
-      - The root model should reference includes directly (no alias system).
-
-    We keep only *non-surprising* fallbacks:
-      - relative path from the model directory
-      - basename-only lookup inside models/parts/
-    """
-
+    """Resolve an include reference to an on-disk JSON path using a few compatibility rules."""
     if not include_ref:
         return None
-
     inc = str(include_ref).replace("\\", "/").lstrip("/")
     models_dir = model_path.parent
 
-    # 1) direct relative (preferred)
-    cand = models_dir / inc
+    # 1) direct relative
+    cand = (models_dir / inc)
     if cand.exists():
         return cand
 
-    # 2) basename-only inside parts/
-    parts_dir = models_dir / "parts"
-    cand = parts_dir / Path(inc).name
+    # 2) drop leading 'parts/' if present
+    if inc.startswith("parts/"):
+        cand = (models_dir / inc[len("parts/"):])
+        if cand.exists():
+            return cand
+
+    # 3) legacy prefix rewrite: 'trend_method_v2.<name>.json' -> 'trend_method_<name>.json'
+    if inc.startswith("trend_method_v2.") and inc.endswith(".json"):
+        tail = inc[len("trend_method_v2."):]
+        cand = (models_dir / f"trend_method_{tail}")
+        if cand.exists():
+            return cand
+
+    # 4) known alias mapping (your repo naming)
+    alias_map = {
+        "trend_method_gaussian_logic.json": "trend_method_gaussian_engine.json",
+        "trend_method_v2.episode_logic.json": "trend_method_hysteresis_engine.json",
+        "trend_method_v2.regimes_fusion_probe.json": "trend_method_engine_layer.json",
+        "trend_method_v2.guardrails.json": "trend_method_guardrails.json",
+        "trend_method_v2.time_inputs_pairs.json": "trend_method_time_inputs_pairs.json",
+        "trend_method_v2.features_thresholds.json": "trend_method_features_thresholds.json",
+        "trend_method_v2.stacks.json": "trend_method_stacks.json",
+        "trend_method_v2.engine_library.json": "trend_method_engine_library.json",
+    }
+    if inc in alias_map:
+        cand = (models_dir / alias_map[inc])
+        if cand.exists():
+            return cand
+
+    # 5) basename-only in same dir
+    cand = (models_dir / Path(inc).name)
     if cand.exists():
         return cand
 
@@ -95,36 +109,6 @@ def load_trend_method_config_v2(model_path: str) -> dict:
             continue
         try:
             inc_cfg = json.loads(inc_path.read_text(encoding="utf-8"))
-
-            # --- normalize include shape ---
-            # Many part JSONs are stored "unwrapped" (e.g., {"regimes": {...}}) but the runtime
-            # code expects them nested under a well-known key (e.g., cfg["engine_layer"]["regimes"]).
-            # Wrap by filename if needed.
-            try:
-                inc_name = Path(str(inc)).name
-            except Exception:
-                inc_name = str(inc)
-
-            # If already wrapped correctly, keep as-is.
-            if isinstance(inc_cfg, dict):
-                if inc_name == "trend_method_engine_layer.json" and "engine_layer" not in inc_cfg:
-                    inc_cfg = {"engine_layer": inc_cfg}
-                elif inc_name == "trend_method_features_thresholds.json" and "features_thresholds" not in inc_cfg:
-                    inc_cfg = {"features_thresholds": inc_cfg}
-                elif inc_name == "trend_method_time_inputs_pairs.json" and "time_inputs_pairs" not in inc_cfg:
-                    inc_cfg = {"time_inputs_pairs": inc_cfg}
-                elif inc_name == "trend_method_gaussian_engine.json" and "gaussian_engine" not in inc_cfg:
-                    inc_cfg = {"gaussian_engine": inc_cfg}
-                elif inc_name == "trend_method_hysteresis_engine.json" and "hysteresis_engine" not in inc_cfg:
-                    inc_cfg = {"hysteresis_engine": inc_cfg}
-                elif inc_name == "trend_method_guardrails.json" and "guardrails" not in inc_cfg:
-                    inc_cfg = {"guardrails": inc_cfg}
-                elif inc_name == "trend_method_stacks.json" and "stacks" not in inc_cfg:
-                    inc_cfg = {"stacks": inc_cfg}
-                elif inc_name == "trend_method_engine_library.json" and "engine_library" not in inc_cfg:
-                    # engine_library file can be stored unwrapped; normalize to expected key.
-                    inc_cfg = {"engine_library": inc_cfg}
-            # --- end normalize include shape ---
         except Exception as e:
             _log_cfg.warning("[trend_cfg] include read failed: %s (%s)", inc_path, e)
             continue
@@ -135,14 +119,7 @@ def load_trend_method_config_v2(model_path: str) -> dict:
         lib_path = _resolve_include_path(p, "trend_method_engine_library.json") or (p.parent / "trend_method_engine_library.json")
         if lib_path and lib_path.exists():
             try:
-                lib_blob = json.loads(lib_path.read_text(encoding="utf-8"))
-                # Support both shapes:
-                #   {"engine_library": {...}}  (preferred on disk)
-                #   {...}                       (already unwrapped)
-                if isinstance(lib_blob, dict) and isinstance(lib_blob.get("engine_library"), dict):
-                    merged["engine_library"] = lib_blob["engine_library"]
-                else:
-                    merged["engine_library"] = lib_blob
+                merged["engine_library"] = json.loads(lib_path.read_text(encoding="utf-8"))
                 _log_cfg.info("[trend_cfg] injected engine_library from %s", lib_path)
             except Exception as e:
                 _log_cfg.warning("[trend_cfg] engine_library injection failed: %s (%s)", lib_path, e)
@@ -686,22 +663,10 @@ def build_calc_out(
         config=config,
     )
 
-    hyst_out = compute_hysteresis_features(
-        per_sigma_hist=per_sigma_hist,
-        decision_dt=decision_dt,
-        lookback_seconds=int(config.get("HYST_LOOKBACK_SECONDS", 3600)),
-        tail_seconds=int(config.get("HYST_TAIL_SECONDS", 120)),
-        align_tol_seconds=float(config.get("HYST_ALIGN_TOL_SECONDS", 3.0)),
-        primary_default=tuple(config.get("HYST_PRIMARY_DEFAULT_PAIR", (38, 83))),
-        primary_slow=tuple(config.get("HYST_PRIMARY_SLOW_PAIR", (53, 83))),
-        probe_pair=tuple(config.get("HYST_PROBE_PAIR", (23, 83))),
-    )
-
     return {
         "status": "ok",
         "decision_dt": decision_dt,
         "bell": bell_out.get("bell", {}) or {},
         "bell_curve_series": bell_out.get("bell_curve_series", {}) or {},
         "channels": channels_out,
-        "hyst": hyst_out or {},
     }

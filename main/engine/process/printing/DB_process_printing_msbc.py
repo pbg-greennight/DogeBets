@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 from main.engine.process.printing.DB_process_printing_utils import (
-    _safe_get, _fmt_time, _fmt_float, _line, _fmt_price, _series_preview, _print_cfg
+    _safe_get, _fmt_time, _fmt_float, _line, _fmt_price, _series_preview
 )
 from main.engine.process.printing.DB_process_SectionLogger import get_section_logger
 
@@ -43,15 +43,8 @@ def print_sigma_tailing_snapshots(
 
     slog = get_section_logger(logger, config)
 
-    # Master toggle: canonical PRINT.MSBC (with legacy fallback)
-    p = _print_cfg(config)
-    msbc = p.get("MSBC", {}) if isinstance(p.get("MSBC", {}), dict) else {}
-    msbc_any = bool(
-        (msbc.get("LEG1", {}) if isinstance(msbc.get("LEG1", {}), dict) else {}).get("ENABLED", False)
-        or (msbc.get("LEG2", {}) if isinstance(msbc.get("LEG2", {}), dict) else {}).get("ENABLED", True)
-        or (msbc.get("DIAGNOSTICS", {}) if isinstance(msbc.get("DIAGNOSTICS", {}), dict) else {}).get("ENABLED", True)
-    )
-    if not msbc_any and not bool(config.get('LOG_TAILING_SNAPSHOTS', True)):
+    # Master toggle
+    if not config.get('LOG_TAILING_SNAPSHOTS', True):
         return {}
 
     if catalog is None or not hasattr(catalog, 'ensure_calc'):
@@ -134,20 +127,13 @@ def print_sigma_tailing_snapshots(
     slog.PERF(_line('*', 155))
     slog.PERF(_line('-', 155))
 
-    leg1_cfg = (msbc.get("LEG1", {}) if isinstance(msbc.get("LEG1", {}), dict) else {})
-    leg2_cfg = (msbc.get("LEG2", {}) if isinstance(msbc.get("LEG2", {}), dict) else {})
-    sec_leg1 = bool(leg1_cfg.get("ENABLED", False))
-    sec_leg2 = bool(leg2_cfg.get("ENABLED", True))
-
-    leg1_series_on = bool((leg1_cfg.get("SERIES", {}) if isinstance(leg1_cfg.get("SERIES", {}), dict) else {}).get("ENABLED", False))
-    leg2_series_on = bool((leg2_cfg.get("SERIES", {}) if isinstance(leg2_cfg.get("SERIES", {}), dict) else {}).get("ENABLED", True))
-    # Legacy fallback
-    legacy_series_on = bool(config.get('LOG_BELL_CURVE_LEG_SERIES_DUMP', False))
+    sec_leg1 = bool((config.get("PRINT", {}).get("MSBC", {}).get("LEG1", {}) or {}).get("ENABLED", True))
+    sec_leg2 = bool((config.get("PRINT", {}).get("MSBC", {}).get("LEG2", {}) or {}).get("ENABLED", True))
 
     # MSBC headers / LEG 1
     if sec_leg1:
         slog.MSBC_Leg1(
-            f"[MSBC_Leg1]  Multi Sigma Bell Curve Segments for (Epoch {curr_epoch}) used for (Epoch {next_epoch}) Trend Determination"
+            f"[MSBC_Leg1]  Multi Sigma Bell Curve Segments for (Epoch {prev_epoch}) used for (Epoch {next_epoch}) Trend Determination"
         )
 
         slog.MSBC_Leg1(
@@ -194,7 +180,7 @@ def print_sigma_tailing_snapshots(
                 f"curve={_fmt_float(m.get('curve'), nd=6)}, tag={m.get('tag')}" + _fmt_diag(m)
             )
 
-            if leg1_series_on or legacy_series_on:
+            if bool(config.get('LOG_BELL_CURVE_LEG_SERIES_DUMP', False)):
                 vals = pack.get('values', []) or []
                 t0 = pack.get('t0') or t_prev
                 t1 = pack.get('t1') or t_last
@@ -226,7 +212,7 @@ def print_sigma_tailing_snapshots(
                 f"curve={_fmt_float(m.get('curve'), nd=6)}, tag={m.get('tag')}" + _fmt_diag(m)
             )
 
-            if leg2_series_on or legacy_series_on:
+            if bool(config.get('LOG_BELL_CURVE_LEG_SERIES_DUMP', False)):
                 vals = pack.get('values', []) or []
                 t0 = pack.get('t0') or t_last
                 t1 = pack.get('t1') or last_ts

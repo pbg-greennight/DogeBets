@@ -54,10 +54,6 @@ def cfg() -> Dict[str, Any]:
         # Timing
         "WAKE_OFFSET_SECONDS": 12,  # target_sleep = max(0, seconds_until - 12)
 
-        # Orchestrator wake/debug
-        "DEBUG_WAKE_TIMING": True,
-        "POST_TRIGGER_COOLDOWN_SECONDS": 45.0,
-
         # NOTE: Legacy fixed tail snapshot windows are deprecated.
         # We now use PV-leg → NOW bell segments as the primary diagnostic window.
 
@@ -69,9 +65,6 @@ def cfg() -> Dict[str, Any]:
 
         # Gaussian Channel params
         "GAUSS_CHANNEL_K": 2.0,              # channel spread multiplier (robust_std)
-        "CHANNEL_K": 2.0,                  # legacy alias for GAUSS_CHANNEL_K
-        "GAUSS_CHANNEL_CONFIG": {},          # optional extra per-sigma overrides
-        "PV_TAIL_CHANNEL_WINDOW_N": 21,
         "LOG_GAUSS_CHANNEL_SNAPSHOT": True,  # A) snapshot style
         "LOG_GAUSS_CHANNELS": True,          # alias used by orchestrator; keep True so snapshot stays on
         "LOG_GAUSS_CHANNEL_PVTAIL": True,    # B) PV-leg vs Tail style
@@ -88,38 +81,7 @@ def cfg() -> Dict[str, Any]:
         "WIDE_CSV": "gauss_epoch_snapshots_wide.csv",
         "LONG_CSV": "gauss_epoch_snapshots_long.csv",
 
-        # Canonical trend method (v2 multi-json). Used by DB_process_trend.calculate_trend() (Option A wiring).
-        "MODEL_DIR": str((Path(__file__).resolve().parent / "models").resolve()),
-        "MODEL_PATH": str((Path(__file__).resolve().parent / "models" / "trend_method_v2.json").resolve()),
-
-        # Back-compat toggles for the older engine-layer scaffold
-        "MODEL_hyster": {"MODEL_ID": "trend_method_v2.json", "ENABLED": True},
-        "MODEL_gaussian": {"MODEL_ID": "trend_method_v2.json", "ENABLED": False},
-        "MODEL_guardrails": {"ENABLED": True},
-
-        # Trend feature extraction knobs (used by DB_process_trend and FeatureCatalog helpers)
-        "GAUSS_SIGMAS": [8, 23, 38, 53, 68, 83],
-        "DUMP_DIAG_CHUNK": 12,
-        "TAIL_FEATURE_POINTS": 21,
-        "TAIL_SNAPSHOT_SECONDS": 120,
-        "TAIL_SNAPSHOT_POINTS": 0,
-        "TREND_DEBUG": True,
-
-        # Hysteresis feature builder defaults (used by DB_process_trend.calculate_trend)
-        # These were previously implicit defaults; keep them explicit so tooling/validation
-        # and future tuning have one canonical source.
-        "HYST_LOOKBACK_SECONDS": 3600,
-        "HYST_TAIL_SECONDS": 120,
-        "HYST_ALIGN_TOL_SECONDS": 3.0,
-        "HYST_PRIMARY_DEFAULT_PAIR": (38, 83),
-        "HYST_PRIMARY_SLOW_PAIR": (53, 83),
-        "HYST_PROBE_PAIR": (23, 83),
-
-        # Legacy switches referenced in a few modules
-        "LOG_EPOCH_SERIES_DUMP_LEGACY": False,
-        "LOG_FIXED_TAIL_SNAPSHOTS": False,
-        "LOG_TREND_SCORE_BLOCK": True,
-        "LOG_TREND_SIGMA_INPUTS": True,
+        "MODEL_hyster": {"MODEL_ID": "method_hyster_v1.0.json", "ENABLED": True},
 
         "SAVE_FORECAST_LOG": {"ENABLED": True},
 
@@ -162,7 +124,7 @@ def cfg() -> Dict[str, Any]:
 
             "GBC": {
                 "ENABLED": True,
-                "SD": {"ENABLED": True},
+                "SD": {"ENABLED": False},
                 "DIAG": {"ENABLED": True},
                 "BC_DIAG": {"ENABLED": True},
             },
@@ -174,7 +136,7 @@ def cfg() -> Dict[str, Any]:
                 "PROBE": {"ENABLED": True},
                 "ETA": {"ENABLED": True},
                 "LADDER": {"ENABLED": True},
-                "DEBUG": {"ENABLED": True},
+                "DEBUG": {"ENABLED": False},
             },
 
             "TREND": {
@@ -183,6 +145,7 @@ def cfg() -> Dict[str, Any]:
                 "FEATURES": True,
                 "CALC": True
             },
+
         },
 
         # -------------------------

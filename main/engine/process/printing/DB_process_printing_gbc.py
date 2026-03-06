@@ -24,11 +24,7 @@ def print_gaussian_bell_curve_series_dump(
     """Print PV→NOW bell series dump + diagnostics in Log_example.txt style."""
     slog = get_section_logger(logger, config)
 
-    p = _print_cfg(config)
-    gbc = p.get("GBC", {}) if isinstance(p.get("GBC", {}), dict) else {}
-    if not bool(gbc.get("ENABLED", True)):
-        return
-    if not bool((gbc.get("SD", {}) if isinstance(gbc.get("SD", {}), dict) else {}).get("ENABLED", False)):
+    if not bool(config.get('LOG_BELL_CURVE_SERIES_DUMP', True)):
         return
 
     curr_epoch = _safe_get(timing, 'curr_epoch', default=None)
@@ -68,7 +64,7 @@ def print_gaussian_bell_curve_series_dump(
     # but FeatureCatalog caches are already printed above. We keep diagnostics optional.
 
     # If config enables diagnostics AND we can find them via a global, skip.
-    if not bool((gbc.get("DIAG", {}) if isinstance(gbc.get("DIAG", {}), dict) else {}).get("ENABLED", True)):
+    if not bool(config.get('LOG_BELL_CURVE_DIAGNOSTICS', True)):
         return
 
     # Try best-effort fetch: if timing has ._catalog attr set by orchestrator (optional)

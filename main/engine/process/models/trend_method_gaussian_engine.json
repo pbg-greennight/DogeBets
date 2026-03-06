@@ -1,0 +1,57 @@
+{
+  "gaussian_engine": {
+    "enabled": true,
+    "gbc_diag": {
+      "enabled": true,
+      "avail_params": [
+        "gbc_diag.per_sigma.flat",
+        "gbc_diag.per_sigma.shrink",
+        "gbc_diag.per_sigma.hook",
+        "gbc_diag.per_sigma.sign_to",
+        "decision.vote_raw",
+        "decision.confidence"
+      ],
+      "rules": {
+        "flat_neutral_guard": {
+          "enabled": true,
+          "uses": [
+            "gbc_diag.per_sigma.flat",
+            "decision.vote_raw",
+            "decision.confidence"
+          ],
+          "params_used": {
+            "sigmas": [
+              23,
+              38,
+              53,
+              68,
+              83
+            ],
+            "flat_hi": 0.8,
+            "min_frac": 0.6,
+            "only_if_abs_vote_raw_below": 0.25,
+            "only_if_confidence_below": 0.9,
+            "force_trend": "Neutral",
+            "force_neutral_confidence": 0.15,
+            "note": "GR_FLAT_GBC"
+          }
+        }
+      }
+    },
+    "msbc": {
+      "enabled": true,
+      "avail_params": [],
+      "rules": {}
+    },
+    "csd": {
+      "enabled": true,
+      "avail_params": [],
+      "rules": {}
+    },
+    "dcsd": {
+      "enabled": true,
+      "avail_params": [],
+      "rules": {}
+    }
+  }
+}

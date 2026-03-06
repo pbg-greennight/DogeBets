@@ -35,7 +35,7 @@
   ],
   "toggles": {
     "hysteresis": {
-      "enabled": false
+      "enabled": true
     },
     "gaussian": {
       "enabled": true
