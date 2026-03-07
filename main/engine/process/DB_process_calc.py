@@ -670,3 +670,126 @@ def build_calc_out(
         "bell_curve_series": bell_out.get("bell_curve_series", {}) or {},
         "channels": channels_out,
     }
+
+    from pathlib import Path
+    import importlib.util
+    import traceback
+
+    MODELS_DIR = Path(__file__).resolve().parent / "models"
+    MODEL_CONFIG_GLOB = "trend_method_v1_*.json"
+    PREDICTIONS_LATEST_FILE = MODELS_DIR / "model_predictions" / "model_predictions_latest.json"
+    PREDICTIONS_HISTORY_FILE = MODELS_DIR / "model_predictions_history" / "model_predictions_history.jsonl"
+
+    def _safe_number(v: Any, default: float = 0.0) -> float:
+        try:
+            return float(v)
+        except Exception:
+            return default
+
+    def _load_json_config(path: Path) -> Dict[str, Any]:
+        cfg = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(cfg, dict):
+            raise ValueError(f"model config must be object: {path}")
+        cfg.setdefault("enabled", True)
+        cfg.setdefault("description", "")
+        cfg.setdefault("thresholds", {})
+        return cfg
+
+    def _load_model_module(model_py_path: Path):
+        name = f"dogebets_model_{model_py_path.stem}"
+        spec = importlib.util.spec_from_file_location(name, model_py_path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f"failed to load model module: {model_py_path}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def _error_result(model_id: str, err: Exception) -> Dict[str, Any]:
+        return {
+            "model_id": model_id,
+            "trend": "Neutral",
+            "confidence": 1.0,
+            "score": 0.0,
+            "reason": "model_error",
+            "debug": {"error": str(err), "trace": traceback.format_exc(limit=3)},
+            "raw_features_used": {},
+        }
+
+    def _normalize_model_result(model_id: str, result: Dict[str, Any]) -> Dict[str, Any]:
+        out = dict(result or {})
+        out["model_id"] = str(out.get("model_id") or model_id)
+        out["trend"] = str(out.get("trend") or "Neutral")
+        if out["trend"] not in ("Bull", "Bear", "Neutral"):
+            out["trend"] = "Neutral"
+        out["confidence"] = _safe_number(out.get("confidence", 1.0), 1.0)
+        out["score"] = _safe_number(out.get("score", 0.0), 0.0)
+        out["reason"] = str(out.get("reason") or "")
+        out["debug"] = out.get("debug") if isinstance(out.get("debug"), dict) else {}
+        out["raw_features_used"] = out.get("raw_features_used") if isinstance(out.get("raw_features_used"),
+                                                                              dict) else {}
+        return out
+
+    def load_enabled_model_configs(models_dir: Optional[Path] = None) -> List[Dict[str, Any]]:
+        base = models_dir or MODELS_DIR
+        out: List[Dict[str, Any]] = []
+        for cfg_path in sorted(base.glob(MODEL_CONFIG_GLOB)):
+            try:
+                cfg = _load_json_config(cfg_path)
+            except Exception as exc:
+                logging.warning("[models] failed loading config %s: %s", cfg_path, exc)
+                continue
+            if not bool(cfg.get("enabled", True)):
+                continue
+            cfg["_config_path"] = str(cfg_path)
+            out.append(cfg)
+        return out
+
+    def persist_model_predictions(epoch_payload: Dict[str, Any]) -> None:
+        PREDICTIONS_LATEST_FILE.parent.mkdir(parents=True, exist_ok=True)
+        PREDICTIONS_HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        tmp = PREDICTIONS_LATEST_FILE.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(epoch_payload, indent=2), encoding="utf-8")
+        tmp.replace(PREDICTIONS_LATEST_FILE)
+        with PREDICTIONS_HISTORY_FILE.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(epoch_payload) + "\n")
+
+    def run_enabled_models(
+            *,
+            epoch: int,
+            next_epoch: int,
+            timestamp: str,
+            features: Dict[str, Any],
+            models_dir: Optional[Path] = None,
+    ) -> Dict[str, Any]:
+        base = models_dir or MODELS_DIR
+        configs = load_enabled_model_configs(base)
+        results: List[Dict[str, Any]] = []
+
+        for cfg in configs:
+            model_id = str(cfg.get("model_id") or "")
+            if not model_id:
+                continue
+            model_path = base / f"model_{model_id.replace('trend_method_', '')}.py"
+            if not model_path.exists():
+                logging.warning("[models] model file missing for %s (%s)", model_id, model_path)
+                results.append(_error_result(model_id, FileNotFoundError(f"model file missing: {model_path}")))
+                continue
+
+            try:
+                module = _load_model_module(model_path)
+                if not hasattr(module, "run_model"):
+                    raise AttributeError("run_model(features, config) not found")
+                raw = module.run_model(features, cfg)
+                results.append(_normalize_model_result(model_id, raw))
+            except Exception as exc:
+                logging.exception("[models] %s failed", model_id)
+                results.append(_error_result(model_id, exc))
+
+        payload = {
+            "epoch": int(epoch),
+            "next_epoch": int(next_epoch),
+            "timestamp": str(timestamp),
+            "models": results,
+        }
+        persist_model_predictions(payload)
+        return payload

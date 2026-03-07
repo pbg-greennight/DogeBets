@@ -45,7 +45,7 @@ def save_forecast_log(trend_label, confidence, next_epoch, model_version, mode):
             history = []
 
     history.append(entry)
-    history = history[-100:]
+    history = history[-2000:]
 
     TREND_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(TREND_LOG_FILE, "w") as f:
