@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 import logging
 import json
+import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -13,7 +14,35 @@ from main.engine.process.DB_process_feature_catalog import build_feature_catalog
 from main.engine.process.DB_process_calc import run_enabled_models
 
 log = logging.getLogger(__name__)
+BASE_DIR = Path(__file__).resolve().parents[1]
+TREND_LOG_FILE = BASE_DIR / "ts" / "json" / "DB_rounds_trend.json"
 
+
+def save_forecast_log(trend_label, confidence, next_epoch, model_version, mode):
+    """Persist a trend prediction entry to DB_rounds_trend.json."""
+    entry = {
+        "timestamp": time.strftime("%m/%d/%Y %I:%M:%S %p"),
+        "trend": trend_label,
+        "confidence": round(float(confidence), 3),
+        "next_epoch": next_epoch,
+        "model_version": model_version,
+        "mode": mode,
+    }
+
+    history = []
+    if TREND_LOG_FILE.exists():
+        try:
+            with TREND_LOG_FILE.open("r", encoding="utf-8") as f:
+                history = json.load(f)
+        except Exception:
+            history = []
+
+    history.append(entry)
+    history = history[-2000:]
+
+    TREND_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with TREND_LOG_FILE.open("w", encoding="utf-8") as f:
+        json.dump(history, f, indent=2)
 
 def _fallback(model_id: str = "trend_method_v1_0") -> Dict[str, Any]:
     return {
@@ -56,14 +85,22 @@ def calculate_trend(
             model_results = [_fallback()]
 
         for result in model_results:
+            confidence = float(result.get("confidence", 1.0) or 1.0)
             log.info(
                 "%s - Epoch data from %s → Predict Next Epoch %s | trend=%s | confidence=%.3f | model=%s",
                 now.strftime("%I:%M:%S %p"),
                 curr_epoch,
                 next_epoch,
                 result.get("trend", "Neutral"),
-                float(result.get("confidence", 1.0) or 1.0),
+                confidence,
                 result.get("model_id", "trend_method_v1_0"),
+            )
+            save_forecast_log(
+                trend_label=str(result.get("trend", "Neutral")),
+                confidence=confidence,
+                next_epoch=int(next_epoch),
+                model_version="v1_5",
+                mode="DB_process_trend",
             )
 
         primary = model_results[0]
@@ -80,7 +117,22 @@ def calculate_trend(
             "model_predictions_payload": payload,
         })
         return td
-
+    except Exception as e:
+        log.exception("calculate_trend failed: %s", e)
+        fallback = _fallback(model_id="trend_method_v1_5")
+        save_forecast_log(
+            trend_label=str(fallback.get("trend", "Neutral")),
+            confidence=float(fallback.get("confidence", 1.0) or 1.0),
+            next_epoch=int(next_epoch),
+            model_version="v1_5",
+            mode="DB_process_trend_fallback",
+        )
+        return TrendDecision(
+            trend=str(fallback.get("trend", "Neutral")),
+            confidence=float(fallback.get("confidence", 1.0) or 1.0),
+            model="trend_method_v1_5",
+            notes=str(fallback.get("reason", "model_error")),
+        )
 
 
 def _save_trend_out_json(td: TrendDecision,
