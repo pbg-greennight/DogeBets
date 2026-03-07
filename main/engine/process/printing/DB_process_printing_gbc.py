@@ -23,6 +23,8 @@ def print_gaussian_bell_curve_series_dump(
 ) -> None:
     """Print PV→NOW bell series dump + diagnostics in Log_example.txt style."""
     slog = get_section_logger(logger, config)
+    p = _print_cfg(config)
+    gbc_cfg = p.get("GBC", {}) or {}
 
     if not bool(config.get('LOG_BELL_CURVE_SERIES_DUMP', True)):
         return
@@ -76,6 +78,10 @@ def print_gaussian_bell_curve_series_dump(
     if not diag:
         return
 
+    sec_plus = bool((gbc_cfg.get("DIAG_PLUS", {}) or {}).get("ENABLED", config.get("LOG_GBC_DIAG_PLUS", True)))
+    sec_age = bool((gbc_cfg.get("AGE", {}) or {}).get("ENABLED", config.get("LOG_GBC_AGE", True)))
+    sec_persist = bool((gbc_cfg.get("PERSISTENCE", {}) or {}).get("ENABLED", config.get("LOG_GBC_PERSISTENCE", True)))
+
     slog.GBC_DIAG(_line('-', 155))
     slog.GBC_DIAG(
         f"[gbc_diag]  Gaussian Bell-Curve Diagnostic Series | (Epoch {curr_epoch} used for Epoch {next_epoch})"
@@ -90,4 +96,25 @@ def print_gaussian_bell_curve_series_dump(
             f"last_abs={_fmt_float(d.get('last_abs'), nd=6, none='0.000000')} "
             f"eps={_fmt_float(d.get('eps'), nd=6, none='0.000000')} "
             f"sign={int(d.get('sign_from', 0) or 0)}→{int(d.get('sign_to', 0) or 0)}"
+        )
+
+        if not sec_plus:
+            continue
+
+        age = d.get('bars_since_turn') if sec_age else 'NA'
+        hook_age = d.get('hook_age') if sec_age else 'NA'
+        sign_persist = d.get('sign_persistence') if sec_persist else 'NA'
+        hook_persist = d.get('hook_persistence') if sec_persist else 'NA'
+        shrink = d.get('shrink')
+        flat = d.get('flat')
+        try:
+            shrink_n = float(shrink)
+            flat_n = float(flat)
+            norm_ctx = abs(shrink_n) / (abs(flat_n) + 1e-9)
+        except Exception:
+            norm_ctx = None
+        slog.GBC_DIAG(
+            f"σ={int(sigma):>3} | turn_age={age} hook_age={hook_age} "
+            f"norm_ctx={_fmt_float(norm_ctx, nd=3, none='NA')} "
+            f"hook_persist={hook_persist} sign_persist={sign_persist}"
         )

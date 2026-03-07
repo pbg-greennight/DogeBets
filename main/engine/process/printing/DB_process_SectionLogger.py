@@ -79,6 +79,26 @@ class SectionLogger:
         msbc = _as_dict(p.get("MSBC"))
         self._log(_enabled(_as_dict(msbc.get("DIAGNOSTICS")), True), msg, *args, **kwargs)
 
+    def MSBC_STACK(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        msbc = _as_dict(self._print().get("MSBC"))
+        self._log(_enabled(_as_dict(msbc.get("STACK_STATE")), True), msg, *args, **kwargs)
+
+    def MSBC_PROP(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        msbc = _as_dict(self._print().get("MSBC"))
+        self._log(_enabled(_as_dict(msbc.get("PROPAGATION")), True), msg, *args, **kwargs)
+
+    def MSBC_AGE(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        msbc = _as_dict(self._print().get("MSBC"))
+        self._log(_enabled(_as_dict(msbc.get("AGE")), True), msg, *args, **kwargs)
+
+    def MSBC_CONSIST(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        msbc = _as_dict(self._print().get("MSBC"))
+        self._log(_enabled(_as_dict(msbc.get("CONSISTENCY")), True), msg, *args, **kwargs)
+
+    def MSBC_NORM(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        msbc = _as_dict(self._print().get("MSBC"))
+        self._log(_enabled(_as_dict(msbc.get("NORMALIZED")), False), msg, *args, **kwargs)
+
     def GCS(self, msg: str, *args: Any, **kwargs: Any) -> None:
         self._log(_enabled(self._print().get("GCS"), True), msg, *args, **kwargs)
 
@@ -99,6 +119,22 @@ class SectionLogger:
         gcs = _as_dict(self._print().get("GCS"))
         leg2 = _as_dict(gcs.get("LEG2"))
         self._log(_enabled(_as_dict(leg2.get("SERIES")), False), msg, *args, **kwargs)
+
+    def GCS_REGIME(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        gcs = _as_dict(self._print().get("GCS"))
+        self._log(_enabled(_as_dict(gcs.get("REGIME")), True), msg, *args, **kwargs)
+
+    def GCS_PRICEPOS(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        gcs = _as_dict(self._print().get("GCS"))
+        self._log(_enabled(_as_dict(gcs.get("PRICE_POSITION")), True), msg, *args, **kwargs)
+
+    def GCS_SPACING(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        gcs = _as_dict(self._print().get("GCS"))
+        self._log(_enabled(_as_dict(gcs.get("SPACING")), True), msg, *args, **kwargs)
+
+    def GCS_TRANSFER(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        gcs = _as_dict(self._print().get("GCS"))
+        self._log(_enabled(_as_dict(gcs.get("TRANSFER")), True), msg, *args, **kwargs)
 
     def PV_TAIL_CHANNELS(self, msg: str, *args: Any, **kwargs: Any) -> None:
         self._log(_enabled(self._print().get("PV_TAIL_CHANNELS"), True), msg, *args, **kwargs)
@@ -149,6 +185,23 @@ class SectionLogger:
 
     def HYST_DEBUG(self, msg: str, *args: Any, **kwargs: Any) -> None:
         self._log(_enabled(_as_dict(self._print().get("HYSTERESIS")).get("DEBUG"), False), msg, *args, **kwargs)
+
+    def _hyst(self) -> Dict[str, Any]:
+        p = self._print()
+        h = _as_dict(p.get("HYSTERESIS"))
+        h_alt = _as_dict(p.get("HYST"))
+        out = dict(h)
+        out.update({k: v for k, v in h_alt.items() if k not in out})
+        return out
+
+    def HYST_STABILITY(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        self._log(_enabled(_as_dict(self._hyst().get("STABILITY")), True), msg, *args, **kwargs)
+
+    def HYST_PRESSURE(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        self._log(_enabled(_as_dict(self._hyst().get("PRESSURE")), True), msg, *args, **kwargs)
+
+    def HYST_SPREAD_STATE(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        self._log(_enabled(_as_dict(self._hyst().get("SPREAD_STATE")), True), msg, *args, **kwargs)
 
     def TREND_DECISION(self, msg: str, *args: Any, **kwargs: Any) -> None:
         trend = _as_dict(self._print().get("TREND"))

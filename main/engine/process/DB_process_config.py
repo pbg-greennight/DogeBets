@@ -102,6 +102,11 @@ def cfg() -> Dict[str, Any]:
                     "SERIES": {"ENABLED": False, "MAX_POINTS": 0, "DECIMATE": True},
                 },
                 "DIAGNOSTICS": {"ENABLED": True},
+                "STACK_STATE": {"ENABLED": True},
+                "PROPAGATION": {"ENABLED": True},
+                "AGE": {"ENABLED": True},
+                "CONSISTENCY": {"ENABLED": True},
+                "NORMALIZED": {"ENABLED": False},
             },
             "GCS": {
                 "ENABLED": True,
@@ -113,6 +118,10 @@ def cfg() -> Dict[str, Any]:
                     "ENABLED": True,
                     "SERIES": {"ENABLED": True},
                 },
+                "REGIME": {"ENABLED": True},
+                "PRICE_POSITION": {"ENABLED": True},
+                "SPACING": {"ENABLED": True},
+                "TRANSFER": {"ENABLED": True},
             },
             "PV_TAIL_CHANNELS": {
                 "ENABLED": True,
@@ -136,6 +145,9 @@ def cfg() -> Dict[str, Any]:
                 "SD": {"ENABLED": False},
                 "DIAG": {"ENABLED": True},
                 "BC_DIAG": {"ENABLED": True},
+                "DIAG_PLUS": {"ENABLED": True},
+                "AGE": {"ENABLED": True},
+                "PERSISTENCE": {"ENABLED": True},
             },
 
             "HYSTERESIS": {
@@ -146,6 +158,17 @@ def cfg() -> Dict[str, Any]:
                 "ETA": {"ENABLED": True},
                 "LADDER": {"ENABLED": True},
                 "DEBUG": {"ENABLED": False},
+                "STABILITY": {"ENABLED": True},
+                "PRESSURE": {"ENABLED": True},
+                "SPREAD_STATE": {"ENABLED": True},
+                "RISK": {"ENABLED": True},
+            },
+
+            "HYST": {
+                "STABILITY": {"ENABLED": True},
+                "PRESSURE": {"ENABLED": True},
+                "SPREAD_STATE": {"ENABLED": True},
+                "RISK": {"ENABLED": True},
             },
 
             "TREND": {
@@ -186,6 +209,11 @@ def cfg() -> Dict[str, Any]:
         # When enabled, prints the full (or capped) raw Gaussian values for each leg immediately beneath
         # the corresponding PV-leg / TAIL metrics line.
         "LOG_BELL_CURVE_LEG_SERIES_DUMP": True,
+        "LOG_MSBC_STACK_STATE": True,
+        "LOG_MSBC_PROPAGATION": True,
+        "LOG_MSBC_AGE": True,
+        "LOG_MSBC_CONSISTENCY": True,
+        "LOG_MSBC_NORMALIZED": False,
         # Optional legacy override for only LEG2 tail series.
         # Canonical toggle is PRINT.MSBC.LEG2.SERIES.ENABLED.
         "LOG_BELL_CURVE_LEG2_SERIES_DUMP": False,
@@ -193,6 +221,17 @@ def cfg() -> Dict[str, Any]:
         "BELL_CURVE_LEG_SERIES_MAX_POINTS": 0,  # 0 => no cap (print full leg)
 
         "LOG_TREND_DECISION": True,        # print calculate_trend() output
+        "LOG_GCS_REGIME": True,
+        "LOG_GCS_PRICE_POSITION": True,
+        "LOG_GCS_SPACING": True,
+        "LOG_GCS_TRANSFER": True,
+        "LOG_GBC_DIAG_PLUS": True,
+        "LOG_GBC_AGE": True,
+        "LOG_GBC_PERSISTENCE": True,
+        "LOG_HYST_STABILITY": True,
+        "LOG_HYST_PRESSURE": True,
+        "LOG_HYST_SPREAD_STATE": True,
+        "LOG_HYST_RISK": True,
 
         # Optional future toggles
         "LOG_PATTERN_CUES": False,
@@ -257,6 +296,55 @@ def _normalize_print_toggles(c: Dict[str, Any]) -> None:
         on = bool(c.get("LOG_GAUSS_CHANNEL_PV_TAIL", c.get("LOG_GAUSS_CHANNEL_PVTAIL", True)))
         p.setdefault("PV_TAIL_CHANNELS", {})
         p["PV_TAIL_CHANNELS"]["ENABLED"] = on
+
+    # MSBC diagnostics blocks
+    for legacy, key, default in [
+        ("LOG_MSBC_STACK_STATE", "STACK_STATE", True),
+        ("LOG_MSBC_PROPAGATION", "PROPAGATION", True),
+        ("LOG_MSBC_AGE", "AGE", True),
+        ("LOG_MSBC_CONSISTENCY", "CONSISTENCY", True),
+        ("LOG_MSBC_NORMALIZED", "NORMALIZED", False),
+    ]:
+        if legacy in c:
+            p.setdefault("MSBC", {})
+            p["MSBC"].setdefault(key, {})
+            p["MSBC"][key]["ENABLED"] = bool(c.get(legacy, default))
+
+    # GCS blocks
+    for legacy, key in [
+        ("LOG_GCS_REGIME", "REGIME"),
+        ("LOG_GCS_PRICE_POSITION", "PRICE_POSITION"),
+        ("LOG_GCS_SPACING", "SPACING"),
+        ("LOG_GCS_TRANSFER", "TRANSFER"),
+    ]:
+        if legacy in c:
+            p.setdefault("GCS", {})
+            p["GCS"].setdefault(key, {})
+            p["GCS"][key]["ENABLED"] = bool(c.get(legacy, True))
+
+    # GBC blocks
+    for legacy, key in [
+        ("LOG_GBC_DIAG_PLUS", "DIAG_PLUS"),
+        ("LOG_GBC_AGE", "AGE"),
+        ("LOG_GBC_PERSISTENCE", "PERSISTENCE"),
+    ]:
+        if legacy in c:
+            p.setdefault("GBC", {})
+            p["GBC"].setdefault(key, {})
+            p["GBC"][key]["ENABLED"] = bool(c.get(legacy, True))
+
+    # Hysteresis blocks (support PRINT.HYSTERESIS and PRINT.HYST)
+    for legacy, key in [
+        ("LOG_HYST_STABILITY", "STABILITY"),
+        ("LOG_HYST_PRESSURE", "PRESSURE"),
+        ("LOG_HYST_SPREAD_STATE", "SPREAD_STATE"),
+        ("LOG_HYST_RISK", "RISK"),
+    ]:
+        if legacy in c:
+            for root in ("HYSTERESIS", "HYST"):
+                p.setdefault(root, {})
+                p[root].setdefault(key, {})
+                p[root][key]["ENABLED"] = bool(c.get(legacy, True))
 
     # Trend decision
     if "LOG_TREND_DECISION" in c:

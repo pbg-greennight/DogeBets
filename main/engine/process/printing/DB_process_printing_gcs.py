@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import numpy as np
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -42,6 +43,11 @@ def print_gaussian_channel_snapshot(
         return
     if not p.get("GCS", {}).get("ENABLED", True):
         return
+    gcs_cfg = p.get("GCS", {}) or {}
+    sec_regime = bool((gcs_cfg.get("REGIME", {}) or {}).get("ENABLED", config.get("LOG_GCS_REGIME", True)))
+    sec_price = bool((gcs_cfg.get("PRICE_POSITION", {}) or {}).get("ENABLED", config.get("LOG_GCS_PRICE_POSITION", True)))
+    sec_spacing = bool((gcs_cfg.get("SPACING", {}) or {}).get("ENABLED", config.get("LOG_GCS_SPACING", True)))
+    sec_transfer = bool((gcs_cfg.get("TRANSFER", {}) or {}).get("ENABLED", config.get("LOG_GCS_TRANSFER", True)))
 
     # Detect call pattern: (timing, windows, catalog, config)
     if catalog is None and per_sigma_full is not None and hasattr(per_sigma_full, 'ensure_calc'):
@@ -195,6 +201,13 @@ def print_gaussian_channel_snapshot(
     if not per_sigma_full_src and per_sigma_full is not None:
         per_sigma_full_src = per_sigma_full or {}
 
+    widths: Dict[int, float] = {}
+    mids: Dict[int, float] = {}
+    slopes_tail: Dict[int, float] = {}
+    width_changes: Dict[int, float] = {}
+    price_positions: Dict[int, Dict[str, Any]] = {}
+    regimes: Dict[int, Dict[str, Any]] = {}
+
     for sigma in sorted(snapshot.keys()):
         c = snapshot[sigma]
         slog.GCS(f"G{int(sigma):<3} | {_fmt_chan(c)}")
@@ -242,6 +255,121 @@ def print_gaussian_channel_snapshot(
         slog.GCS_Leg2_series(
             f"       TAIL SERIES | {_series_preview(vals_l2, max_items=9999, nd=2)}"
         )
+
+        # best-effort diagnostics caches
+        ch = _as_mapping(c)
+        mid = ch.get('mid_last') or ch.get('mid')
+        width = ch.get('width')
+        try:
+            mids[int(sigma)] = float(mid)
+        except Exception:
+            pass
+        try:
+            widths[int(sigma)] = float(width)
+        except Exception:
+            pass
+
+        if vals_l2:
+            slopes_tail[int(sigma)] = float(m2.get('slope') or 0.0)
+            width_series = []
+            try:
+                width_series = [abs(float(v) - float(m)) * 2.0 for v, m in zip(vals_l2, np.linspace(vals_l2[0], vals_l2[-1], len(vals_l2)))]
+            except Exception:
+                width_series = []
+            if len(width_series) >= 3:
+                width_changes[int(sigma)] = float(width_series[-1] - width_series[-2])
+
+        px = _safe_get(calc_out, 'close', 'last', default=None)
+        if px is None:
+            px = _safe_get(calc_out, 'price', 'last', default=None)
+        if px is None:
+            px = _safe_get(calc_out, 'bell', 'btc_close', 'current', default=None)
+        try:
+            pxf = float(px)
+        except Exception:
+            pxf = None
+        if pxf is not None and int(sigma) in mids:
+            w = abs(widths.get(int(sigma), 0.0))
+            pm = pxf - mids[int(sigma)]
+            zpos = pm / max(w, 1e-9)
+            state = 'centered'
+            if zpos > 1.0:
+                state = 'stretched_above'
+            elif zpos > 0.1:
+                state = 'above_mid'
+            elif zpos < -1.0:
+                state = 'stretched_below'
+            elif zpos < -0.1:
+                state = 'below_mid'
+            price_positions[int(sigma)] = {'pm': pm, 'z': zpos, 'state': state}
+
+        if int(sigma) in widths:
+            w_now = widths[int(sigma)]
+            w_chg = width_changes.get(int(sigma), 0.0)
+            w_acc = w_chg - float(m1.get('slope') or 0.0)
+            pct = 50.0
+            hist = np.asarray(vals, dtype=float)
+            hist = hist[np.isfinite(hist)] if hist.size else hist
+            if hist.size > 6:
+                dist = np.abs(hist - np.median(hist))
+                pct = float(np.mean(dist <= (w_now / 2.0)) * 100.0)
+                z = (w_now - float(np.median(dist) * 2.0)) / (float(np.median(np.abs(dist - np.median(dist))) * 2.0) + 1e-12)
+            else:
+                z = 0.0
+            regime = 'compressed'
+            if w_chg > 0 and w_acc > 0:
+                regime = 'exploded'
+            elif w_chg > 0:
+                regime = 'expanding'
+            elif w_chg < 0:
+                regime = 'contracting'
+            regimes[int(sigma)] = {'regime': regime, 'pct': pct, 'z': z, 'persist': len(vals_l2), 'dw': w_chg, 'ddw': w_acc}
+
+    ordered = [s for s in [8, 23, 38, 53, 68, 83] if s in mids]
+    if sec_regime and regimes:
+        bits = [
+            f"σ{s} regime={regimes[s]['regime']} pct={_fmt_float(regimes[s]['pct'], nd=0, none='NA')} z={_fmt_float(regimes[s]['z'], nd=2, none='NA')} "
+            f"persist={int(regimes[s]['persist'])} dW={_fmt_float(regimes[s]['dw'], nd=4)} ddW={_fmt_float(regimes[s]['ddw'], nd=4)}"
+            for s in ordered if s in regimes
+        ]
+        if bits:
+            slog.GCS_REGIME(f"[gcs_regime] {' | '.join(bits)}")
+    if sec_price and price_positions:
+        bits = [f"σ{s} px-mid={price_positions[s]['pm']:+.2f} zpos={price_positions[s]['z']:+.2f} {price_positions[s]['state']}" for s in ordered if s in price_positions]
+        if bits:
+            slog.GCS_PRICEPOS(f"[gcs_pricepos] {' | '.join(bits)}")
+    if sec_spacing and len(ordered) >= 2:
+        gaps = []
+        diffs = []
+        for i in range(len(ordered) - 1):
+            a, b = ordered[i], ordered[i + 1]
+            g = mids[b] - mids[a]
+            gaps.append(f"{a}-{b}={g:+.2f}")
+            diffs.append(g)
+        mono = float(np.mean(np.diff(diffs) >= -1e-12)) if len(diffs) > 1 else 1.0
+        fan = 'mixed'
+        if all(g > 0 for g in diffs):
+            fan = 'fanning_out'
+        elif all(g < 0 for g in diffs):
+            fan = 'inverted'
+        elif max(abs(g) for g in diffs) < 0.25:
+            fan = 'flat_cluster'
+        elif all(abs(d) < 1.0 for d in np.diff(diffs)) if len(diffs) > 1 else False:
+            fan = 'compressing'
+        slog.GCS_SPACING(f"[gcs_spacing] {' | '.join(gaps)} | mono={mono:.2f} fan={fan}")
+    if sec_transfer and ordered:
+        dir_s = 0
+        if 8 in slopes_tail:
+            dir_s = 1 if slopes_tail[8] > 0 else (-1 if slopes_tail[8] < 0 else 0)
+        tbits = []
+        depth = 0.0
+        for a, b in [(8, 23), (23, 38), (38, 53)]:
+            ok = int(dir_s != 0 and b in slopes_tail and ((slopes_tail[b] > 0) == (dir_s > 0)))
+            depth += ok
+            tbits.append(f"{a}→{b}={ok}")
+        state = 'none' if depth <= 0 else ('partial' if depth < 3 else 'deep')
+        dlabel = 'up' if dir_s > 0 else ('down' if dir_s < 0 else 'none')
+        slog.GCS_TRANSFER(f"[gcs_transfer] dir={dlabel} depth={depth:.2f} state={state} | {' '.join(tbits)}")
 
     slog.GCS(_line('-', 155))
     slog.GCS(_line('*', 155))
