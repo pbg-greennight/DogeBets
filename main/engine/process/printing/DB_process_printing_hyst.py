@@ -24,6 +24,7 @@ _HYST_TRACKER: Dict[str, Any] = {
     "episode_start_ts": None,
     "episode_pair": None,
     "last_primary_flip_ts": None,
+    "leader_state": {},
 }
 
 
@@ -491,6 +492,18 @@ def print_hysteresis_fan_stack(
     pr = hyst["probe"]
     eta = hyst["eta"]
     stacks = hyst["stacks"]
+    p = (config.get("PRINT", {}) or {})
+    hcfg = (p.get("HYSTERESIS", {}) or {})
+    hcfg_alt = (p.get("HYST", {}) or {})
+
+    def _h_on(key: str, legacy: str, default: bool = True) -> bool:
+        node = hcfg.get(key, hcfg_alt.get(key, {})) or {}
+        return bool(node.get("ENABLED", config.get(legacy, default)))
+
+    sec_stability = _h_on("STABILITY", "LOG_HYST_STABILITY", True)
+    sec_pressure = _h_on("PRESSURE", "LOG_HYST_PRESSURE", True)
+    sec_spread = _h_on("SPREAD_STATE", "LOG_HYST_SPREAD_STATE", True)
+    sec_risk = _h_on("RISK", "LOG_HYST_RISK", True)
 
     slog.HYST_HEADER(_line("=", 155))
     slog.HYST_HEADER("HYSTERESIS FAN STACK (method_hyster_v1.0)")
@@ -569,6 +582,115 @@ def print_hysteresis_fan_stack(
                 f"ddW_norm={ddW_s} | m2_norm={lm.get('m2_norm', 0.0):+.3f} | "
                 f"dom={dom_s} | leader={leader_s} | crosses={cross_pairs_s}"
             )
+
+            # ---- added optional diagnostics
+            cross_pairs_obj = lm.get("cross_pairs") or {}
+            near_count = 0
+            min_gap = float("inf")
+            for pair_key in cross_pairs_obj.keys():
+                a, b = pair_key.split("-")
+                try:
+                    idx_a = lm["sigmas"].index(int(a))
+                    idx_b = lm["sigmas"].index(int(b))
+                    vals = _safe_get(per_sigma_hist, int(a), "values", default=[])
+                    vals_b = _safe_get(per_sigma_hist, int(b), "values", default=[])
+                    if vals and vals_b:
+                        g = abs(float(vals[-1]) - float(vals_b[-1]))
+                        min_gap = min(min_gap, g)
+                        if g <= max(abs(lm.get("W_now", 0.0)) * 0.08, 0.25):
+                            near_count += 1
+                except Exception:
+                    _ = idx_a if 'idx_a' in locals() else None
+                    _ = idx_b if 'idx_b' in locals() else None
+            if not np.isfinite(min_gap):
+                min_gap = float("nan")
+
+            gap_vel = -float(lm.get("dW", 0.0))
+            if near_count > 0 and gap_vel > 0:
+                near_state = "approaching"
+            elif near_count > 0 and gap_vel <= 0:
+                near_state = "hovering"
+            elif gap_vel > 0:
+                near_state = "pressuring"
+            else:
+                near_state = "calm"
+
+            leader_key = f"{sid}_leader"
+            cur_leader = leader_s
+            ls = (_HYST_TRACKER.get("leader_state") or {}).get(leader_key, {
+                "leader": None,
+                "age": 0,
+                "switch_ts": [],
+            })
+            if ls.get("leader") == cur_leader:
+                ls["age"] = int(ls.get("age", 0)) + 1
+            else:
+                ls["leader"] = cur_leader
+                ls["age"] = 1
+                ts_hist = list(ls.get("switch_ts") or [])
+                ts_hist.append(decision_dt)
+                ls["switch_ts"] = ts_hist[-20:]
+            _HYST_TRACKER.setdefault("leader_state", {})[leader_key] = ls
+
+            switchN = len(ls.get("switch_ts") or [])
+            leader_stab = float(ls.get("age", 0) / max(1, ls.get("age", 0) + switchN))
+
+            cross_rate = float(lm.get("cross_rate", 0.0))
+            order = float(lm.get("eff_order", 0.0))
+            W_stability = float(1.0 / (1.0 + abs(lm.get("ddW_norm", 0.0))))
+            cross_stability = float(1.0 / (1.0 + cross_rate))
+            near_penalty = min(1.0, near_count / max(1.0, float(len(cross_pairs_obj) or 1)))
+            stability_score = max(0.0, min(1.0, 0.35 * cross_stability + 0.30 * order + 0.20 * W_stability + 0.15 * leader_stab - 0.20 * near_penalty))
+            if stability_score < 0.25:
+                stability_state = "fragile"
+            elif stability_score < 0.50:
+                stability_state = "unstable"
+            elif stability_score < 0.75:
+                stability_state = "stable"
+            else:
+                stability_state = "strong"
+
+            dWn = float(lm.get("dW_norm", 0.0))
+            ddWn = float(lm.get("ddW_norm", 0.0))
+            if abs(dWn) < 0.05:
+                spread_state = "frozen"
+            elif dWn > 0:
+                spread_state = "widening"
+            else:
+                spread_state = "narrowing"
+            spread_momentum = "flat"
+            if ddWn > 0.05:
+                spread_momentum = "strengthening"
+            elif ddWn < -0.05:
+                spread_momentum = "weakening"
+            exhaust = int(abs(dWn) < 0.12 and abs(ddWn) > 0.10)
+
+            order_conf = max(0.0, min(1.0, 0.6 * order + 0.4 * cross_stability))
+            order_break = max(0.0, min(1.0, 1.0 - order_conf + near_penalty * 0.4))
+
+            risk_state = "continuation_friendly"
+            if order_break > 0.70:
+                risk_state = "collapse_watch"
+            elif near_penalty > 0.5 and cross_rate > 0.6:
+                risk_state = "whipsaw_risk"
+            elif spread_state == "narrowing" and spread_momentum == "weakening":
+                risk_state = "reversal_watch"
+
+            if sec_stability:
+                slog.HYST_STABILITY(
+                    f"[hyst_stability] {sid} stability={stability_score:.2f} {stability_state} | "
+                    f"leader_age={int(ls.get('age', 0))} switchN={switchN} leader_stab={leader_stab:.2f}"
+                )
+            if sec_pressure:
+                slog.HYST_PRESSURE(
+                    f"[hyst_pressure] {sid} near_cross={near_count} min_gap={min_gap if np.isfinite(min_gap) else float('nan'):.3f} "
+                    f"gap_vel={gap_vel:+.3f} state={near_state}"
+                )
+            if sec_spread or sec_risk:
+                slog.HYST_SPREAD_STATE(
+                    f"[hyst_spread_state] {sid} spread={spread_state} momentum={spread_momentum} exhaust={exhaust} "
+                    f"order_conf={order_conf:.2f} break_risk={order_break:.2f} risk={risk_state}"
+                )
 
     if True:
         slog.HYST_DEBUG(
