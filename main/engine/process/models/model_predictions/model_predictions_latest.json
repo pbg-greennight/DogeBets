@@ -1,16 +1,16 @@
 {
-  "epoch": 320613,
-  "next_epoch": 320614,
-  "timestamp": "2026-03-09T09:56:33.067796",
+  "epoch": 320620,
+  "next_epoch": 320621,
+  "timestamp": "2026-03-09T10:31:44.069988",
   "models": [
     {
       "model_id": "trend_method_v2_0",
-      "trend": "Neutral",
+      "trend": "Bull",
       "confidence": 1.0,
-      "score": 0.0,
-      "reason": "regime=NOISE|slope_sum=0.991423",
+      "score": 1.7770863607893261,
+      "reason": "regime=RUN|slope_sum=1.777086",
       "debug": {
-        "regime": "NOISE",
+        "regime": "RUN",
         "run_direction": "Bull",
         "thresholds": {
           "run_fan_threshold": 0.01,
@@ -21,27 +21,27 @@
           "alignment_threshold": 0.5
         },
         "signals": {
-          "fan_width": 20.055907743022544,
-          "alignment": 0.0,
-          "compression_velocity": -5.015662720266846,
-          "flip_score": 0.21371193558845247,
-          "slope_sum": 0.9914230111844518,
-          "slope_magnitude": 0.9914230111844518,
-          "ratio_8_23_to_23_53": -1.2901770371379724
+          "fan_width": 108.62268177553779,
+          "alignment": 1.0,
+          "compression_velocity": 61.73349236774084,
+          "flip_score": 0.16217170915707746,
+          "slope_sum": 1.7770863607893261,
+          "slope_magnitude": 1.7770863607893261,
+          "ratio_8_23_to_23_53": -1.0579989101709326
         }
       },
       "raw_features_used": {
-        "s23": 1.0271469571380294,
-        "s53": -0.03572394595357764,
-        "fan_width": 20.055907743022544,
-        "alignment": 0.0,
-        "compression_velocity": -5.015662720266846,
-        "flip_score": 0.21371193558845247
+        "s23": 1.2606559840714908,
+        "s53": 0.5164303767178353,
+        "fan_width": 108.62268177553779,
+        "alignment": 1.0,
+        "compression_velocity": 61.73349236774084,
+        "flip_score": 0.16217170915707746
       }
     }
   ],
-  "v2.0_trend": "Neutral",
-  "v2.0_score": 0.0,
+  "v2.0_trend": "Bull",
+  "v2.0_score": 1.7770863607893261,
   "v2.0_confidence": 1.0,
   "v2.0_correct": null
 }
