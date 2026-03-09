@@ -494,6 +494,7 @@ def _build_group_stats(rows: Sequence[Dict[str, Any]], group_name: str, group_va
         "mean_s23": _safe_mean(rows, "s23"),
         "mean_s53": _safe_mean(rows, "s53"),
         "mean_slope_sum": _safe_mean(rows, "slope_sum"),
+        "mean_slope_magnitude": _safe_mean(rows, "slope_magnitude"),
         "mean_fan_width": _safe_mean(rows, "fan_width"),
         "mean_alignment": _safe_mean(rows, "alignment"),
         "mean_compression_velocity": _safe_mean(rows, "compression_velocity"),
@@ -650,14 +651,28 @@ def build_main_summary(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
+
 def run_threshold_scan(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Analysis-only threshold scan for Bull overrides."""
+    """
+    Legacy analysis-only threshold scan for Bull overrides.
+    Kept for compatibility, but v2_1 work should prefer
+    run_v2_1_bull_instability_scan().
+    """
     compression_levels = [-0.4, -0.6, -0.8, -1.0, -1.2]
     alignment_levels = [0.15, 0.20, 0.25, 0.30, 0.40]
     flip_levels = [0.03, 0.05, 0.07, 0.10]
 
     results: List[Dict[str, Any]] = []
     combos = itertools.product(compression_levels, alignment_levels, flip_levels)
+
+    baseline_summary = build_main_summary(rows)
+    baseline = {
+        "baseline_directional_called": baseline_summary["directional_called"],
+        "baseline_directional_accuracy": baseline_summary["directional_accuracy"],
+        "baseline_directional_coverage": baseline_summary["directional_coverage"],
+        "baseline_bull_precision": baseline_summary["bull_precision"],
+        "baseline_bear_precision": baseline_summary["bear_precision"],
+    }
 
     for c_thr, a_thr, f_thr in combos:
         candidates = [
@@ -668,9 +683,11 @@ def run_threshold_scan(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
             and (_as_float(r.get("alignment")) or 0.0) <= a_thr
             and (_as_float(r.get("flip_score")) or 0.0) >= f_thr
         ]
+
+        candidate_keys = {(r.get("epoch"), r.get("next_epoch"), r.get("timestamp")) for r in candidates}
+
         for variant in ["bull_to_neutral", "bull_to_bear"]:
-            simulated = []
-            candidate_keys = {(r.get("epoch"), r.get("next_epoch"), r.get("timestamp")) for r in candidates}
+            simulated: List[Dict[str, Any]] = []
             for row in rows:
                 clone = dict(row)
                 key = (row.get("epoch"), row.get("next_epoch"), row.get("timestamp"))
@@ -680,15 +697,10 @@ def run_threshold_scan(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     clone["directional_correct"] = bool(
                         clone["directional_called"] and clone["prediction"] == clone.get("truth")
                     )
+                    clone["correct"] = bool(clone["prediction"] == clone.get("truth") and clone.get("truth") != "Unknown")
                 simulated.append(clone)
 
-            directional_called = sum(1 for r in simulated if r.get("directional_called"))
-            directional_correct = sum(1 for r in simulated if r.get("directional_correct"))
-            bull_pred = sum(1 for r in simulated if r.get("prediction") == "Bull")
-            bear_pred = sum(1 for r in simulated if r.get("prediction") == "Bear")
-            bull_correct = sum(1 for r in simulated if r.get("prediction") == "Bull" and r.get("truth") == "Bull")
-            bear_correct = sum(1 for r in simulated if r.get("prediction") == "Bear" and r.get("truth") == "Bear")
-
+            sim_summary = build_main_summary(simulated)
             results.append(
                 {
                     "variant": variant,
@@ -696,15 +708,222 @@ def run_threshold_scan(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     "alignment_threshold": a_thr,
                     "flip_score_threshold": f_thr,
                     "changed_rows_count": len(candidates),
-                    "new_directional_called": directional_called,
-                    "new_directional_accuracy": _safe_ratio(directional_correct, directional_called),
-                    "new_bull_precision": _safe_ratio(bull_correct, bull_pred),
-                    "new_bear_precision": _safe_ratio(bear_correct, bear_pred),
+                    "new_directional_called": sim_summary["directional_called"],
+                    **baseline,
+                    "new_directional_accuracy": sim_summary["directional_accuracy"],
+                    "new_directional_coverage": sim_summary["directional_coverage"],
+                    "new_bull_precision": sim_summary["bull_precision"],
+                    "new_bear_precision": sim_summary["bear_precision"],
+                    "delta_directional_accuracy": sim_summary["directional_accuracy"] - baseline["baseline_directional_accuracy"],
+                    "delta_directional_coverage": sim_summary["directional_coverage"] - baseline["baseline_directional_coverage"],
+                    "delta_bull_precision": sim_summary["bull_precision"] - baseline["baseline_bull_precision"],
+                    "delta_bear_precision": sim_summary["bear_precision"] - baseline["baseline_bear_precision"],
                 }
             )
 
     return results
 
+
+def run_v2_1_bull_instability_scan(
+    rows: Sequence[Dict[str, Any]],
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any], List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """
+    Scan analysis-only v2_1 Bull-run instability rules.
+
+    Focus:
+    - prediction == Bull
+    - regime == RUN
+
+    Candidate signal shape:
+    - elevated flip_score
+    - weakened alignment
+    - optional compression filter
+    - optional ratio filter
+
+    Returns:
+        (all_scan_rows, baseline_metrics, top_bull_to_neutral, top_bull_to_bear)
+    """
+    flip_thresholds = [0.12, 0.14, 0.16, 0.18, 0.20, 0.22, 0.25]
+    alignment_thresholds = [1.00, 0.99, 0.98, 0.97, 0.95, 0.93, 0.90]
+    compression_mins: List[Optional[float]] = [None, 0.0, 5.0, 10.0, 15.0]
+    ratio_thresholds: List[Optional[float]] = [None, 0.0, -0.05, -0.10]
+
+    baseline_summary = build_main_summary(rows)
+    baseline = {
+        "baseline_directional_called": baseline_summary["directional_called"],
+        "baseline_directional_accuracy": baseline_summary["directional_accuracy"],
+        "baseline_directional_coverage": baseline_summary["directional_coverage"],
+        "baseline_bull_precision": baseline_summary["bull_precision"],
+        "baseline_bear_precision": baseline_summary["bear_precision"],
+    }
+
+    bull_run_rows = [
+        r for r in rows
+        if r.get("prediction") == "Bull" and r.get("regime") == "RUN"
+    ]
+
+    results: List[Dict[str, Any]] = []
+
+    for f_thr, a_thr, c_min, ratio_thr in itertools.product(
+        flip_thresholds,
+        alignment_thresholds,
+        compression_mins,
+        ratio_thresholds,
+    ):
+        candidates = [
+            r
+            for r in bull_run_rows
+            if (_as_float(r.get("flip_score")) or 0.0) >= f_thr
+            and (_as_float(r.get("alignment")) or 0.0) <= a_thr
+            and (c_min is None or (_as_float(r.get("compression_velocity")) or 0.0) >= c_min)
+            and (ratio_thr is None or (_as_float(r.get("ratio_8_23_to_23_53")) or 0.0) <= ratio_thr)
+        ]
+
+        candidate_keys = {
+            (r.get("epoch"), r.get("next_epoch"), r.get("timestamp"))
+            for r in candidates
+        }
+
+        for variant in ("bull_to_neutral", "bull_to_bear"):
+            simulated: List[Dict[str, Any]] = []
+
+            for row in rows:
+                clone = dict(row)
+                key = (row.get("epoch"), row.get("next_epoch"), row.get("timestamp"))
+
+                if key in candidate_keys and row.get("prediction") == "Bull" and row.get("regime") == "RUN":
+                    clone["prediction"] = "Neutral" if variant == "bull_to_neutral" else "Bear"
+                    clone["directional_called"] = clone["prediction"] in {"Bull", "Bear"}
+                    clone["directional_correct"] = bool(
+                        clone["directional_called"] and clone["prediction"] == clone.get("truth")
+                    )
+                    clone["correct"] = bool(
+                        clone["prediction"] == clone.get("truth") and clone.get("truth") != "Unknown"
+                    )
+                    clone["bull_called"] = clone["prediction"] == "Bull"
+                    clone["bear_called"] = clone["prediction"] == "Bear"
+                    clone["neutral_called"] = clone["prediction"] == "Neutral"
+
+                    clone["bull_called_bear_truth"] = bool(clone["bull_called"] and clone.get("truth") == "Bear")
+                    clone["bear_called_bull_truth"] = bool(clone["bear_called"] and clone.get("truth") == "Bull")
+                    clone["neutral_called_bull_truth"] = bool(clone["neutral_called"] and clone.get("truth") == "Bull")
+                    clone["neutral_called_bear_truth"] = bool(clone["neutral_called"] and clone.get("truth") == "Bear")
+                    clone["bull_called_neutral_truth"] = bool(clone["bull_called"] and clone.get("truth") == "Neutral")
+                    clone["bear_called_neutral_truth"] = bool(clone["bear_called"] and clone.get("truth") == "Neutral")
+
+                simulated.append(clone)
+
+            sim_summary = build_main_summary(simulated)
+            new_directional_accuracy = sim_summary["directional_accuracy"]
+            new_directional_coverage = sim_summary["directional_coverage"]
+            new_bull_precision = sim_summary["bull_precision"]
+            new_bear_precision = sim_summary["bear_precision"]
+
+            results.append(
+                {
+                    "variant": variant,
+                    "flip_score_threshold": f_thr,
+                    "alignment_threshold": a_thr,
+                    "compression_velocity_min": c_min,
+                    "ratio_threshold": ratio_thr,
+                    "changed_rows_count": len(candidates),
+                    "new_directional_called": sim_summary["directional_called"],
+                    **baseline,
+                    "new_directional_accuracy": new_directional_accuracy,
+                    "new_directional_coverage": new_directional_coverage,
+                    "new_bull_precision": new_bull_precision,
+                    "new_bear_precision": new_bear_precision,
+                    "delta_directional_accuracy": new_directional_accuracy - baseline["baseline_directional_accuracy"],
+                    "delta_directional_coverage": new_directional_coverage - baseline["baseline_directional_coverage"],
+                    "delta_bull_precision": new_bull_precision - baseline["baseline_bull_precision"],
+                    "delta_bear_precision": new_bear_precision - baseline["baseline_bear_precision"],
+                }
+            )
+
+    top_neutral = rank_v2_1_candidates(results, "bull_to_neutral", top_n=5)
+    top_bear = rank_v2_1_candidates(results, "bull_to_bear", top_n=3)
+    return results, baseline, top_neutral, top_bear
+
+
+def rank_v2_1_candidates(
+    rows: Sequence[Dict[str, Any]],
+    variant: str,
+    top_n: int,
+) -> List[Dict[str, Any]]:
+    """
+    Rank v2_1 candidates by:
+    1) higher directional accuracy gain
+    2) higher bear precision gain
+    3) less coverage loss
+    4) fewer changed rows (small preference)
+    """
+    subset = [r for r in rows if r.get("variant") == variant]
+    subset.sort(
+        key=lambda r: (
+            _as_float(r.get("delta_directional_accuracy")) or 0.0,
+            _as_float(r.get("delta_bear_precision")) or 0.0,
+            _as_float(r.get("delta_directional_coverage")) or -1.0,
+            -(_as_int(r.get("changed_rows_count")) or 0),
+        ),
+        reverse=True,
+    )
+    return subset[:top_n]
+
+
+def _scan_thr_label(value: Optional[float], none_label: str = "no filter") -> str:
+    return none_label if value is None else f"{value:.2f}"
+
+
+def print_v2_1_scan_summary(
+    baseline: Dict[str, Any],
+    top_neutral: Sequence[Dict[str, Any]],
+    top_bear: Sequence[Dict[str, Any]],
+) -> None:
+    """
+    Print focused v2_1 Bull-run instability diagnostics and ranked candidates.
+    """
+    print("\n=== V2_1 Bull-Run Instability Scan ===")
+    print(
+        "baseline directional called/accuracy/coverage: "
+        f"{int(baseline['baseline_directional_called'])} / "
+        f"{_pct(baseline['baseline_directional_accuracy'])} / "
+        f"{_pct(baseline['baseline_directional_coverage'])}"
+    )
+    print(
+        "baseline bull precision / bear precision: "
+        f"{_pct(baseline['baseline_bull_precision'])} / "
+        f"{_pct(baseline['baseline_bear_precision'])}"
+    )
+
+    def _print_candidates(title: str, candidates: Sequence[Dict[str, Any]]) -> None:
+        print(f"\n{title}")
+        if not candidates:
+            print("- none")
+            return
+
+        for row in candidates:
+            print(
+                "- flip>= {flip} | align<= {align} | comp>= {comp} | ratio<= {ratio} | changed= {changed} | "
+                "acc= {acc} ({d_acc:+.4f}) | cov= {cov} ({d_cov:+.4f}) | "
+                "bull= {bull} ({d_bull:+.4f}) | bear= {bear} ({d_bear:+.4f})".format(
+                    flip=_scan_thr_label(_as_float(row.get("flip_score_threshold"))),
+                    align=_scan_thr_label(_as_float(row.get("alignment_threshold"))),
+                    comp=_scan_thr_label(_as_float(row.get("compression_velocity_min"))),
+                    ratio=_scan_thr_label(_as_float(row.get("ratio_threshold"))),
+                    changed=int(_as_int(row.get("changed_rows_count")) or 0),
+                    acc=_pct(_as_float(row.get("new_directional_accuracy")) or 0.0),
+                    d_acc=_as_float(row.get("delta_directional_accuracy")) or 0.0,
+                    cov=_pct(_as_float(row.get("new_directional_coverage")) or 0.0),
+                    d_cov=_as_float(row.get("delta_directional_coverage")) or 0.0,
+                    bull=_pct(_as_float(row.get("new_bull_precision")) or 0.0),
+                    d_bull=_as_float(row.get("delta_bull_precision")) or 0.0,
+                    bear=_pct(_as_float(row.get("new_bear_precision")) or 0.0),
+                    d_bear=_as_float(row.get("delta_bear_precision")) or 0.0,
+                )
+            )
+
+    _print_candidates("Top 5 Bull -> Neutral candidates", top_neutral)
+    _print_candidates("Top 3 Bull -> Bear candidates", top_bear)
 
 def _write_csv(path: Path, rows: Sequence[Dict[str, Any]], fieldnames: Sequence[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -723,6 +942,7 @@ def write_outputs(
     error_breakdown: Sequence[Dict[str, Any]],
     run_flip_breakdown: Sequence[Dict[str, Any]],
     threshold_scan: Sequence[Dict[str, Any]],
+    v2_1_bull_instability_scan: Sequence[Dict[str, Any]],
 ) -> Dict[str, Path]:
     """Write all required datasets and summary files."""
     paths = {
@@ -734,6 +954,7 @@ def write_outputs(
         "error_breakdown": output_dir / "gaussian_fan_error_breakdown.csv",
         "run_flip_breakdown": output_dir / "gaussian_fan_run_flip_breakdown.csv",
         "threshold_scan": output_dir / "gaussian_fan_threshold_scan.csv",
+        "v2_1_bull_instability_scan": output_dir / "gaussian_fan_v2_1_bull_instability_scan.csv",
     }
 
 
@@ -750,6 +971,11 @@ def write_outputs(
     _write_csv(paths["error_breakdown"], error_breakdown, list(error_breakdown[0].keys()) if error_breakdown else group_fields)
     _write_csv(paths["run_flip_breakdown"], run_flip_breakdown, list(run_flip_breakdown[0].keys()) if run_flip_breakdown else group_fields)
     _write_csv(paths["threshold_scan"], threshold_scan, list(threshold_scan[0].keys()) if threshold_scan else ["variant"])
+    _write_csv(
+        paths["v2_1_bull_instability_scan"],
+        v2_1_bull_instability_scan,
+        list(v2_1_bull_instability_scan[0].keys()) if v2_1_bull_instability_scan else ["variant"],
+    )
 
     return paths
 
@@ -762,6 +988,9 @@ def print_terminal_summary(
     rows: Sequence[Dict[str, Any]],
     error_breakdown: Sequence[Dict[str, Any]],
     paths: Dict[str, Path],
+    v2_1_scan_baseline: Dict[str, Any],
+    top_bull_to_neutral_candidates: Sequence[Dict[str, Any]],
+    top_bull_to_bear_candidates: Sequence[Dict[str, Any]],
 ) -> None:
     """Print readable diagnostics sections in terminal."""
     print("\n=== Gaussian Fan Export: Headline Stats ===")
@@ -810,6 +1039,28 @@ def print_terminal_summary(
             f"{_pct(wrong_bull.get('weak_bull_exhaustion_flag_rate', 0.0))} vs "
             f"{_pct(correct_bull.get('weak_bull_exhaustion_flag_rate', 0.0))}"
         )
+        print(
+            "mean ratio_8_23_to_23_53 (wrong vs correct): "
+            f"{wrong_bull.get('mean_ratio_8_23_to_23_53', 0.0):.5f} vs {correct_bull.get('mean_ratio_8_23_to_23_53', 0.0):.5f}"
+        )
+        print(
+            "mean slope_sum (wrong vs correct): "
+            f"{wrong_bull.get('mean_slope_sum', 0.0):.5f} vs {correct_bull.get('mean_slope_sum', 0.0):.5f}"
+        )
+        print(
+            "mean slope_magnitude (wrong vs correct): "
+            f"{wrong_bull.get('mean_slope_magnitude', 0.0):.5f} vs {correct_bull.get('mean_slope_magnitude', 0.0):.5f}"
+        )
+        print(
+            "slope_disagreement_rate (wrong vs correct): "
+            f"{_pct(wrong_bull.get('slope_disagreement_rate', 0.0))} vs {_pct(correct_bull.get('slope_disagreement_rate', 0.0))}"
+        )
+
+    print_v2_1_scan_summary(
+        v2_1_scan_baseline,
+        top_bull_to_neutral_candidates,
+        top_bull_to_bear_candidates,
+    )
 
     print("\n=== Saved Files ===")
     for key in [
@@ -821,6 +1072,7 @@ def print_terminal_summary(
         "error_breakdown",
         "run_flip_breakdown",
         "threshold_scan",
+        "v2_1_bull_instability_scan",
     ]:
         print(f"- {paths[key].resolve()}")
 
@@ -843,7 +1095,14 @@ def main() -> int:
     regime_breakdown = build_regime_breakdown(rows)
     error_breakdown = build_error_breakdown(rows)
     run_flip_breakdown = build_run_flip_breakdown(rows)
-    threshold_scan = run_threshold_scan(rows)
+    v2_1_scan_rows, v2_1_scan_baseline, top_bull_to_neutral_candidates, top_bull_to_bear_candidates = run_v2_1_bull_instability_scan(rows)
+    threshold_scan = v2_1_scan_rows
+
+    summary["v2_1_bull_instability_scan"] = {
+        "baseline": v2_1_scan_baseline,
+        "top_bull_to_neutral_candidates": top_bull_to_neutral_candidates,
+        "top_bull_to_bear_candidates": top_bull_to_bear_candidates,
+    }
 
     paths = write_outputs(
         output_dir=args.output_dir,
@@ -853,9 +1112,18 @@ def main() -> int:
         error_breakdown=error_breakdown,
         run_flip_breakdown=run_flip_breakdown,
         threshold_scan=threshold_scan,
+        v2_1_bull_instability_scan=v2_1_scan_rows,
     )
     summary = build_main_summary(rows)
-    print_terminal_summary(summary, rows, error_breakdown, paths)
+    print_terminal_summary(
+        summary,
+        rows,
+        error_breakdown,
+        paths,
+        v2_1_scan_baseline,
+        top_bull_to_neutral_candidates,
+        top_bull_to_bear_candidates,
+    )
     return 0
 
 

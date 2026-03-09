@@ -1,14 +1,14 @@
 {
-  "epoch": 320633,
-  "next_epoch": 320634,
-  "timestamp": "2026-03-09T11:37:01.082773",
+  "epoch": 320657,
+  "next_epoch": 320658,
+  "timestamp": "2026-03-09T13:37:35.083862",
   "models": [
     {
       "model_id": "trend_method_v2_0",
       "trend": "Bear",
       "confidence": 1.0,
-      "score": -1.7298841766005353,
-      "reason": "regime=RUN|slope_sum=-1.729884",
+      "score": -1.3730686171711568,
+      "reason": "regime=RUN|slope_sum=-1.373069",
       "debug": {
         "regime": "RUN",
         "run_direction": "Bear",
@@ -21,27 +21,27 @@
           "alignment_threshold": 0.5
         },
         "signals": {
-          "fan_width": 126.53768167649105,
+          "fan_width": 82.92394063572283,
           "alignment": 1.0,
-          "compression_velocity": 4.582233465247555,
-          "flip_score": 0.2769677369414629,
-          "slope_sum": -1.7298841766005353,
-          "slope_magnitude": 1.7298841766005353,
-          "ratio_8_23_to_23_53": 0.4364692370220035
+          "compression_velocity": 26.153140488808276,
+          "flip_score": 0.15944901990712557,
+          "slope_sum": -1.3730686171711568,
+          "slope_magnitude": 1.3730686171711568,
+          "ratio_8_23_to_23_53": 0.7034182855609716
         }
       },
       "raw_features_used": {
-        "s23": -0.840361615177244,
-        "s53": -0.8895225614232913,
-        "fan_width": 126.53768167649105,
+        "s23": -0.8858087958778924,
+        "s53": -0.4872598212932644,
+        "fan_width": 82.92394063572283,
         "alignment": 1.0,
-        "compression_velocity": 4.582233465247555,
-        "flip_score": 0.2769677369414629
+        "compression_velocity": 26.153140488808276,
+        "flip_score": 0.15944901990712557
       }
     }
   ],
   "v2.0_trend": "Bear",
-  "v2.0_score": -1.7298841766005353,
+  "v2.0_score": -1.3730686171711568,
   "v2.0_confidence": 1.0,
   "v2.0_correct": null
 }
