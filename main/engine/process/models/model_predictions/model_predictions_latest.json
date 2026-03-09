@@ -1,169 +1,47 @@
 {
-  "epoch": 320475,
-  "next_epoch": 320476,
-  "timestamp": "2026-03-08T22:23:30.285113",
+  "epoch": 320604,
+  "next_epoch": 320605,
+  "timestamp": "2026-03-09T09:11:22.064036",
   "models": [
     {
-      "model_id": "trend_method_v1_0",
-      "trend": "Bear",
+      "model_id": "trend_method_v2_0",
+      "trend": "Bull",
       "confidence": 1.0,
-      "score": -10.855364861196334,
-      "reason": "score_vs_threshold:-10.855365/0.020000",
+      "score": 3.5435169613574544,
+      "reason": "regime=RUN|slope_sum=3.543517",
       "debug": {
-        "weights": {
-          "slope": 1.0,
-          "fan": 0.2,
-          "ratio": 0.0,
-          "compression": 0.0,
-          "torque": 0.0
+        "regime": "RUN",
+        "run_direction": "Bull",
+        "thresholds": {
+          "run_fan_threshold": 0.01,
+          "noise_fan_threshold": 0.004,
+          "compression_threshold": 0.003,
+          "flip_score_threshold": 0.5,
+          "slope_noise_threshold": 0.002,
+          "alignment_threshold": 0.5
         },
-        "threshold": 0.02,
-        "flip_penalty": 0.05
+        "signals": {
+          "fan_width": 201.23218658892438,
+          "alignment": 1.0,
+          "compression_velocity": 116.17391399921326,
+          "flip_score": 0.2145254940048157,
+          "slope_sum": 3.5435169613574544,
+          "slope_magnitude": 3.5435169613574544,
+          "ratio_8_23_to_23_53": -1.2707565765368791
+        }
       },
       "raw_features_used": {
-        "s8": 66102.50682410876,
-        "s23": 66078.8171041018,
-        "s53": 66048.08208360962,
-        "fan_width": -60.07319750577153,
-        "R1": -0.7707728716890109,
-        "R2": -0.18377918465652565,
-        "flip_score": 0.1675702392890041
-      }
-    },
-    {
-      "model_id": "trend_method_v1_1",
-      "trend": "Bear",
-      "confidence": 1.0,
-      "score": -10.857040563589225,
-      "reason": "score_vs_threshold:-10.857041/0.025000",
-      "debug": {
-        "weights": {
-          "slope": 1.0,
-          "fan": 0.2,
-          "ratio": 0.0,
-          "compression": 0.0,
-          "torque": 0.0
-        },
-        "threshold": 0.025,
-        "flip_penalty": 0.06
-      },
-      "raw_features_used": {
-        "s8": 66102.50682410876,
-        "s23": 66078.8171041018,
-        "s53": 66048.08208360962,
-        "fan_width": -60.07319750577153,
-        "R1": -0.7707728716890109,
-        "R2": -0.18377918465652565,
-        "flip_score": 0.1675702392890041
-      }
-    },
-    {
-      "model_id": "trend_method_v1_2",
-      "trend": "Bear",
-      "confidence": 1.0,
-      "score": -10.858716265982114,
-      "reason": "score_vs_threshold:-10.858716/0.030000",
-      "debug": {
-        "weights": {
-          "slope": 1.0,
-          "fan": 0.2,
-          "ratio": 0.0,
-          "compression": 0.0,
-          "torque": 0.0
-        },
-        "threshold": 0.03,
-        "flip_penalty": 0.07
-      },
-      "raw_features_used": {
-        "s8": 66102.50682410876,
-        "s23": 66078.8171041018,
-        "s53": 66048.08208360962,
-        "fan_width": -60.07319750577153,
-        "R1": -0.7707728716890109,
-        "R2": -0.18377918465652565,
-        "flip_score": 0.1675702392890041
-      }
-    },
-    {
-      "model_id": "trend_method_v1_3",
-      "trend": "Bear",
-      "confidence": 1.0,
-      "score": -10.860391968375003,
-      "reason": "score_vs_threshold:-10.860392/0.035000",
-      "debug": {
-        "weights": {
-          "slope": 1.0,
-          "fan": 0.2,
-          "ratio": 0.0,
-          "compression": 0.0,
-          "torque": 0.0
-        },
-        "threshold": 0.035,
-        "flip_penalty": 0.08
-      },
-      "raw_features_used": {
-        "s8": 66102.50682410876,
-        "s23": 66078.8171041018,
-        "s53": 66048.08208360962,
-        "fan_width": -60.07319750577153,
-        "R1": -0.7707728716890109,
-        "R2": -0.18377918465652565,
-        "flip_score": 0.1675702392890041
-      }
-    },
-    {
-      "model_id": "trend_method_v1_4",
-      "trend": "Bear",
-      "confidence": 1.0,
-      "score": -10.862067670767894,
-      "reason": "score_vs_threshold:-10.862068/0.040000",
-      "debug": {
-        "weights": {
-          "slope": 1.0,
-          "fan": 0.2,
-          "ratio": 0.0,
-          "compression": 0.0,
-          "torque": 0.0
-        },
-        "threshold": 0.04,
-        "flip_penalty": 0.09
-      },
-      "raw_features_used": {
-        "s8": 66102.50682410876,
-        "s23": 66078.8171041018,
-        "s53": 66048.08208360962,
-        "fan_width": -60.07319750577153,
-        "R1": -0.7707728716890109,
-        "R2": -0.18377918465652565,
-        "flip_score": 0.1675702392890041
-      }
-    },
-    {
-      "model_id": "trend_method_v1_5",
-      "trend": "Bear",
-      "confidence": 1.0,
-      "score": -10.863743373160784,
-      "reason": "score_vs_threshold:-10.863743/0.045000",
-      "debug": {
-        "weights": {
-          "slope": 1.0,
-          "fan": 0.2,
-          "ratio": 0.0,
-          "compression": 0.0,
-          "torque": 0.0
-        },
-        "threshold": 0.045,
-        "flip_penalty": 0.1
-      },
-      "raw_features_used": {
-        "s8": 66102.50682410876,
-        "s23": 66078.8171041018,
-        "s53": 66048.08208360962,
-        "fan_width": -60.07319750577153,
-        "R1": -0.7707728716890109,
-        "R2": -0.18377918465652565,
-        "flip_score": 0.1675702392890041
+        "s23": 2.728512580610186,
+        "s53": 0.8150043807472684,
+        "fan_width": 201.23218658892438,
+        "alignment": 1.0,
+        "compression_velocity": 116.17391399921326,
+        "flip_score": 0.2145254940048157
       }
     }
-  ]
+  ],
+  "v2.0_trend": "Bull",
+  "v2.0_score": 3.5435169613574544,
+  "v2.0_confidence": 1.0,
+  "v2.0_correct": null
 }
