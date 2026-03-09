@@ -676,7 +676,7 @@ import importlib.util
 import traceback
 
 MODELS_DIR = Path(__file__).resolve().parent / "models"
-MODEL_CONFIG_GLOB = "trend_method_v1_*.json"
+MODEL_CONFIG_GLOB = "trend_method_v2_0.json"
 PREDICTIONS_LATEST_FILE = MODELS_DIR / "model_predictions" / "model_predictions_latest.json"
 PREDICTIONS_HISTORY_FILE = MODELS_DIR / "model_predictions_history" / "model_predictions_history.jsonl"
 
@@ -788,11 +788,22 @@ def run_enabled_models(
             logging.exception("[models] %s failed", model_id)
             results.append(_error_result(model_id, exc))
 
+    primary = results[0] if results else {
+        "trend": "Neutral",
+        "score": 0.0,
+        "confidence": 1.0,
+    }
+
     payload = {
         "epoch": int(epoch),
         "next_epoch": int(next_epoch),
         "timestamp": str(timestamp),
         "models": results,
+        "v2.0_trend": str(primary.get("trend", "Neutral")),
+        "v2.0_score": _safe_number(primary.get("score", 0.0), 0.0),
+        "v2.0_confidence": _safe_number(primary.get("confidence", 1.0), 1.0),
+        "v2.0_correct": None,
     }
+
     persist_model_predictions(payload)
     return payload

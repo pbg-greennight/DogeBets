@@ -1,9 +1,0 @@
-{
-  "model_id": "trend_method_v1_3",
-  "enabled": true,
-  "description": "Gaussian trend model v1_3",
-  "thresholds": {
-    "score_threshold": 0.035,
-    "flip_penalty": 0.08
-  }
-}

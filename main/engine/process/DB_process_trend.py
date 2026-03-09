@@ -44,7 +44,7 @@ def save_forecast_log(trend_label, confidence, next_epoch, model_version, mode):
     with TREND_LOG_FILE.open("w", encoding="utf-8") as f:
         json.dump(history, f, indent=2)
 
-def _fallback(model_id: str = "trend_method_v1_0") -> Dict[str, Any]:
+def _fallback(model_id: str = "trend_method_v2_0") -> Dict[str, Any]:
     return {
         "model_id": model_id,
         "trend": "Neutral",
@@ -64,7 +64,7 @@ def calculate_trend(
         model_path: Optional[str] = None,
         hyst_obj: Optional[Any] = None,
 ) -> TrendDecision:
-    """Runs all enabled trend_method_v1_* models and returns a primary decision for legacy flow."""
+    """Runs the enabled trend_method_v2_0 model and returns a primary decision."""
     try:
         features = build_feature_catalog(
             timing=windows if hasattr(windows, "curr_epoch") else type("T", (), {"curr_epoch": curr_epoch, "next_epoch": next_epoch, "dt_curr": datetime.now()})(),
@@ -84,30 +84,30 @@ def calculate_trend(
         if not model_results:
             model_results = [_fallback()]
 
-        for result in model_results:
-            confidence = float(result.get("confidence", 1.0) or 1.0)
-            log.info(
-                "%s - Epoch data from %s → Predict Next Epoch %s | trend=%s | confidence=%.3f | model=%s",
-                now.strftime("%I:%M:%S %p"),
-                curr_epoch,
-                next_epoch,
-                result.get("trend", "Neutral"),
-                confidence,
-                result.get("model_id", "trend_method_v1_0"),
-            )
-            save_forecast_log(
-                trend_label=str(result.get("trend", "Neutral")),
-                confidence=confidence,
-                next_epoch=int(next_epoch),
-                model_version="v1_5",
-                mode="DB_process_trend",
-            )
-
         primary = model_results[0]
+        confidence = float(primary.get("confidence", 1.0) or 1.0)
+        model_id = str(primary.get("model_id", "trend_method_v2_0"))
+
+        log.info("Trend Decision (%s)", model_id)
+        log.info("Epoch %s → Predict Next Epoch %s", curr_epoch, next_epoch)
+        log.info(
+            "trend=%s | confidence=%.3f | model=%s",
+            primary.get("trend", "Neutral"),
+            confidence,
+            model_id,
+        )
+
+        save_forecast_log(
+            trend_label=str(primary.get("trend", "Neutral")),
+            confidence=confidence,
+            next_epoch=int(next_epoch),
+            model_version=model_id,
+            mode="DB_process_trend",
+        )
         td = TrendDecision(
             trend=str(primary.get("trend", "Neutral")),
             confidence=float(primary.get("confidence", 1.0) or 1.0),
-            model=str(primary.get("model_id", "trend_method_v1_0")),
+            model=str(primary.get("model_id", "trend_method_v2_0")),
             notes=str(primary.get("reason", "")),
         )
         setattr(td, "extras", {
@@ -119,12 +119,12 @@ def calculate_trend(
         return td
     except Exception as e:
         log.exception("calculate_trend failed: %s", e)
-        fallback = _fallback(model_id="trend_method_v1_5")
+        fallback = _fallback(model_id="trend_method_v2_0")
         save_forecast_log(
             trend_label=str(fallback.get("trend", "Neutral")),
             confidence=float(fallback.get("confidence", 1.0) or 1.0),
             next_epoch=int(next_epoch),
-            model_version="v1_5",
+            model_version="trend_method_v2_0",
             mode="DB_process_trend_fallback",
         )
         return TrendDecision(

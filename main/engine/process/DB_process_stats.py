@@ -182,6 +182,7 @@ def epoch_stats() -> Dict[str, Any] | None:
         neutral_called = 0
 
         directional_correct = 0
+        v2_correct = 0
         bull_pred = 0
         bear_pred = 0
         bull_tp = 0
@@ -189,7 +190,7 @@ def epoch_stats() -> Dict[str, Any] | None:
 
         streak = StreakState()
 
-        log.info("Epoch Stats Check:")
+        log.info("Epoch Stats Check (trend_method_v2_0):")
         log.info(f"Baseline: STATS_BASELINE_EPOCH={STATS_BASELINE_EPOCH} (epochs < baseline are ignored)")
         log.info("-" * 139)
 
@@ -213,7 +214,7 @@ def epoch_stats() -> Dict[str, Any] | None:
                 continue  # skip unknown truth rows
 
             # Prediction
-            pred = _norm_label(forecast.get("trend", "Neutral"))
+            pred = _norm_label(forecast.get("trend", forecast.get("v2.0_trend", "Neutral")))
             if pred not in LABELS:
                 pred = "Neutral"  # safest fallback
 
@@ -230,6 +231,7 @@ def epoch_stats() -> Dict[str, Any] | None:
                 is_correct = (pred == truth)
                 if is_correct:
                     directional_correct += 1
+                    v2_correct += 1
                     mark = "✅"
                     streak.win()
                 else:
@@ -286,6 +288,8 @@ def epoch_stats() -> Dict[str, Any] | None:
             "directional_called": directional_called,
             "neutral_called": neutral_called,
             "directional_accuracy_pct": round(directional_accuracy, 2),
+            "v2.0_trend": directional_called,
+            "v2.0_correct": v2_correct,
             "directional_coverage_pct": round(directional_coverage, 2),
             "neutral_rate_pct": round(neutral_rate, 2),
             "bull_precision_pct": round(bull_precision, 2),
