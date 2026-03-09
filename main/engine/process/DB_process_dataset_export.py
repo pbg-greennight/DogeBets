@@ -11,6 +11,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_HISTORY_PATH = (SCRIPT_DIR / "models" / "model_predictions_history" / "model_predictions_history.jsonl").resolve()
+DEFAULT_REPLAY_HISTORY_PATH = (SCRIPT_DIR / "models" / "model_predictions_history" / "model_predictions_history_with_v2_1.jsonl").resolve()
 DEFAULT_ROUND_PATH = (SCRIPT_DIR / "../ts/json/round_record.json").resolve()
 DEFAULT_OUTPUT_DIR = (SCRIPT_DIR / "datasets").resolve()
 
@@ -22,7 +23,9 @@ RUN_ALIGNMENT_MIN = 0.50
 NOISE_SLOPE_MAX = 0.002
 FLIP_ZONE_RATIO_THRESHOLD = 0.0
 
-MODEL_DEFAULT = "trend_method_v2_0"
+MODEL_V2_0 = "trend_method_v2_0"
+MODEL_V2_1 = "trend_method_v2_1"
+MODEL_DEFAULT = MODEL_V2_0
 
 
 CSV_COLUMNS = [
@@ -158,6 +161,120 @@ def _normalize_regime(value: Any) -> str:
         return txt
     return "UNKNOWN"
 
+
+
+def _extract_v2_0_override_context(model_row: Dict[str, Any]) -> Dict[str, Any]:
+    debug = model_row.get("debug") if isinstance(model_row.get("debug"), dict) else {}
+    signals = debug.get("signals") if isinstance(debug.get("signals"), dict) else {}
+    return {
+        "regime": str(debug.get("regime") or ""),
+        "run_direction": str(debug.get("run_direction") or ""),
+        "flip_score": _as_float(signals.get("flip_score")),
+        "compression_velocity": _as_float(signals.get("compression_velocity")),
+        "ratio_8_23_to_23_53": _as_float(signals.get("ratio_8_23_to_23_53")),
+    }
+
+
+def build_replay_history_with_v2_1(
+    history_rows: Sequence[Dict[str, Any]],
+    v2_1_thresholds: Dict[str, Any],
+) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
+    replay_rows: List[Dict[str, Any]] = []
+    stats = {
+        "rows_seen": 0,
+        "rows_with_models": 0,
+        "rows_with_v2_0": 0,
+        "rows_with_existing_v2_1": 0,
+        "rows_with_v2_1_appended": 0,
+        "rows_skipped_missing_signals": 0,
+        "bull_to_bear_overrides": 0,
+    }
+
+    flip_thr = float(v2_1_thresholds.get("bull_run_flip_score_threshold", 0.18))
+    comp_thr = float(v2_1_thresholds.get("bull_run_compression_min", 0.0))
+    ratio_thr = float(v2_1_thresholds.get("bull_run_ratio_max", -0.10))
+
+    for row in history_rows:
+        stats["rows_seen"] += 1
+        if not isinstance(row, dict):
+            continue
+
+        new_row = dict(row)
+        models = row.get("models") if isinstance(row.get("models"), list) else None
+        if models is None:
+            replay_rows.append(new_row)
+            continue
+
+        stats["rows_with_models"] += 1
+        new_models = list(models)
+
+        if any(str(m.get("model_id") or "") == MODEL_V2_1 for m in models if isinstance(m, dict)):
+            stats["rows_with_existing_v2_1"] += 1
+            new_row["models"] = new_models
+            replay_rows.append(new_row)
+            continue
+
+        v2_0 = next((m for m in models if isinstance(m, dict) and str(m.get("model_id") or "") == MODEL_V2_0), None)
+        if v2_0 is None:
+            new_row["models"] = new_models
+            replay_rows.append(new_row)
+            continue
+
+        stats["rows_with_v2_0"] += 1
+        ctx = _extract_v2_0_override_context(v2_0)
+        trend = _norm_direction(v2_0.get("trend"))
+
+        required = [ctx.get("flip_score"), ctx.get("compression_velocity"), ctx.get("ratio_8_23_to_23_53")]
+        if any(v is None for v in required):
+            stats["rows_skipped_missing_signals"] += 1
+            v2_1 = dict(v2_0)
+            v2_1["model_id"] = MODEL_V2_1
+            v2_1["reason"] = f"{v2_0.get('reason')}|v2_1_replay=insufficient_signals"
+        else:
+            override = (
+                trend == "Bull"
+                and str(ctx.get("regime") or "").upper() == "RUN"
+                and float(ctx["flip_score"]) >= flip_thr
+                and float(ctx["compression_velocity"]) >= comp_thr
+                and float(ctx["ratio_8_23_to_23_53"]) <= ratio_thr
+            )
+            new_trend = "Bear" if override else trend
+            if override:
+                stats["bull_to_bear_overrides"] += 1
+            v2_1 = dict(v2_0)
+            v2_1["model_id"] = MODEL_V2_1
+            v2_1["trend"] = new_trend
+            v2_1["reason"] = (
+                f"{v2_0.get('reason')}|v2_1_override={'bull_run_instability' if override else 'none'}"
+            )
+            debug = dict(v2_0.get("debug") or {})
+            replay_debug = dict(debug.get("v2_1_replay") or {})
+            replay_debug.update({
+                "override_applied": bool(override),
+                "source_model_id": MODEL_V2_0,
+                "rule": "bull_run_instability_inversion",
+                "thresholds": {
+                    "bull_run_flip_score_threshold": flip_thr,
+                    "bull_run_compression_min": comp_thr,
+                    "bull_run_ratio_max": ratio_thr,
+                },
+            })
+            debug["v2_1_replay"] = replay_debug
+            v2_1["debug"] = debug
+
+        new_models.append(v2_1)
+        new_row["models"] = new_models
+        stats["rows_with_v2_1_appended"] += 1
+        replay_rows.append(new_row)
+
+    return replay_rows, stats
+
+
+def write_prediction_history(path: Path, rows: Sequence[Dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        for row in rows:
+            handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 def load_prediction_history(path: Path) -> List[Dict[str, Any]]:
     """Load prediction history JSONL lines safely."""
     if not path.exists():
@@ -943,18 +1060,19 @@ def write_outputs(
     run_flip_breakdown: Sequence[Dict[str, Any]],
     threshold_scan: Sequence[Dict[str, Any]],
     v2_1_bull_instability_scan: Sequence[Dict[str, Any]],
+    model_suffix: str,
 ) -> Dict[str, Path]:
     """Write all required datasets and summary files."""
     paths = {
-        "dataset": output_dir / "gaussian_fan_dataset.csv",
-        "wrong": output_dir / "gaussian_fan_wrong_predictions.csv",
-        "neutral_misses": output_dir / "gaussian_fan_neutral_misses.csv",
-        "summary": output_dir / "gaussian_fan_summary.json",
-        "regime_breakdown": output_dir / "gaussian_fan_regime_breakdown.csv",
-        "error_breakdown": output_dir / "gaussian_fan_error_breakdown.csv",
-        "run_flip_breakdown": output_dir / "gaussian_fan_run_flip_breakdown.csv",
-        "threshold_scan": output_dir / "gaussian_fan_threshold_scan.csv",
-        "v2_1_bull_instability_scan": output_dir / "gaussian_fan_v2_1_bull_instability_scan.csv",
+        "dataset": output_dir / f"gaussian_fan_dataset_{model_suffix}.csv",
+        "wrong": output_dir / f"gaussian_fan_wrong_predictions_{model_suffix}.csv",
+        "neutral_misses": output_dir / f"gaussian_fan_neutral_misses_{model_suffix}.csv",
+        "summary": output_dir / f"gaussian_fan_summary_{model_suffix}.json",
+        "regime_breakdown": output_dir / f"gaussian_fan_regime_breakdown_{model_suffix}.csv",
+        "error_breakdown": output_dir / f"gaussian_fan_error_breakdown_{model_suffix}.csv",
+        "run_flip_breakdown": output_dir / f"gaussian_fan_run_flip_breakdown_{model_suffix}.csv",
+        "threshold_scan": output_dir / f"gaussian_fan_threshold_scan_{model_suffix}.csv",
+        "v2_1_bull_instability_scan": output_dir / f"gaussian_fan_v2_1_bull_instability_scan_{model_suffix}.csv",
     }
 
 
@@ -984,6 +1102,7 @@ def _pct(value: float) -> str:
     return f"{(value or 0.0) * 100:.2f}%"
 
 def print_terminal_summary(
+    model_id: str,
     summary: Dict[str, Any],
     rows: Sequence[Dict[str, Any]],
     error_breakdown: Sequence[Dict[str, Any]],
@@ -991,9 +1110,11 @@ def print_terminal_summary(
     v2_1_scan_baseline: Dict[str, Any],
     top_bull_to_neutral_candidates: Sequence[Dict[str, Any]],
     top_bull_to_bear_candidates: Sequence[Dict[str, Any]],
+    show_scan: bool,
 ) -> None:
     """Print readable diagnostics sections in terminal."""
-    print("\n=== Gaussian Fan Export: Headline Stats ===")
+    print(f"\n=== {model_id} Results ===")
+    print("=== Gaussian Fan Export: Headline Stats ===")
     print(f"Total Rows: {summary['total_rows']}")
     print(f"Directional Called: {summary['directional_called']}")
     print(f"Neutral Called: {summary['neutral_called']}")
@@ -1056,11 +1177,12 @@ def print_terminal_summary(
             f"{_pct(wrong_bull.get('slope_disagreement_rate', 0.0))} vs {_pct(correct_bull.get('slope_disagreement_rate', 0.0))}"
         )
 
-    print_v2_1_scan_summary(
-        v2_1_scan_baseline,
-        top_bull_to_neutral_candidates,
-        top_bull_to_bear_candidates,
-    )
+    if show_scan:
+        print_v2_1_scan_summary(
+            v2_1_scan_baseline,
+            top_bull_to_neutral_candidates,
+            top_bull_to_bear_candidates,
+        )
 
     print("\n=== Saved Files ===")
     for key in [
@@ -1077,17 +1199,82 @@ def print_terminal_summary(
         print(f"- {paths[key].resolve()}")
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Gaussian fan dataset exporter + diagnostics")
-    parser.add_argument("--history", type=Path, default=DEFAULT_HISTORY_PATH, help="Prediction history JSONL path")
-    parser.add_argument("--round", dest="round_path", type=Path, default=DEFAULT_ROUND_PATH, help="Round record JSON path")
-    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="Output directory")
-    parser.add_argument("--model-id", type=str, default=MODEL_DEFAULT, help="Model id to export")
-    args = parser.parse_args()
 
-    history_rows = load_prediction_history(args.history)
-    round_rows = load_round_record(args.round_path)
-    flat_rows = flatten_model_rows(history_rows, args.model_id)
+
+def load_json_file(path: Path) -> Dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _summary_slice(summary: Dict[str, Any]) -> Dict[str, Any]:
+    keys = [
+        "directional_accuracy",
+        "directional_coverage",
+        "neutral_rate",
+        "bull_precision",
+        "bear_precision",
+        "directional_called",
+        "total_rows",
+    ]
+    return {k: summary.get(k, 0.0) for k in keys}
+
+
+def build_model_comparison(summary_v2_0: Dict[str, Any], summary_v2_1: Dict[str, Any]) -> Dict[str, Any]:
+    deltas = {}
+    for key in ["directional_accuracy", "directional_coverage", "neutral_rate", "bull_precision", "bear_precision"]:
+        deltas[f"delta_{key}"] = (summary_v2_1.get(key, 0.0) or 0.0) - (summary_v2_0.get(key, 0.0) or 0.0)
+    return {
+        MODEL_V2_0: _summary_slice(summary_v2_0),
+        MODEL_V2_1: _summary_slice(summary_v2_1),
+        "delta_v2_1_minus_v2_0": deltas,
+    }
+
+
+def build_v2_1_override_impact(
+    rows_v2_0: Sequence[Dict[str, Any]],
+    rows_v2_1: Sequence[Dict[str, Any]],
+    summary_v2_0: Dict[str, Any],
+    summary_v2_1: Dict[str, Any],
+) -> Dict[str, Any]:
+    v2_0_map = {(r.get("epoch"), r.get("next_epoch"), r.get("timestamp")): r for r in rows_v2_0}
+    v2_1_map = {(r.get("epoch"), r.get("next_epoch"), r.get("timestamp")): r for r in rows_v2_1}
+
+    override_rows = []
+    became_correct = 0
+    became_incorrect = 0
+    for key, r1 in v2_1_map.items():
+        r0 = v2_0_map.get(key)
+        if not r0:
+            continue
+        if r0.get("prediction") == "Bull" and r1.get("prediction") == "Bear":
+            override_rows.append((r0, r1))
+            truth = r1.get("truth")
+            if truth == "Bear":
+                became_correct += 1
+            elif truth == "Bull":
+                became_incorrect += 1
+
+    comparison = build_model_comparison(summary_v2_0, summary_v2_1)
+    return {
+        "bull_to_bear_overrides_applied": len(override_rows),
+        "bull_to_bear_overrides_became_correct": became_correct,
+        "bull_to_bear_overrides_became_incorrect": became_incorrect,
+        "change_vs_v2_0": comparison.get("delta_v2_1_minus_v2_0", {}),
+    }
+
+
+def run_model_export(
+    model_id: str,
+    history_rows: Sequence[Dict[str, Any]],
+    round_rows: Sequence[Dict[str, Any]],
+    output_dir: Path,
+) -> Dict[str, Any]:
+    flat_rows = flatten_model_rows(history_rows, model_id)
     joined = join_truth(flat_rows, round_rows)
     rows = add_derived_columns(joined)
 
@@ -1096,7 +1283,6 @@ def main() -> int:
     error_breakdown = build_error_breakdown(rows)
     run_flip_breakdown = build_run_flip_breakdown(rows)
     v2_1_scan_rows, v2_1_scan_baseline, top_bull_to_neutral_candidates, top_bull_to_bear_candidates = run_v2_1_bull_instability_scan(rows)
-    threshold_scan = v2_1_scan_rows
 
     summary["v2_1_bull_instability_scan"] = {
         "baseline": v2_1_scan_baseline,
@@ -1105,17 +1291,19 @@ def main() -> int:
     }
 
     paths = write_outputs(
-        output_dir=args.output_dir,
+        output_dir=output_dir,
         rows=rows,
         summary=summary,
         regime_breakdown=regime_breakdown,
         error_breakdown=error_breakdown,
         run_flip_breakdown=run_flip_breakdown,
-        threshold_scan=threshold_scan,
+        threshold_scan=v2_1_scan_rows,
         v2_1_bull_instability_scan=v2_1_scan_rows,
+        model_suffix="v2_0" if model_id == MODEL_V2_0 else "v2_1",
     )
-    summary = build_main_summary(rows)
+
     print_terminal_summary(
+        model_id,
         summary,
         rows,
         error_breakdown,
@@ -1123,7 +1311,72 @@ def main() -> int:
         v2_1_scan_baseline,
         top_bull_to_neutral_candidates,
         top_bull_to_bear_candidates,
+        show_scan=(model_id == MODEL_V2_1),
     )
+
+    return {
+        "rows": rows,
+        "summary": summary,
+        "paths": paths,
+    }
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Gaussian fan dataset exporter + diagnostics")
+    parser.add_argument("--history", type=Path, default=DEFAULT_HISTORY_PATH, help="Prediction history JSONL path")
+    parser.add_argument("--history-with-v2-1", type=Path, default=DEFAULT_REPLAY_HISTORY_PATH, help="Replay-enriched prediction history JSONL output path")
+    parser.add_argument("--round", dest="round_path", type=Path, default=DEFAULT_ROUND_PATH, help="Round record JSON path")
+    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="Output directory")
+    parser.add_argument("--v2-1-config", type=Path, default=(SCRIPT_DIR / "models" / "trend_method_v2_1.json").resolve(), help="v2_1 config JSON path")
+    args = parser.parse_args()
+
+    history_rows = load_prediction_history(args.history)
+    round_rows = load_round_record(args.round_path)
+
+    v2_1_config = load_json_file(args.v2_1_config)
+    v2_1_thresholds = v2_1_config.get("thresholds", {}) if isinstance(v2_1_config, dict) else {}
+
+    replay_history_rows, replay_stats = build_replay_history_with_v2_1(history_rows, v2_1_thresholds)
+    write_prediction_history(args.history_with_v2_1, replay_history_rows)
+
+    print("\n=== Replay Generation ===")
+    for k in [
+        "rows_seen",
+        "rows_with_models",
+        "rows_with_v2_0",
+        "rows_with_existing_v2_1",
+        "rows_with_v2_1_appended",
+        "rows_skipped_missing_signals",
+        "bull_to_bear_overrides",
+    ]:
+        print(f"{k}: {replay_stats.get(k, 0)}")
+    print(f"replay_output: {args.history_with_v2_1.resolve()}")
+
+    result_v2_0 = run_model_export(MODEL_V2_0, replay_history_rows, round_rows, args.output_dir)
+    result_v2_1 = run_model_export(MODEL_V2_1, replay_history_rows, round_rows, args.output_dir)
+
+    override_impact = build_v2_1_override_impact(
+        result_v2_0["rows"],
+        result_v2_1["rows"],
+        result_v2_0["summary"],
+        result_v2_1["summary"],
+    )
+
+    comparison = build_model_comparison(result_v2_0["summary"], result_v2_1["summary"])
+    comparison["v2_1_override_impact"] = override_impact
+
+    comparison_path = args.output_dir / "gaussian_fan_model_comparison.json"
+    comparison_path.parent.mkdir(parents=True, exist_ok=True)
+    comparison_path.write_text(json.dumps(comparison, indent=2), encoding="utf-8")
+
+    print("\n=== V2_1 Bull-Run Instability Override Impact ===")
+    print(f"Bull->Bear overrides applied: {override_impact['bull_to_bear_overrides_applied']}")
+    print(f"Bull->Bear overrides became correct: {override_impact['bull_to_bear_overrides_became_correct']}")
+    print(f"Bull->Bear overrides became incorrect: {override_impact['bull_to_bear_overrides_became_incorrect']}")
+    print(f"Directional accuracy delta vs v2_0: {_pct((override_impact['change_vs_v2_0'].get('delta_directional_accuracy') or 0.0))}")
+    print(f"Bear precision delta vs v2_0: {_pct((override_impact['change_vs_v2_0'].get('delta_bear_precision') or 0.0))}")
+    print(f"Bull precision delta vs v2_0: {_pct((override_impact['change_vs_v2_0'].get('delta_bull_precision') or 0.0))}")
+    print(f"Coverage delta vs v2_0: {_pct((override_impact['change_vs_v2_0'].get('delta_directional_coverage') or 0.0))}")
+    print(f"comparison_output: {comparison_path.resolve()}")
+
     return 0
 
 
