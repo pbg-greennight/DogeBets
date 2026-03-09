@@ -1,17 +1,17 @@
 {
-  "epoch": 320657,
-  "next_epoch": 320658,
-  "timestamp": "2026-03-09T13:37:35.083862",
+  "epoch": 320684,
+  "next_epoch": 320685,
+  "timestamp": "2026-03-09T15:53:09.064634",
   "models": [
     {
       "model_id": "trend_method_v2_0",
-      "trend": "Bear",
+      "trend": "Neutral",
       "confidence": 1.0,
-      "score": -1.3730686171711568,
-      "reason": "regime=RUN|slope_sum=-1.373069",
+      "score": 0.0,
+      "reason": "regime=NOISE|slope_sum=0.103668",
       "debug": {
-        "regime": "RUN",
-        "run_direction": "Bear",
+        "regime": "NOISE",
+        "run_direction": "Bull",
         "thresholds": {
           "run_fan_threshold": 0.01,
           "noise_fan_threshold": 0.004,
@@ -21,27 +21,27 @@
           "alignment_threshold": 0.5
         },
         "signals": {
-          "fan_width": 82.92394063572283,
-          "alignment": 1.0,
-          "compression_velocity": 26.153140488808276,
-          "flip_score": 0.15944901990712557,
-          "slope_sum": -1.3730686171711568,
-          "slope_magnitude": 1.3730686171711568,
-          "ratio_8_23_to_23_53": 0.7034182855609716
+          "fan_width": 10.441674976449576,
+          "alignment": 0.0,
+          "compression_velocity": -6.256867448770208,
+          "flip_score": 0.05656873811427168,
+          "slope_sum": 0.10366801235431922,
+          "slope_magnitude": 0.10366801235431922,
+          "ratio_8_23_to_23_53": -1.772385228054611
         }
       },
       "raw_features_used": {
-        "s23": -0.8858087958778924,
-        "s53": -0.4872598212932644,
-        "fan_width": 82.92394063572283,
-        "alignment": 1.0,
-        "compression_velocity": 26.153140488808276,
-        "flip_score": 0.15944901990712557
+        "s23": 0.3331600269048067,
+        "s53": -0.2294920145504875,
+        "fan_width": 10.441674976449576,
+        "alignment": 0.0,
+        "compression_velocity": -6.256867448770208,
+        "flip_score": 0.05656873811427168
       }
     }
   ],
-  "v2.0_trend": "Bear",
-  "v2.0_score": -1.3730686171711568,
+  "v2.0_trend": "Neutral",
+  "v2.0_score": 0.0,
   "v2.0_confidence": 1.0,
   "v2.0_correct": null
 }

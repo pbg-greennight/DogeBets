@@ -1,0 +1,39 @@
+{
+  "trend_method_v2_0": {
+    "directional_accuracy": 0.527027027027027,
+    "directional_coverage": 0.4088397790055249,
+    "neutral_rate": 0.5911602209944752,
+    "bull_precision": 0.5641025641025641,
+    "bear_precision": 0.4857142857142857,
+    "directional_called": 74,
+    "total_rows": 181
+  },
+  "trend_method_v2_1": {
+    "directional_accuracy": 0.6081081081081081,
+    "directional_coverage": 0.4088397790055249,
+    "neutral_rate": 0.5911602209944752,
+    "bull_precision": 0.6774193548387096,
+    "bear_precision": 0.5581395348837209,
+    "directional_called": 74,
+    "total_rows": 181
+  },
+  "delta_v2_1_minus_v2_0": {
+    "delta_directional_accuracy": 0.08108108108108114,
+    "delta_directional_coverage": 0.0,
+    "delta_neutral_rate": 0.0,
+    "delta_bull_precision": 0.11331679073614553,
+    "delta_bear_precision": 0.07242524916943521
+  },
+  "v2_1_override_impact": {
+    "bull_to_bear_overrides_applied": 8,
+    "bull_to_bear_overrides_became_correct": 7,
+    "bull_to_bear_overrides_became_incorrect": 1,
+    "change_vs_v2_0": {
+      "delta_directional_accuracy": 0.08108108108108114,
+      "delta_directional_coverage": 0.0,
+      "delta_neutral_rate": 0.0,
+      "delta_bull_precision": 0.11331679073614553,
+      "delta_bear_precision": 0.07242524916943521
+    }
+  }
+}
