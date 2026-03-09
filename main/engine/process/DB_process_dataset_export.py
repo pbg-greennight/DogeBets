@@ -212,22 +212,21 @@ def flatten_model_rows(history_rows: Iterable[Dict[str, Any]], model_id: str) ->
                 continue
             if str(model_row.get("model_id") or "") != model_id:
                 continue
-                flat.append(
-                    {
-                        "history": history_row,
-                        "model": model_row,
-                    }
-                )
-            return flat
+            flat.append(
+                {
+                    "history": history_row,
+                    "model": model_row,
+                }
+            )
+    return flat
 
-        def join_truth(flat_rows: Iterable[Dict[str, Any]], round_rows: Iterable[Dict[str, Any]]) -> List[
-            Dict[str, Any]]:
-            """Join truth using next_epoch -> nextEpoch."""
-            round_lookup: Dict[int, Dict[str, Any]] = {}
-            for row in round_rows:
-                ne = _as_int(row.get("nextEpoch"))
-                if ne is not None:
-                    round_lookup[ne] = row
+def join_truth(flat_rows: Iterable[Dict[str, Any]], round_rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
+     """Join truth using next_epoch -> nextEpoch."""
+    round_lookup: Dict[int, Dict[str, Any]] = {}
+    for row in round_rows:
+        ne = _as_int(row.get("nextEpoch"))
+        if ne is not None:
+            round_lookup[ne] = row
 
     output: List[Dict[str, Any]] = []
     for block in flat_rows:
@@ -453,87 +452,87 @@ def _group_rows(rows: Sequence[Dict[str, Any]], key_name: str, values: Sequence[
 def build_regime_breakdown(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return _group_rows(rows, "regime", ["RUN", "REVERSAL", "NOISE", "UNKNOWN"])
 
-    def build_error_breakdown(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        error_values = [
-            "bull_called_bear_truth",
-            "bear_called_bull_truth",
-            "neutral_called_bull_truth",
-            "neutral_called_bear_truth",
-            "correct_bull",
-            "correct_bear",
-            "correct_neutral",
-        ]
-        out = _group_rows(rows, "directional_error_type", error_values)
+def build_error_breakdown(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    error_values = [
+        "bull_called_bear_truth",
+        "bear_called_bull_truth",
+        "neutral_called_bull_truth",
+        "neutral_called_bear_truth",
+        "correct_bull",
+        "correct_bear",
+        "correct_neutral",
+    ]
+    out = _group_rows(rows, "directional_error_type", error_values)
 
-        wrong_bull_bear = [r for r in rows if r.get("directional_error_type") == "bull_called_bear_truth"]
-        correct_bull = [r for r in rows if r.get("directional_error_type") == "correct_bull"]
-        for label, subset in [
-            ("v2_1_wrong_bull_to_bear", wrong_bull_bear),
-            ("v2_1_correct_bull", correct_bull),
-        ]:
-            stats = _build_group_stats(subset, "v2_1_diagnostic_group", label)
-            stats["slope_disagreement_rate"] = _safe_ratio(
-                sum(1 for r in subset if r.get("slope_disagreement")),
-                len(subset),
-            )
-            out.append(stats)
-        return out
+    wrong_bull_bear = [r for r in rows if r.get("directional_error_type") == "bull_called_bear_truth"]
+    correct_bull = [r for r in rows if r.get("directional_error_type") == "correct_bull"]
+    for label, subset in [
+        ("v2_1_wrong_bull_to_bear", wrong_bull_bear),
+        ("v2_1_correct_bull", correct_bull),
+    ]:
+        stats = _build_group_stats(subset, "v2_1_diagnostic_group", label)
+        stats["slope_disagreement_rate"] = _safe_ratio(
+            sum(1 for r in subset if r.get("slope_disagreement")),
+            len(subset),
+        )
+        out.append(stats)
+    return out
 
-    def build_run_flip_breakdown(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        groups: List[Tuple[str, List[Dict[str, Any]]]] = [
-            ("possible_run_zone", [r for r in rows if r.get("possible_run_zone")]),
-            ("possible_flip_zone", [r for r in rows if r.get("possible_flip_zone")]),
-            ("possible_transition_zone", [r for r in rows if r.get("possible_transition_zone")]),
-        ]
-        output = []
-        total = max(1, len(rows))
-        for name, subset in groups:
-            stats = _build_group_stats(subset, "proxy_zone", name)
-            stats["coverage_within_export_set"] = _safe_ratio(stats["row_count"], total)
-            output.append(stats)
-        return output
+def build_run_flip_breakdown(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    groups: List[Tuple[str, List[Dict[str, Any]]]] = [
+        ("possible_run_zone", [r for r in rows if r.get("possible_run_zone")]),
+        ("possible_flip_zone", [r for r in rows if r.get("possible_flip_zone")]),
+        ("possible_transition_zone", [r for r in rows if r.get("possible_transition_zone")]),
+    ]
+    output = []
+    total = max(1, len(rows))
+    for name, subset in groups:
+        stats = _build_group_stats(subset, "proxy_zone", name)
+        stats["coverage_within_export_set"] = _safe_ratio(stats["row_count"], total)
+        output.append(stats)
+    return output
 
-    def _max_streak(rows: Sequence[Dict[str, Any]], target: str) -> int:
-        streak = 0
-        best = 0
-        for row in rows:
-            if not row.get("directional_called"):
-                streak = 0
-                continue
-            if target == "win" and row.get("directional_correct"):
-                streak += 1
-            elif target == "loss" and not row.get("directional_correct"):
-                streak += 1
-            else:
-                streak = 0
-            best = max(best, streak)
-        return best
+def _max_streak(rows: Sequence[Dict[str, Any]], target: str) -> int:
+    streak = 0
+    best = 0
+    for row in rows:
+        if not row.get("directional_called"):
+            streak = 0
+            continue
+        if target == "win" and row.get("directional_correct"):
+            streak += 1
+        elif target == "loss" and not row.get("directional_correct"):
+            streak += 1
+        else:
+            streak = 0
+        best = max(best, streak)
+    return best
 
-    def build_main_summary(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
-        total_rows = len(rows)
-        joined_truth_rows = sum(1 for r in rows if r.get("truth") in {"Bull", "Bear", "Neutral"})
-        directional_called = sum(1 for r in rows if r.get("directional_called"))
-        neutral_called = sum(1 for r in rows if r.get("neutral_called"))
-        directional_correct = sum(1 for r in rows if r.get("directional_correct"))
+def build_main_summary(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    total_rows = len(rows)
+    joined_truth_rows = sum(1 for r in rows if r.get("truth") in {"Bull", "Bear", "Neutral"})
+    directional_called = sum(1 for r in rows if r.get("directional_called"))
+    neutral_called = sum(1 for r in rows if r.get("neutral_called"))
+    directional_correct = sum(1 for r in rows if r.get("directional_correct"))
 
-        bull_pred_bull_truth = sum(1 for r in rows if r.get("prediction") == "Bull" and r.get("truth") == "Bull")
-        bull_pred_bear_truth = sum(1 for r in rows if r.get("prediction") == "Bull" and r.get("truth") == "Bear")
-        bear_pred_bull_truth = sum(1 for r in rows if r.get("prediction") == "Bear" and r.get("truth") == "Bull")
-        bear_pred_bear_truth = sum(1 for r in rows if r.get("prediction") == "Bear" and r.get("truth") == "Bear")
-        neutral_pred_bull_truth = sum(1 for r in rows if r.get("prediction") == "Neutral" and r.get("truth") == "Bull")
-        neutral_pred_bear_truth = sum(1 for r in rows if r.get("prediction") == "Neutral" and r.get("truth") == "Bear")
+    bull_pred_bull_truth = sum(1 for r in rows if r.get("prediction") == "Bull" and r.get("truth") == "Bull")
+    bull_pred_bear_truth = sum(1 for r in rows if r.get("prediction") == "Bull" and r.get("truth") == "Bear")
+    bear_pred_bull_truth = sum(1 for r in rows if r.get("prediction") == "Bear" and r.get("truth") == "Bull")
+    bear_pred_bear_truth = sum(1 for r in rows if r.get("prediction") == "Bear" and r.get("truth") == "Bear")
+    neutral_pred_bull_truth = sum(1 for r in rows if r.get("prediction") == "Neutral" and r.get("truth") == "Bull")
+    neutral_pred_bear_truth = sum(1 for r in rows if r.get("prediction") == "Neutral" and r.get("truth") == "Bear")
 
-        pred_bull_count = sum(1 for r in rows if r.get("prediction") == "Bull")
-        pred_bear_count = sum(1 for r in rows if r.get("prediction") == "Bear")
-        pred_neutral_count = sum(1 for r in rows if r.get("prediction") == "Neutral")
+    pred_bull_count = sum(1 for r in rows if r.get("prediction") == "Bull")
+    pred_bear_count = sum(1 for r in rows if r.get("prediction") == "Bear")
+    pred_neutral_count = sum(1 for r in rows if r.get("prediction") == "Neutral")
 
-        truth_bull_count = sum(1 for r in rows if r.get("truth") == "Bull")
-        truth_bear_count = sum(1 for r in rows if r.get("truth") == "Bear")
-        truth_neutral_count = sum(1 for r in rows if r.get("truth") == "Neutral")
+    truth_bull_count = sum(1 for r in rows if r.get("truth") == "Bull")
+    truth_bear_count = sum(1 for r in rows if r.get("truth") == "Bear")
+    truth_neutral_count = sum(1 for r in rows if r.get("truth") == "Neutral")
 
-        run_rows = [r for r in rows if r.get("regime") == "RUN"]
-        reversal_rows = [r for r in rows if r.get("regime") == "REVERSAL"]
-        noise_rows = [r for r in rows if r.get("regime") == "NOISE"]
+    run_rows = [r for r in rows if r.get("regime") == "RUN"]
+    reversal_rows = [r for r in rows if r.get("regime") == "REVERSAL"]
+    noise_rows = [r for r in rows if r.get("regime") == "NOISE"]
 
     return {
         "total_rows": total_rows,
@@ -579,7 +578,6 @@ def build_regime_breakdown(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any
         "consecutive_directional_losses_max": _max_streak(rows, "loss"),
         "neutral_breaks_streak": True,
     }
-    return summary
 
 
 def run_threshold_scan(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -786,7 +784,7 @@ def main() -> int:
         run_flip_breakdown=run_flip_breakdown,
         threshold_scan=threshold_scan,
     )
-    summary = build_summary(rows)
+    summary = build_main_summary(rows)
     print_terminal_summary(summary, rows, error_breakdown, paths)
     return 0
 

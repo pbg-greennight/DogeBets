@@ -1,17 +1,17 @@
 {
-  "epoch": 320620,
-  "next_epoch": 320621,
-  "timestamp": "2026-03-09T10:31:44.069988",
+  "epoch": 320625,
+  "next_epoch": 320626,
+  "timestamp": "2026-03-09T10:56:51.073351",
   "models": [
     {
       "model_id": "trend_method_v2_0",
-      "trend": "Bull",
+      "trend": "Neutral",
       "confidence": 1.0,
-      "score": 1.7770863607893261,
-      "reason": "regime=RUN|slope_sum=1.777086",
+      "score": 0.0,
+      "reason": "regime=NOISE|slope_sum=-0.607435",
       "debug": {
-        "regime": "RUN",
-        "run_direction": "Bull",
+        "regime": "NOISE",
+        "run_direction": "Bear",
         "thresholds": {
           "run_fan_threshold": 0.01,
           "noise_fan_threshold": 0.004,
@@ -21,27 +21,27 @@
           "alignment_threshold": 0.5
         },
         "signals": {
-          "fan_width": 108.62268177553779,
-          "alignment": 1.0,
-          "compression_velocity": 61.73349236774084,
-          "flip_score": 0.16217170915707746,
-          "slope_sum": 1.7770863607893261,
-          "slope_magnitude": 1.7770863607893261,
-          "ratio_8_23_to_23_53": -1.0579989101709326
+          "fan_width": 33.977431937804795,
+          "alignment": 0.0,
+          "compression_velocity": 17.677886118006427,
+          "flip_score": 0.14944048109783106,
+          "slope_sum": -0.6074349541595438,
+          "slope_magnitude": 0.6074349541595438,
+          "ratio_8_23_to_23_53": 22.002310930790387
         }
       },
       "raw_features_used": {
-        "s23": 1.2606559840714908,
-        "s53": 0.5164303767178353,
-        "fan_width": 108.62268177553779,
-        "alignment": 1.0,
-        "compression_velocity": 61.73349236774084,
-        "flip_score": 0.16217170915707746
+        "s23": -0.6299462397910247,
+        "s53": 0.02251128563148086,
+        "fan_width": 33.977431937804795,
+        "alignment": 0.0,
+        "compression_velocity": 17.677886118006427,
+        "flip_score": 0.14944048109783106
       }
     }
   ],
-  "v2.0_trend": "Bull",
-  "v2.0_score": 1.7770863607893261,
+  "v2.0_trend": "Neutral",
+  "v2.0_score": 0.0,
   "v2.0_confidence": 1.0,
   "v2.0_correct": null
 }
