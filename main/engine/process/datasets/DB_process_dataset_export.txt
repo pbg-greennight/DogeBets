@@ -1,0 +1,68 @@
+Gaussian Fan Dataset Exporter README
+
+PURPOSE
+This exporter converts the prediction history JSONL and round record JSON into flat analysis datasets.
+These datasets support wrong-prediction analysis, coverage analysis, bear/bull precision analysis,
+future threshold tuning, and future ML experiments.
+
+SOURCE FILES
+- model_predictions_history.jsonl
+- round_record.json
+
+OUTPUT FILES
+- gaussian_fan_dataset.csv
+  Main flat dataset with one row per prediction row for the selected model_id.
+
+- gaussian_fan_wrong_predictions.csv
+  Only rows where a directional call was made and it was wrong.
+
+- gaussian_fan_neutral_misses.csv
+  Only rows where the model predicted Neutral but truth was Bull or Bear.
+
+- gaussian_fan_summary.json
+  Summary metrics including coverage, directional accuracy, neutral rate, bull precision,
+  bear precision, regime breakdowns, and error counts.
+
+KEY COLUMNS
+Major column groups include prediction metadata, joined truth/result fields, debug regime fields,
+Gaussian fan signals, raw feature fields, derived feature flags, and error taxonomy flags.
+Important columns include prediction, truth, correct, directional_called, regime, run_direction,
+fan_width, alignment, compression_velocity, flip_score, slope_sum, slope_magnitude,
+ratio_8_23_to_23_53, s23, s53, collapse_flag, weak_bull_exhaustion_flag,
+and weak_bear_exhaustion_flag.
+
+METRIC DEFINITIONS
+- directional coverage = directional_called / total_rows
+- directional accuracy = correct directional calls / directional_called
+- neutral rate = neutral_called / total_rows
+- bull precision = correct Bull calls / all Bull calls
+- bear precision = correct Bear calls / all Bear calls
+
+ERROR TAXONOMY
+- bull_called_bear_truth
+- bear_called_bull_truth
+- neutral_called_bull_truth
+- neutral_called_bear_truth
+
+Roadmap mapping:
+- v2_1 focuses on bull_called_bear_truth
+- v2_2 through v2_9 focus on coverage and neutral misses
+- v3_0 focuses on flip detection
+
+VERSION ROADMAP NOTE
+- v2_0 = baseline regime model
+- v2_1 = bear accuracy improvement
+- v2_2 through v2_9 = additional bull/bear accuracy and coverage improvements
+- v3_0 = flip detection upgrade
+
+HOW TO RUN
+Run the standalone exporter script or the process/stats integration path.
+If the command changes, update this section.
+Current standalone command:
+python -m main.engine.process.DB_process_dataset_export
+
+IMPORTANT NOTES
+- Raw source files are never modified.
+- The exporter is analysis-only.
+- The exporter does not change live prediction behavior.
+- Keep old dataset snapshots for version-to-version comparisons.

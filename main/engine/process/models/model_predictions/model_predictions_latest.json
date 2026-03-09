@@ -1,16 +1,16 @@
 {
-  "epoch": 320604,
-  "next_epoch": 320605,
-  "timestamp": "2026-03-09T09:11:22.064036",
+  "epoch": 320613,
+  "next_epoch": 320614,
+  "timestamp": "2026-03-09T09:56:33.067796",
   "models": [
     {
       "model_id": "trend_method_v2_0",
-      "trend": "Bull",
+      "trend": "Neutral",
       "confidence": 1.0,
-      "score": 3.5435169613574544,
-      "reason": "regime=RUN|slope_sum=3.543517",
+      "score": 0.0,
+      "reason": "regime=NOISE|slope_sum=0.991423",
       "debug": {
-        "regime": "RUN",
+        "regime": "NOISE",
         "run_direction": "Bull",
         "thresholds": {
           "run_fan_threshold": 0.01,
@@ -21,27 +21,27 @@
           "alignment_threshold": 0.5
         },
         "signals": {
-          "fan_width": 201.23218658892438,
-          "alignment": 1.0,
-          "compression_velocity": 116.17391399921326,
-          "flip_score": 0.2145254940048157,
-          "slope_sum": 3.5435169613574544,
-          "slope_magnitude": 3.5435169613574544,
-          "ratio_8_23_to_23_53": -1.2707565765368791
+          "fan_width": 20.055907743022544,
+          "alignment": 0.0,
+          "compression_velocity": -5.015662720266846,
+          "flip_score": 0.21371193558845247,
+          "slope_sum": 0.9914230111844518,
+          "slope_magnitude": 0.9914230111844518,
+          "ratio_8_23_to_23_53": -1.2901770371379724
         }
       },
       "raw_features_used": {
-        "s23": 2.728512580610186,
-        "s53": 0.8150043807472684,
-        "fan_width": 201.23218658892438,
-        "alignment": 1.0,
-        "compression_velocity": 116.17391399921326,
-        "flip_score": 0.2145254940048157
+        "s23": 1.0271469571380294,
+        "s53": -0.03572394595357764,
+        "fan_width": 20.055907743022544,
+        "alignment": 0.0,
+        "compression_velocity": -5.015662720266846,
+        "flip_score": 0.21371193558845247
       }
     }
   ],
-  "v2.0_trend": "Bull",
-  "v2.0_score": 3.5435169613574544,
+  "v2.0_trend": "Neutral",
+  "v2.0_score": 0.0,
   "v2.0_confidence": 1.0,
   "v2.0_correct": null
 }
