@@ -56,7 +56,23 @@ CSV_COLUMNS = [
     "bear_called_neutral_truth",
     "regime",
     "run_direction",
+    "g8",
+    "g23",
+    "g38",
+    "g53",
+    "g68",
+    "g83",
+    "slope_g8",
+    "slope_g23",
+    "slope_g38",
+    "slope_g53",
+    "slope_g68",
+    "slope_g83",
     "fan_width",
+    "fan_width_velocity",
+    "fan_width_acceleration",
+    "fan_order_score",
+    "g83_curvature",
     "alignment",
     "compression_velocity",
     "flip_score",
@@ -83,6 +99,23 @@ CSV_COLUMNS = [
     "possible_flip_zone",
     "possible_run_zone",
     "possible_transition_zone",
+    "fan_energy_total",
+    "fan_energy_ratio",
+    "fan_energy_velocity",
+    "fan_energy_acceleration",
+    "fan_sign_conflict",
+    "fan_energy_instability",
+    "hinge_gap",
+    "hinge_velocity",
+    "hinge_conflict",
+    "hinge_torsion",
+    "snap_divergence",
+    "snap_velocity",
+    "snap_score",
+    "phase_alignment",
+    "phase_strength",
+    "phase_velocity",
+    "fan_phase_score",
     "directional_error_type",
     "truth_direction_group",
     "prediction_direction_group",
@@ -159,6 +192,75 @@ def _normalize_regime(value: Any) -> str:
     if txt in {"RUN", "REVERSAL", "NOISE"}:
         return txt
     return "UNKNOWN"
+
+def _read_nested_float(payload: Dict[str, Any], keys: Sequence[str]) -> Optional[float]:
+    """Return first parseable numeric field from a dict for candidate keys."""
+    for key in keys:
+        if key in payload:
+            value = _as_float(payload.get(key))
+            if value is not None:
+                return value
+    return None
+
+
+def _extract_sigma_level_features(model: Dict[str, Any], debug: Dict[str, Any], raw: Dict[str, Any]) -> Dict[str, Any]:
+    """Extract sigma values/slopes from known history schemas, leaving missing values as None."""
+    signals = debug.get("signals") if isinstance(debug.get("signals"), dict) else {}
+    sigma_sources = [signals, raw, debug, model]
+
+    sigma_aliases: Dict[str, Sequence[str]] = {
+        "g8": ("g8", "gauss8", "sigma8", "sigma_8"),
+        "g23": ("g23", "gauss23", "sigma23", "sigma_23"),
+        "g38": ("g38", "gauss38", "sigma38", "sigma_38"),
+        "g53": ("g53", "gauss53", "sigma53", "sigma_53"),
+        "g68": ("g68", "gauss68", "sigma68", "sigma_68"),
+        "g83": ("g83", "gauss83", "sigma83", "sigma_83"),
+    }
+    slope_aliases: Dict[str, Sequence[str]] = {
+        "slope_g8": ("slope_g8", "g8_slope", "s8", "slope_8"),
+        "slope_g23": ("slope_g23", "g23_slope", "s23", "slope_23"),
+        "slope_g38": ("slope_g38", "g38_slope", "s38", "slope_38"),
+        "slope_g53": ("slope_g53", "g53_slope", "s53", "slope_53"),
+        "slope_g68": ("slope_g68", "g68_slope", "s68", "slope_68"),
+        "slope_g83": ("slope_g83", "g83_slope", "s83", "slope_83"),
+    }
+
+    extracted: Dict[str, Any] = {}
+    for out_key, aliases in sigma_aliases.items():
+        value = None
+        for source in sigma_sources:
+            value = _read_nested_float(source, aliases)
+            if value is not None:
+                break
+        extracted[out_key] = value
+
+    for out_key, aliases in slope_aliases.items():
+        value = None
+        for source in sigma_sources:
+            value = _read_nested_float(source, aliases)
+            if value is not None:
+                break
+        extracted[out_key] = value
+
+    return extracted
+
+
+def _ordered_score(values: Sequence[Optional[float]], direction: int) -> Optional[float]:
+    pairs = [(values[idx], values[idx + 1]) for idx in range(len(values) - 1)]
+    valid_pairs = [(a, b) for a, b in pairs if a is not None and b is not None]
+    if not valid_pairs:
+        return None
+    if direction >= 0:
+        correct = sum(1 for a, b in valid_pairs if a > b)
+    else:
+        correct = sum(1 for a, b in valid_pairs if a < b)
+    return correct / len(valid_pairs)
+
+
+def _phase_sign(value: Optional[float]) -> Optional[int]:
+    if value is None or value == 0:
+        return None
+    return 1 if value > 0 else -1
 
 def _extract_v2_0_override_context(model_row: Dict[str, Any]) -> Dict[str, Any]:
     debug = model_row.get("debug") if isinstance(model_row.get("debug"), dict) else {}
@@ -380,6 +482,7 @@ def join_truth(
         debug = model.get("debug") if isinstance(model.get("debug"), dict) else {}
         signals = debug.get("signals") if isinstance(debug.get("signals"), dict) else {}
         raw = model.get("raw_features_used") if isinstance(model.get("raw_features_used"), dict) else {}
+        sigma_features = _extract_sigma_level_features(model, debug, raw)
 
         next_epoch = _as_int(history.get("next_epoch"))
 
@@ -481,8 +584,19 @@ def join_truth(
 
 def add_derived_columns(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Append derived diagnostics columns used by v2.x/v3.0 analysis."""
+    sorted_rows = sorted(
+        [dict(r) for r in rows],
+        key=lambda r: (
+            _as_int(r.get("epoch")) if _as_int(r.get("epoch")) is not None else 10**18,
+            _as_int(r.get("next_epoch")) if _as_int(r.get("next_epoch")) is not None else 10**18,
+            str(r.get("timestamp") or ""),
+        ),
+    )
     derived_rows: List[Dict[str, Any]] = []
-    for row in rows:
+    prev: Optional[Dict[str, Any]] = None
+    rolling_phase_strength_max = 1e-9
+
+    for row in sorted_rows:
         s23 = _as_float(row.get("s23"))
         s53 = _as_float(row.get("s53"))
         slope_sum = _as_float(row.get("slope_sum")) or 0.0
@@ -490,6 +604,23 @@ def add_derived_columns(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
         alignment = _as_float(row.get("alignment"))
         compression_velocity = _as_float(row.get("compression_velocity"))
         flip_score = _as_float(row.get("flip_score"))
+
+        g8 = _as_float(row.get("g8"))
+        g23 = _as_float(row.get("g23"))
+        g38 = _as_float(row.get("g38"))
+        g53 = _as_float(row.get("g53"))
+        g68 = _as_float(row.get("g68"))
+        g83 = _as_float(row.get("g83"))
+
+        slope_g8 = _as_float(row.get("slope_g8"))
+        slope_g23 = _as_float(row.get("slope_g23")) if _as_float(row.get("slope_g23")) is not None else s23
+        slope_g38 = _as_float(row.get("slope_g38"))
+        slope_g53 = _as_float(row.get("slope_g53")) if _as_float(row.get("slope_g53")) is not None else s53
+        slope_g68 = _as_float(row.get("slope_g68"))
+        slope_g83 = _as_float(row.get("slope_g83"))
+
+        row["slope_g23"] = slope_g23
+        row["slope_g53"] = slope_g53
 
         slope_sign_s23 = _sign(s23)
         slope_sign_s53 = _sign(s53)
@@ -538,6 +669,92 @@ def add_derived_columns(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
         )
         possible_transition_zone = bool((not possible_run_zone) and possible_flip_zone)
 
+        fan_width_v22 = (g83 - g8) if (g83 is not None and g8 is not None) else None
+        prev_fan_width_v22 = _as_float((prev or {}).get("fan_width"))
+        fan_width_velocity = (
+            fan_width_v22 - prev_fan_width_v22
+            if fan_width_v22 is not None and prev_fan_width_v22 is not None
+            else None
+        )
+        prev_fan_width_velocity = _as_float((prev or {}).get("fan_width_velocity"))
+        fan_width_acceleration = (
+            fan_width_velocity - prev_fan_width_velocity
+            if fan_width_velocity is not None and prev_fan_width_velocity is not None
+            else None
+        )
+
+        stack = [g8, g23, g38, g53, g68, g83]
+        direction = _sign(slope_sum)
+        fan_order_score = _ordered_score(stack, direction if direction != 0 else 1)
+
+        prev_g83 = _as_float((prev or {}).get("g83"))
+        prev_prev_g83 = _as_float((prev or {}).get("prev_g83"))
+        g83_curvature = (g83 - 2 * prev_g83 + prev_prev_g83) if None not in (g83, prev_g83, prev_prev_g83) else None
+
+        slope_values = [slope_g8, slope_g23, slope_g38, slope_g53, slope_g68, slope_g83]
+        valid_slopes = [x for x in slope_values if x is not None]
+        fan_energy_total = sum(abs(x) for x in valid_slopes) if valid_slopes else None
+        inner_energy = sum(abs(x) for x in [slope_g8, slope_g23, slope_g38] if x is not None)
+        outer_energy = sum(abs(x) for x in [slope_g53, slope_g68, slope_g83] if x is not None)
+        fan_energy_ratio = (inner_energy / max(outer_energy, 1e-9)) if valid_slopes else None
+        prev_energy = _as_float((prev or {}).get("fan_energy_total"))
+        fan_energy_velocity = (fan_energy_total - prev_energy) if fan_energy_total is not None and prev_energy is not None else None
+        prev_energy_velocity = _as_float((prev or {}).get("fan_energy_velocity"))
+        fan_energy_acceleration = (
+            fan_energy_velocity - prev_energy_velocity
+            if fan_energy_velocity is not None and prev_energy_velocity is not None
+            else None
+        )
+
+        sign_g8 = _phase_sign(slope_g8)
+        sign_g83 = _phase_sign(slope_g83)
+        fan_sign_conflict = bool(sign_g8 is not None and sign_g83 is not None and sign_g8 != sign_g83)
+        normalized_ratio = 0.0 if fan_energy_ratio is None else min(max(fan_energy_ratio / (1.0 + fan_energy_ratio), 0.0), 1.0)
+        negative_accel = 0.0 if fan_energy_acceleration is None else min(max(-fan_energy_acceleration, 0.0), 1.0)
+        fan_energy_instability = 0.4 * normalized_ratio + 0.3 * (1.0 if fan_sign_conflict else 0.0) + 0.3 * negative_accel
+
+        hinge_gap = (g23 - g38) if (g23 is not None and g38 is not None) else None
+        prev_hinge_gap = _as_float((prev or {}).get("hinge_gap"))
+        hinge_velocity = (hinge_gap - prev_hinge_gap) if hinge_gap is not None and prev_hinge_gap is not None else None
+        sign_g23 = _phase_sign(slope_g23)
+        sign_g38 = _phase_sign(slope_g38)
+        hinge_conflict = bool(sign_g23 is not None and sign_g38 is not None and sign_g23 != sign_g38)
+        hinge_torsion = None
+        if slope_g23 is not None and slope_g38 is not None:
+            hinge_torsion = abs(slope_g23 - slope_g38) / max(abs(slope_g23) + abs(slope_g38), 1e-9)
+
+        snap_divergence = None
+        if None not in (slope_g8, slope_g23, slope_g38):
+            snap_divergence = abs(slope_g8 - slope_g23) + abs(slope_g23 - slope_g38)
+        prev_snap_divergence = _as_float((prev or {}).get("snap_divergence"))
+        snap_velocity = (
+            snap_divergence - prev_snap_divergence
+            if snap_divergence is not None and prev_snap_divergence is not None
+            else None
+        )
+        snap_score = None
+        if None not in (slope_g8, slope_g23, slope_g38):
+            denom = max(abs(slope_g8) + abs(slope_g23) + abs(slope_g38), 1e-9)
+            snap_score = snap_divergence / denom if snap_divergence is not None else None
+
+        signs = [s for s in [_phase_sign(x) for x in slope_values] if s is not None]
+        phase_alignment = None
+        if signs:
+            pos = sum(1 for s in signs if s > 0)
+            neg = sum(1 for s in signs if s < 0)
+            phase_alignment = max(pos, neg) / len(signs)
+        phase_strength = fan_energy_total
+        prev_phase_alignment = _as_float((prev or {}).get("phase_alignment"))
+        phase_velocity = (
+            phase_alignment - prev_phase_alignment
+            if phase_alignment is not None and prev_phase_alignment is not None
+            else None
+        )
+        if phase_strength is not None:
+            rolling_phase_strength_max = max(rolling_phase_strength_max, phase_strength)
+        normalized_phase_strength = (phase_strength / rolling_phase_strength_max) if phase_strength is not None else 0.0
+        fan_phase_score = (phase_alignment or 0.0) * normalized_phase_strength
+
         truth = row.get("truth") if row.get("truth") in {"Bull", "Bear", "Neutral"} else "Unknown"
         pred = row.get("prediction") if row.get("prediction") in {"Bull", "Bear", "Neutral"} else "Unknown"
 
@@ -573,11 +790,35 @@ def add_derived_columns(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 "possible_flip_zone": possible_flip_zone,
                 "possible_run_zone": possible_run_zone,
                 "possible_transition_zone": possible_transition_zone,
+                "fan_width": fan_width_v22 if fan_width_v22 is not None else row.get("fan_width"),
+                "fan_width_velocity": fan_width_velocity,
+                "fan_width_acceleration": fan_width_acceleration,
+                "fan_order_score": fan_order_score,
+                "g83_curvature": g83_curvature,
+                "fan_energy_total": fan_energy_total,
+                "fan_energy_ratio": fan_energy_ratio,
+                "fan_energy_velocity": fan_energy_velocity,
+                "fan_energy_acceleration": fan_energy_acceleration,
+                "fan_sign_conflict": fan_sign_conflict,
+                "fan_energy_instability": fan_energy_instability,
+                "hinge_gap": hinge_gap,
+                "hinge_velocity": hinge_velocity,
+                "hinge_conflict": hinge_conflict,
+                "hinge_torsion": hinge_torsion,
+                "snap_divergence": snap_divergence,
+                "snap_velocity": snap_velocity,
+                "snap_score": snap_score,
+                "phase_alignment": phase_alignment,
+                "phase_strength": phase_strength,
+                "phase_velocity": phase_velocity,
+                "fan_phase_score": fan_phase_score,
                 "truth_direction_group": truth,
                 "prediction_direction_group": pred,
                 "directional_error_type": directional_error_type,
             }
         )
+        row["prev_g83"] = prev_g83
+        prev = row
         derived_rows.append(row)
     return derived_rows
 
@@ -615,6 +856,27 @@ def _build_group_stats(rows: Sequence[Dict[str, Any]], group_name: str, group_va
         "mean_flip_score": _safe_mean(rows, "flip_score"),
         "mean_ratio_8_23_to_23_53": _safe_mean(rows, "ratio_8_23_to_23_53"),
         "mean_slope_gap": _safe_mean(rows, "slope_gap"),
+        "mean_fan_width_velocity": _safe_mean(rows, "fan_width_velocity"),
+        "mean_fan_width_acceleration": _safe_mean(rows, "fan_width_acceleration"),
+        "mean_fan_order_score": _safe_mean(rows, "fan_order_score"),
+        "mean_g83_curvature": _safe_mean(rows, "g83_curvature"),
+        "mean_fan_energy_total": _safe_mean(rows, "fan_energy_total"),
+        "mean_fan_energy_ratio": _safe_mean(rows, "fan_energy_ratio"),
+        "mean_fan_energy_velocity": _safe_mean(rows, "fan_energy_velocity"),
+        "mean_fan_energy_acceleration": _safe_mean(rows, "fan_energy_acceleration"),
+        "fan_sign_conflict_rate": _safe_ratio(sum(1 for r in rows if r.get("fan_sign_conflict")), len(rows)),
+        "mean_fan_energy_instability": _safe_mean(rows, "fan_energy_instability"),
+        "mean_hinge_gap": _safe_mean(rows, "hinge_gap"),
+        "mean_hinge_velocity": _safe_mean(rows, "hinge_velocity"),
+        "hinge_conflict_rate": _safe_ratio(sum(1 for r in rows if r.get("hinge_conflict")), len(rows)),
+        "mean_hinge_torsion": _safe_mean(rows, "hinge_torsion"),
+        "mean_snap_divergence": _safe_mean(rows, "snap_divergence"),
+        "mean_snap_velocity": _safe_mean(rows, "snap_velocity"),
+        "mean_snap_score": _safe_mean(rows, "snap_score"),
+        "mean_phase_alignment": _safe_mean(rows, "phase_alignment"),
+        "mean_phase_strength": _safe_mean(rows, "phase_strength"),
+        "mean_phase_velocity": _safe_mean(rows, "phase_velocity"),
+        "mean_fan_phase_score": _safe_mean(rows, "fan_phase_score"),
         "collapse_flag_rate": _safe_ratio(sum(1 for r in rows if r.get("collapse_flag")), len(rows)),
         "weak_bull_exhaustion_flag_rate": _safe_ratio(
             sum(1 for r in rows if r.get("weak_bull_exhaustion_flag")), len(rows)
@@ -676,6 +938,58 @@ def build_run_flip_breakdown(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, A
         stats["coverage_within_export_set"] = _safe_ratio(stats["row_count"], total)
         output.append(stats)
     return output
+
+def build_v2_2_feature_preview(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    """Compact v2_2 family aggregates for JSON summaries and terminal previews."""
+    return {
+        "geometry": {
+            "mean_fan_width": _safe_mean(rows, "fan_width"),
+            "mean_fan_width_velocity": _safe_mean(rows, "fan_width_velocity"),
+            "mean_fan_width_acceleration": _safe_mean(rows, "fan_width_acceleration"),
+            "mean_fan_order_score": _safe_mean(rows, "fan_order_score"),
+            "mean_g83_curvature": _safe_mean(rows, "g83_curvature"),
+        },
+        "energy": {
+            "mean_fan_energy_total": _safe_mean(rows, "fan_energy_total"),
+            "mean_fan_energy_ratio": _safe_mean(rows, "fan_energy_ratio"),
+            "mean_fan_energy_velocity": _safe_mean(rows, "fan_energy_velocity"),
+            "mean_fan_energy_acceleration": _safe_mean(rows, "fan_energy_acceleration"),
+            "fan_sign_conflict_rate": _safe_ratio(sum(1 for r in rows if r.get("fan_sign_conflict")), len(rows)),
+            "mean_fan_energy_instability": _safe_mean(rows, "fan_energy_instability"),
+        },
+        "hinge": {
+            "mean_hinge_gap": _safe_mean(rows, "hinge_gap"),
+            "mean_hinge_velocity": _safe_mean(rows, "hinge_velocity"),
+            "hinge_conflict_rate": _safe_ratio(sum(1 for r in rows if r.get("hinge_conflict")), len(rows)),
+            "mean_hinge_torsion": _safe_mean(rows, "hinge_torsion"),
+        },
+        "snap": {
+            "mean_snap_divergence": _safe_mean(rows, "snap_divergence"),
+            "mean_snap_velocity": _safe_mean(rows, "snap_velocity"),
+            "mean_snap_score": _safe_mean(rows, "snap_score"),
+        },
+        "phase": {
+            "mean_phase_alignment": _safe_mean(rows, "phase_alignment"),
+            "mean_phase_strength": _safe_mean(rows, "phase_strength"),
+            "mean_phase_velocity": _safe_mean(rows, "phase_velocity"),
+            "mean_fan_phase_score": _safe_mean(rows, "fan_phase_score"),
+        },
+    }
+
+
+def build_v2_2_feature_candidates_v2_1(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    groups = [
+        "correct_bull",
+        "correct_bear",
+        "bull_called_bear_truth",
+        "bear_called_bull_truth",
+        "neutral_called_bull_truth",
+        "neutral_called_bear_truth",
+    ]
+    return [
+        _build_group_stats([r for r in rows if r.get("directional_error_type") == label], "directional_error_type", label)
+        for label in groups
+    ]
 
 def _max_streak(rows: Sequence[Dict[str, Any]], target: str) -> int:
     streak = 0
@@ -1057,6 +1371,8 @@ def write_outputs(
     run_flip_breakdown: Sequence[Dict[str, Any]],
     threshold_scan: Sequence[Dict[str, Any]],
     v2_1_bull_instability_scan: Sequence[Dict[str, Any]],
+    fan_feature_diagnostics: Sequence[Dict[str, Any]],
+    v2_2_feature_candidates: Sequence[Dict[str, Any]],
     model_suffix: str,
 ) -> Dict[str, Path]:
     """Write all required datasets and summary files."""
@@ -1070,8 +1386,11 @@ def write_outputs(
         "run_flip_breakdown": output_dir / f"gaussian_fan_run_flip_breakdown_{model_suffix}.csv",
         "threshold_scan": output_dir / f"gaussian_fan_threshold_scan_{model_suffix}.csv",
         "v2_1_bull_instability_scan": output_dir / f"gaussian_fan_v2_1_bull_instability_scan_{model_suffix}.csv",
+        "fan_feature_diagnostics": output_dir / f"gaussian_fan_feature_diagnostics_{model_suffix}.csv",
+        "v2_2_feature_candidates": output_dir / f"gaussian_fan_v2_2_feature_candidates_{model_suffix}.csv",
     }
-
+    if model_suffix == "v2_1":
+        paths["v2_2_feature_candidates"] = output_dir / "gaussian_fan_v2_2_feature_candidates_v2_1.csv"
 
     wrong_rows = [r for r in rows if r.get("directional_called") and not r.get("directional_correct")]
     neutral_misses = [r for r in rows if r.get("prediction") == "Neutral" and r.get("truth") in {"Bull", "Bear"}]
@@ -1090,6 +1409,16 @@ def write_outputs(
         paths["v2_1_bull_instability_scan"],
         v2_1_bull_instability_scan,
         list(v2_1_bull_instability_scan[0].keys()) if v2_1_bull_instability_scan else ["variant"],
+    )
+    _write_csv(
+        paths["fan_feature_diagnostics"],
+        fan_feature_diagnostics,
+        list(fan_feature_diagnostics[0].keys()) if fan_feature_diagnostics else ["group_name", "group_value", "row_count"],
+    )
+    _write_csv(
+        paths["v2_2_feature_candidates"],
+        v2_2_feature_candidates,
+        list(v2_2_feature_candidates[0].keys()) if v2_2_feature_candidates else ["group_name", "group_value", "row_count"],
     )
 
     return paths
@@ -1174,6 +1503,39 @@ def print_terminal_summary(
             f"{_pct(wrong_bull.get('slope_disagreement_rate', 0.0))} vs {_pct(correct_bull.get('slope_disagreement_rate', 0.0))}"
         )
 
+    preview = summary.get("v2_2_feature_preview", {}) if isinstance(summary.get("v2_2_feature_preview"), dict) else {}
+    geom = preview.get("geometry", {}) if isinstance(preview.get("geometry"), dict) else {}
+    energy = preview.get("energy", {}) if isinstance(preview.get("energy"), dict) else {}
+    hinge = preview.get("hinge", {}) if isinstance(preview.get("hinge"), dict) else {}
+    snap = preview.get("snap", {}) if isinstance(preview.get("snap"), dict) else {}
+    phase = preview.get("phase", {}) if isinstance(preview.get("phase"), dict) else {}
+
+    print("\n=== v2_2 Feature Preview ===")
+    print(f"mean fan_width: {geom.get('mean_fan_width', 0.0):.5f}")
+    print(f"mean fan_energy_instability: {energy.get('mean_fan_energy_instability', 0.0):.5f}")
+    print(f"hinge_conflict_rate: {_pct(hinge.get('hinge_conflict_rate', 0.0) or 0.0)}")
+    print(f"mean snap_score: {snap.get('mean_snap_score', 0.0):.5f}")
+    print(f"mean fan_phase_score: {phase.get('mean_fan_phase_score', 0.0):.5f}")
+
+    if model_id == MODEL_V2_1:
+        wrong_bull = next((r for r in error_breakdown if r.get("group_value") == "bull_called_bear_truth"), None)
+        correct_bull = next((r for r in error_breakdown if r.get("group_value") == "correct_bull"), None)
+        wrong_bear = next((r for r in error_breakdown if r.get("group_value") == "bear_called_bull_truth"), None)
+        correct_bear = next((r for r in error_breakdown if r.get("group_value") == "correct_bear"), None)
+        print("\n=== v2_2 Focused Comparison (v2_1) ===")
+        if wrong_bull and correct_bull:
+            print(
+                "bull_called_bear_truth vs correct_bull | "
+                f"fan_order={wrong_bull.get('mean_fan_order_score', 0.0):.4f} vs {correct_bull.get('mean_fan_order_score', 0.0):.4f} | "
+                f"energy_instability={wrong_bull.get('mean_fan_energy_instability', 0.0):.4f} vs {correct_bull.get('mean_fan_energy_instability', 0.0):.4f}"
+            )
+        if wrong_bear and correct_bear:
+            print(
+                "bear_called_bull_truth vs correct_bear | "
+                f"hinge_torsion={wrong_bear.get('mean_hinge_torsion', 0.0):.4f} vs {correct_bear.get('mean_hinge_torsion', 0.0):.4f} | "
+                f"phase_score={wrong_bear.get('mean_fan_phase_score', 0.0):.4f} vs {correct_bear.get('mean_fan_phase_score', 0.0):.4f}"
+            )
+
     if show_scan:
         print_v2_1_scan_summary(
             v2_1_scan_baseline,
@@ -1192,6 +1554,8 @@ def print_terminal_summary(
         "run_flip_breakdown",
         "threshold_scan",
         "v2_1_bull_instability_scan",
+        "fan_feature_diagnostics",
+        "v2_2_feature_candidates",
     ]:
         print(f"- {paths[key].resolve()}")
 
@@ -1277,6 +1641,12 @@ def run_model_export(
     regime_breakdown = build_regime_breakdown(rows)
     error_breakdown = build_error_breakdown(rows)
     run_flip_breakdown = build_run_flip_breakdown(rows)
+    fan_feature_diagnostics = []
+    fan_feature_diagnostics.extend(_group_rows(rows, "prediction", ["Bull", "Bear", "Neutral", "Unknown"]))
+    fan_feature_diagnostics.extend(_group_rows(rows, "truth", ["Bull", "Bear", "Neutral", "Unknown"]))
+    fan_feature_diagnostics.extend(build_regime_breakdown(rows))
+    fan_feature_diagnostics.extend(build_error_breakdown(rows))
+    v2_2_feature_candidates = build_v2_2_feature_candidates_v2_1(rows)
     v2_1_scan_rows, v2_1_scan_baseline, top_bull_to_neutral_candidates, top_bull_to_bear_candidates = run_v2_1_bull_instability_scan(rows)
 
     summary["v2_1_bull_instability_scan"] = {
@@ -1284,6 +1654,7 @@ def run_model_export(
         "top_bull_to_neutral_candidates": top_bull_to_neutral_candidates,
         "top_bull_to_bear_candidates": top_bull_to_bear_candidates,
     }
+    summary["v2_2_feature_preview"] = build_v2_2_feature_preview(rows)
 
     paths = write_outputs(
         output_dir=output_dir,
@@ -1294,6 +1665,8 @@ def run_model_export(
         run_flip_breakdown=run_flip_breakdown,
         threshold_scan=v2_1_scan_rows,
         v2_1_bull_instability_scan=v2_1_scan_rows,
+        fan_feature_diagnostics=fan_feature_diagnostics,
+        v2_2_feature_candidates=v2_2_feature_candidates,
         model_suffix="v2_0" if model_id == MODEL_V2_0 else "v2_1",
 
     )
