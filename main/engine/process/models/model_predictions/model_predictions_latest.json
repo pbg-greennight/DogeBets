@@ -1,0 +1,169 @@
+{
+  "epoch": 320471,
+  "next_epoch": 320472,
+  "timestamp": "2026-03-08T22:03:25.113556",
+  "models": [
+    {
+      "model_id": "trend_method_v1_0",
+      "trend": "Bull",
+      "confidence": 1.0,
+      "score": 0.6694797890503833,
+      "reason": "score_vs_threshold:0.669480/0.020000",
+      "debug": {
+        "weights": {
+          "slope": 1.0,
+          "fan": 0.2,
+          "ratio": 0.0,
+          "compression": 0.0,
+          "torque": 0.0
+        },
+        "threshold": 0.02,
+        "flip_penalty": 0.05
+      },
+      "raw_features_used": {
+        "s8": 66219.03439584114,
+        "s23": 66231.24748318094,
+        "s53": 66214.38765765978,
+        "fan_width": 2.1415971476380946,
+        "R1": 0.7243899009363816,
+        "R2": 0.4026337828985395,
+        "flip_score": 0.2578268649464008
+      }
+    },
+    {
+      "model_id": "trend_method_v1_1",
+      "trend": "Bull",
+      "confidence": 1.0,
+      "score": 0.6669015204009192,
+      "reason": "score_vs_threshold:0.666902/0.025000",
+      "debug": {
+        "weights": {
+          "slope": 1.0,
+          "fan": 0.2,
+          "ratio": 0.0,
+          "compression": 0.0,
+          "torque": 0.0
+        },
+        "threshold": 0.025,
+        "flip_penalty": 0.06
+      },
+      "raw_features_used": {
+        "s8": 66219.03439584114,
+        "s23": 66231.24748318094,
+        "s53": 66214.38765765978,
+        "fan_width": 2.1415971476380946,
+        "R1": 0.7243899009363816,
+        "R2": 0.4026337828985395,
+        "flip_score": 0.2578268649464008
+      }
+    },
+    {
+      "model_id": "trend_method_v1_2",
+      "trend": "Bull",
+      "confidence": 1.0,
+      "score": 0.6643232517514552,
+      "reason": "score_vs_threshold:0.664323/0.030000",
+      "debug": {
+        "weights": {
+          "slope": 1.0,
+          "fan": 0.2,
+          "ratio": 0.0,
+          "compression": 0.0,
+          "torque": 0.0
+        },
+        "threshold": 0.03,
+        "flip_penalty": 0.07
+      },
+      "raw_features_used": {
+        "s8": 66219.03439584114,
+        "s23": 66231.24748318094,
+        "s53": 66214.38765765978,
+        "fan_width": 2.1415971476380946,
+        "R1": 0.7243899009363816,
+        "R2": 0.4026337828985395,
+        "flip_score": 0.2578268649464008
+      }
+    },
+    {
+      "model_id": "trend_method_v1_3",
+      "trend": "Bull",
+      "confidence": 1.0,
+      "score": 0.6617449831019913,
+      "reason": "score_vs_threshold:0.661745/0.035000",
+      "debug": {
+        "weights": {
+          "slope": 1.0,
+          "fan": 0.2,
+          "ratio": 0.0,
+          "compression": 0.0,
+          "torque": 0.0
+        },
+        "threshold": 0.035,
+        "flip_penalty": 0.08
+      },
+      "raw_features_used": {
+        "s8": 66219.03439584114,
+        "s23": 66231.24748318094,
+        "s53": 66214.38765765978,
+        "fan_width": 2.1415971476380946,
+        "R1": 0.7243899009363816,
+        "R2": 0.4026337828985395,
+        "flip_score": 0.2578268649464008
+      }
+    },
+    {
+      "model_id": "trend_method_v1_4",
+      "trend": "Bull",
+      "confidence": 1.0,
+      "score": 0.6591667144525273,
+      "reason": "score_vs_threshold:0.659167/0.040000",
+      "debug": {
+        "weights": {
+          "slope": 1.0,
+          "fan": 0.2,
+          "ratio": 0.0,
+          "compression": 0.0,
+          "torque": 0.0
+        },
+        "threshold": 0.04,
+        "flip_penalty": 0.09
+      },
+      "raw_features_used": {
+        "s8": 66219.03439584114,
+        "s23": 66231.24748318094,
+        "s53": 66214.38765765978,
+        "fan_width": 2.1415971476380946,
+        "R1": 0.7243899009363816,
+        "R2": 0.4026337828985395,
+        "flip_score": 0.2578268649464008
+      }
+    },
+    {
+      "model_id": "trend_method_v1_5",
+      "trend": "Bull",
+      "confidence": 1.0,
+      "score": 0.6565884458030632,
+      "reason": "score_vs_threshold:0.656588/0.045000",
+      "debug": {
+        "weights": {
+          "slope": 1.0,
+          "fan": 0.2,
+          "ratio": 0.0,
+          "compression": 0.0,
+          "torque": 0.0
+        },
+        "threshold": 0.045,
+        "flip_penalty": 0.1
+      },
+      "raw_features_used": {
+        "s8": 66219.03439584114,
+        "s23": 66231.24748318094,
+        "s53": 66214.38765765978,
+        "fan_width": 2.1415971476380946,
+        "R1": 0.7243899009363816,
+        "R2": 0.4026337828985395,
+        "flip_score": 0.2578268649464008
+      }
+    }
+  ]
+}
