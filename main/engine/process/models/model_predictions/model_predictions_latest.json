@@ -1,17 +1,17 @@
 {
-  "epoch": 320707,
-  "next_epoch": 320708,
-  "timestamp": "2026-03-09T17:48:37.080624",
+  "epoch": 320727,
+  "next_epoch": 320728,
+  "timestamp": "2026-03-09T19:28:59.132538",
   "models": [
     {
       "model_id": "trend_method_v2_0",
-      "trend": "Neutral",
+      "trend": "Bull",
       "confidence": 1.0,
-      "score": 0.0,
-      "reason": "regime=NOISE|slope_sum=-0.355730",
+      "score": 0.16243646274597268,
+      "reason": "regime=RUN|slope_sum=0.162436",
       "debug": {
-        "regime": "NOISE",
-        "run_direction": "Bear",
+        "regime": "RUN",
+        "run_direction": "Bull",
         "thresholds": {
           "run_fan_threshold": 0.01,
           "noise_fan_threshold": 0.004,
@@ -21,27 +21,27 @@
           "alignment_threshold": 0.5
         },
         "signals": {
-          "fan_width": 19.49388755975815,
-          "alignment": 0.0,
-          "compression_velocity": -2.3538712811132427,
-          "flip_score": 0.08936536246231602,
-          "slope_sum": -0.3557296997496451,
-          "slope_magnitude": 0.3557296997496451,
-          "ratio_8_23_to_23_53": 0.17001019910880164
+          "fan_width": 18.719941749615828,
+          "alignment": 1.0,
+          "compression_velocity": -2.359155932252179,
+          "flip_score": 0.029872247765334106,
+          "slope_sum": 0.16243646274597268,
+          "slope_magnitude": 0.16243646274597268,
+          "ratio_8_23_to_23_53": -0.22648572745439413
         }
       },
       "raw_features_used": {
-        "s23": -0.15331005002371967,
-        "s53": -0.2024196497259254,
-        "fan_width": 19.49388755975815,
-        "alignment": 0.0,
-        "compression_velocity": -2.3538712811132427,
-        "flip_score": 0.08936536246231602
+        "s23": 0.018020316172624007,
+        "s53": 0.14441614657334867,
+        "fan_width": 18.719941749615828,
+        "alignment": 1.0,
+        "compression_velocity": -2.359155932252179,
+        "flip_score": 0.029872247765334106
       }
     }
   ],
-  "v2.0_trend": "Neutral",
-  "v2.0_score": 0.0,
+  "v2.0_trend": "Bull",
+  "v2.0_score": 0.16243646274597268,
   "v2.0_confidence": 1.0,
   "v2.0_correct": null
 }

@@ -202,11 +202,45 @@ def _read_nested_float(payload: Dict[str, Any], keys: Sequence[str]) -> Optional
                 return value
     return None
 
+def _resolve_sort_key(row: Dict[str, Any]) -> Tuple[int, int, str]:
+    """Stable chronological ordering key used for temporal derivatives."""
+    epoch = _as_int(row.get("epoch"))
+    next_epoch = _as_int(row.get("next_epoch"))
+    timestamp = str(row.get("timestamp") or "")
+    return (
+        epoch if epoch is not None else 10**18,
+        next_epoch if next_epoch is not None else 10**18,
+        timestamp,
+    )
 
 def _extract_sigma_level_features(model: Dict[str, Any], debug: Dict[str, Any], raw: Dict[str, Any]) -> Dict[str, Any]:
     """Extract sigma values/slopes from known history schemas, leaving missing values as None."""
     signals = debug.get("signals") if isinstance(debug.get("signals"), dict) else {}
-    sigma_sources = [signals, raw, debug, model]
+    # History payloads vary by run; fields can appear at top level, debug blocks,
+    # or nested sigma containers under signals/raw_features_used.
+    sigma_block_candidates = [
+        signals.get("gaussian_levels"),
+        signals.get("sigma_levels"),
+        signals.get("gaussian_fan"),
+        raw.get("gaussian_levels"),
+        raw.get("sigma_levels"),
+        raw.get("gaussian_fan"),
+        debug.get("gaussian_levels"),
+        debug.get("sigma_levels"),
+        model.get("gaussian_levels"),
+        model.get("sigma_levels"),
+    ]
+    slope_block_candidates = [
+        signals.get("gaussian_slopes"),
+        signals.get("sigma_slopes"),
+        raw.get("gaussian_slopes"),
+        raw.get("sigma_slopes"),
+        debug.get("gaussian_slopes"),
+        debug.get("sigma_slopes"),
+        model.get("gaussian_slopes"),
+        model.get("sigma_slopes"),
+    ]
+    sigma_sources = [signals, raw, debug, model] + [s for s in sigma_block_candidates if isinstance(s, dict)] + [s for s in slope_block_candidates if isinstance(s, dict)]
 
     sigma_aliases: Dict[str, Sequence[str]] = {
         "g8": ("g8", "gauss8", "sigma8", "sigma_8"),
@@ -243,6 +277,136 @@ def _extract_sigma_level_features(model: Dict[str, Any], debug: Dict[str, Any], 
         extracted[out_key] = value
 
     return extracted
+
+def extract_sigma_fields(row: Dict[str, Any]) -> Dict[str, Optional[float]]:
+    """Public helper for extracting sigma values/slopes from joined model rows."""
+    debug = row.get("debug") if isinstance(row.get("debug"), dict) else {}
+    raw = row.get("raw_features_used") if isinstance(row.get("raw_features_used"), dict) else {}
+    return _extract_sigma_level_features(row, debug, raw)
+
+
+def compute_geometry_features(row: Dict[str, Any], prev: Optional[Dict[str, Any]]) -> Dict[str, Optional[float]]:
+    """Compute geometry-family features from sigma-level values only when inputs are valid."""
+    g8, g23, g38, g53, g68, g83 = (_as_float(row.get(k)) for k in ["g8", "g23", "g38", "g53", "g68", "g83"])
+    slope_sum = _as_float(row.get("slope_sum"))
+    fan_width = (g83 - g8) if None not in (g83, g8) else None
+    prev_fan_width = _as_float((prev or {}).get("fan_width"))
+    fan_width_velocity = fan_width - prev_fan_width if None not in (fan_width, prev_fan_width) else None
+    prev_fan_width_velocity = _as_float((prev or {}).get("fan_width_velocity"))
+    fan_width_acceleration = (
+        fan_width_velocity - prev_fan_width_velocity
+        if None not in (fan_width_velocity, prev_fan_width_velocity)
+        else None
+    )
+    stack = [g8, g23, g38, g53, g68, g83]
+    fan_order_score = _ordered_score(stack, _sign(slope_sum) if _sign(slope_sum) != 0 else 1)
+    prev_g83 = _as_float((prev or {}).get("g83"))
+    prev_prev_g83 = _as_float((prev or {}).get("prev_g83"))
+    g83_curvature = (g83 - 2 * prev_g83 + prev_prev_g83) if None not in (g83, prev_g83, prev_prev_g83) else None
+    return {
+        "fan_width": fan_width,
+        "fan_width_velocity": fan_width_velocity,
+        "fan_width_acceleration": fan_width_acceleration,
+        "fan_order_score": fan_order_score,
+        "g83_curvature": g83_curvature,
+    }
+
+
+def compute_energy_features(row: Dict[str, Any], prev: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Compute energy-family features from slope fields with explicit missing handling."""
+    slope_values = [_as_float(row.get(k)) for k in ["slope_g8", "slope_g23", "slope_g38", "slope_g53", "slope_g68", "slope_g83"]]
+    valid_slopes = [x for x in slope_values if x is not None]
+    fan_energy_total = sum(abs(x) for x in valid_slopes) if valid_slopes else None
+    inner = [x for x in slope_values[:3] if x is not None]
+    outer = [x for x in slope_values[3:] if x is not None]
+    fan_energy_ratio = (sum(abs(x) for x in inner) / sum(abs(x) for x in outer)) if inner and outer and sum(abs(x) for x in outer) > 0 else None
+    prev_energy = _as_float((prev or {}).get("fan_energy_total"))
+    fan_energy_velocity = fan_energy_total - prev_energy if None not in (fan_energy_total, prev_energy) else None
+    prev_energy_velocity = _as_float((prev or {}).get("fan_energy_velocity"))
+    fan_energy_acceleration = (
+        fan_energy_velocity - prev_energy_velocity
+        if None not in (fan_energy_velocity, prev_energy_velocity)
+        else None
+    )
+    sign_g8 = _phase_sign(_as_float(row.get("slope_g8")))
+    sign_g83 = _phase_sign(_as_float(row.get("slope_g83")))
+    fan_sign_conflict = bool(sign_g8 is not None and sign_g83 is not None and sign_g8 != sign_g83)
+    fan_energy_instability = None
+    if fan_energy_ratio is not None and fan_energy_acceleration is not None:
+        normalized_ratio = min(max(fan_energy_ratio / (1.0 + fan_energy_ratio), 0.0), 1.0)
+        negative_accel = min(max(-fan_energy_acceleration, 0.0), 1.0)
+        fan_energy_instability = 0.4 * normalized_ratio + 0.3 * (1.0 if fan_sign_conflict else 0.0) + 0.3 * negative_accel
+    return {
+        "fan_energy_total": fan_energy_total,
+        "fan_energy_ratio": fan_energy_ratio,
+        "fan_energy_velocity": fan_energy_velocity,
+        "fan_energy_acceleration": fan_energy_acceleration,
+        "fan_sign_conflict": fan_sign_conflict,
+        "fan_energy_instability": fan_energy_instability,
+    }
+
+
+def compute_hinge_features(row: Dict[str, Any], prev: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Compute hinge-family features when g23/g38 and slopes are available."""
+    g23 = _as_float(row.get("g23"))
+    g38 = _as_float(row.get("g38"))
+    slope_g23 = _as_float(row.get("slope_g23"))
+    slope_g38 = _as_float(row.get("slope_g38"))
+    hinge_gap = (g23 - g38) if None not in (g23, g38) else None
+    prev_hinge_gap = _as_float((prev or {}).get("hinge_gap"))
+    hinge_velocity = (hinge_gap - prev_hinge_gap) if None not in (hinge_gap, prev_hinge_gap) else None
+    sign_g23 = _phase_sign(slope_g23)
+    sign_g38 = _phase_sign(slope_g38)
+    hinge_conflict = bool(sign_g23 is not None and sign_g38 is not None and sign_g23 != sign_g38)
+    hinge_torsion = abs(slope_g23 - slope_g38) / (abs(slope_g23) + abs(slope_g38)) if None not in (slope_g23, slope_g38) and (abs(slope_g23) + abs(slope_g38)) > 0 else None
+    return {
+        "hinge_gap": hinge_gap,
+        "hinge_velocity": hinge_velocity,
+        "hinge_conflict": hinge_conflict,
+        "hinge_torsion": hinge_torsion,
+    }
+
+
+def compute_snap_features(row: Dict[str, Any], prev: Optional[Dict[str, Any]]) -> Dict[str, Optional[float]]:
+    """Compute snap-family features only when inner fan slopes are all present."""
+    slope_g8 = _as_float(row.get("slope_g8"))
+    slope_g23 = _as_float(row.get("slope_g23"))
+    slope_g38 = _as_float(row.get("slope_g38"))
+    snap_divergence = None
+    if None not in (slope_g8, slope_g23, slope_g38):
+        snap_divergence = abs(slope_g8 - slope_g23) + abs(slope_g23 - slope_g38)
+    prev_snap_divergence = _as_float((prev or {}).get("snap_divergence"))
+    snap_velocity = (snap_divergence - prev_snap_divergence) if None not in (snap_divergence, prev_snap_divergence) else None
+    snap_score = None
+    if None not in (slope_g8, slope_g23, slope_g38):
+        denom = abs(slope_g8) + abs(slope_g23) + abs(slope_g38)
+        if denom > 0 and snap_divergence is not None:
+            snap_score = snap_divergence / denom
+    return {"snap_divergence": snap_divergence, "snap_velocity": snap_velocity, "snap_score": snap_score}
+
+
+def compute_phase_features(row: Dict[str, Any], prev: Optional[Dict[str, Any]], rolling_phase_strength_max: float) -> Dict[str, Optional[float]]:
+    """Compute phase-family features from slope sign coherence with minimum input coverage."""
+    slope_values = [_as_float(row.get(k)) for k in ["slope_g8", "slope_g23", "slope_g38", "slope_g53", "slope_g68", "slope_g83"]]
+    signs = [s for s in [_phase_sign(x) for x in slope_values] if s is not None]
+    phase_alignment = None
+    if len(signs) >= 4:
+        pos = sum(1 for s in signs if s > 0)
+        neg = sum(1 for s in signs if s < 0)
+        phase_alignment = max(pos, neg) / len(signs)
+    phase_strength = _as_float(row.get("fan_energy_total"))
+    prev_phase_alignment = _as_float((prev or {}).get("phase_alignment"))
+    phase_velocity = (phase_alignment - prev_phase_alignment) if None not in (phase_alignment, prev_phase_alignment) else None
+    fan_phase_score = None
+    if phase_alignment is not None and phase_strength is not None and rolling_phase_strength_max > 0:
+        fan_phase_score = phase_alignment * (phase_strength / rolling_phase_strength_max)
+    return {
+        "phase_alignment": phase_alignment,
+        "phase_strength": phase_strength,
+        "phase_velocity": phase_velocity,
+        "fan_phase_score": fan_phase_score,
+        "phase_input_count": len(signs),
+    }
 
 
 def _ordered_score(values: Sequence[Optional[float]], direction: int) -> Optional[float]:
@@ -550,6 +714,7 @@ def join_truth(
             "compression_velocity_raw": _as_float(raw.get("compression_velocity")),
             "flip_score_raw": _as_float(raw.get("flip_score")),
         }
+        row.update(sigma_features)
 
         # -------------------------------------------------
         # Evaluation flags
@@ -584,243 +749,224 @@ def join_truth(
 
 def add_derived_columns(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Append derived diagnostics columns used by v2.x/v3.0 analysis."""
-    sorted_rows = sorted(
-        [dict(r) for r in rows],
-        key=lambda r: (
-            _as_int(r.get("epoch")) if _as_int(r.get("epoch")) is not None else 10**18,
-            _as_int(r.get("next_epoch")) if _as_int(r.get("next_epoch")) is not None else 10**18,
-            str(r.get("timestamp") or ""),
-        ),
-    )
+    prepared = [dict(r) for r in rows]
+    grouped: Dict[str, List[Dict[str, Any]]] = {}
+    for row in prepared:
+        grouped.setdefault(str(row.get("model_id") or MODEL_DEFAULT), []).append(row)
     derived_rows: List[Dict[str, Any]] = []
-    prev: Optional[Dict[str, Any]] = None
-    rolling_phase_strength_max = 1e-9
+    for model_id, model_rows in grouped.items():
+        sorted_rows = sorted(model_rows, key=_resolve_sort_key)
+        prev: Optional[Dict[str, Any]] = None
+        rolling_phase_strength_max = 1e-9
 
-    for row in sorted_rows:
-        s23 = _as_float(row.get("s23"))
-        s53 = _as_float(row.get("s53"))
-        slope_sum = _as_float(row.get("slope_sum")) or 0.0
-        fan_width = _as_float(row.get("fan_width")) or 0.0
-        alignment = _as_float(row.get("alignment"))
-        compression_velocity = _as_float(row.get("compression_velocity"))
-        flip_score = _as_float(row.get("flip_score"))
+        for row in sorted_rows:
+            s23 = _as_float(row.get("s23"))
+            s53 = _as_float(row.get("s53"))
+            slope_sum = _as_float(row.get("slope_sum")) or 0.0
+            fan_width = _as_float(row.get("fan_width")) or 0.0
+            alignment = _as_float(row.get("alignment"))
+            compression_velocity = _as_float(row.get("compression_velocity"))
+            flip_score = _as_float(row.get("flip_score"))
 
-        g8 = _as_float(row.get("g8"))
-        g23 = _as_float(row.get("g23"))
-        g38 = _as_float(row.get("g38"))
-        g53 = _as_float(row.get("g53"))
-        g68 = _as_float(row.get("g68"))
-        g83 = _as_float(row.get("g83"))
+            if _as_float(row.get("slope_g23")) is None and s23 is not None:
+                row["slope_g23"] = s23
+            if _as_float(row.get("slope_g53")) is None and s53 is not None:
+                row["slope_g53"] = s53
 
-        slope_g8 = _as_float(row.get("slope_g8"))
-        slope_g23 = _as_float(row.get("slope_g23")) if _as_float(row.get("slope_g23")) is not None else s23
-        slope_g38 = _as_float(row.get("slope_g38"))
-        slope_g53 = _as_float(row.get("slope_g53")) if _as_float(row.get("slope_g53")) is not None else s53
-        slope_g68 = _as_float(row.get("slope_g68"))
-        slope_g83 = _as_float(row.get("slope_g83"))
+            slope_sign_s23 = _sign(s23)
+            slope_sign_s53 = _sign(s53)
+            slope_disagreement = slope_sign_s23 != slope_sign_s53
+            slope_gap = abs((s23 or 0.0) - (s53 or 0.0))
+            abs_slope_sum = abs(slope_sum)
+            abs_compression_velocity = abs(compression_velocity or 0.0)
+            abs_flip_score = abs(flip_score or 0.0)
+            fan_to_slope_ratio = fan_width / max(abs_slope_sum, 1e-9)
 
-        row["slope_g23"] = slope_g23
-        row["slope_g53"] = slope_g53
+            collapse_flag = bool(
+                compression_velocity is not None
+                and alignment is not None
+                and compression_velocity < COLLAPSE_COMPRESSION_THRESHOLD
+                and alignment < WEAK_ALIGNMENT_THRESHOLD
+            )
+            weak_bull_exhaustion_flag = bool(
+                slope_sum > 0
+                and compression_velocity is not None
+                and alignment is not None
+                and flip_score is not None
+                and compression_velocity < COLLAPSE_COMPRESSION_THRESHOLD
+                and alignment < WEAK_ALIGNMENT_THRESHOLD
+                and flip_score > FLIP_SCORE_ALERT_THRESHOLD
+            )
+            weak_bear_exhaustion_flag = bool(
+                slope_sum < 0
+                and compression_velocity is not None
+                and alignment is not None
+                and flip_score is not None
+                and compression_velocity > abs(COLLAPSE_COMPRESSION_THRESHOLD)
+                and alignment < WEAK_ALIGNMENT_THRESHOLD
+                and flip_score > FLIP_SCORE_ALERT_THRESHOLD
+            )
+            possible_flip_zone = bool(
+                slope_disagreement
+                or (flip_score is not None and flip_score > FLIP_SCORE_ALERT_THRESHOLD)
+                or (alignment is not None and alignment < WEAK_ALIGNMENT_THRESHOLD)
+                or (fan_to_slope_ratio < FLIP_ZONE_RATIO_THRESHOLD)
+            )
+            possible_run_zone = bool(
+                abs_slope_sum > NOISE_SLOPE_MAX
+                and alignment is not None
+                and alignment >= RUN_ALIGNMENT_MIN
+                and not slope_disagreement
+            )
+            possible_transition_zone = bool((not possible_run_zone) and possible_flip_zone)
 
-        slope_sign_s23 = _sign(s23)
-        slope_sign_s53 = _sign(s53)
-        slope_disagreement = slope_sign_s23 != slope_sign_s53
-        slope_gap = abs((s23 or 0.0) - (s53 or 0.0))
-        abs_slope_sum = abs(slope_sum)
-        abs_compression_velocity = abs(compression_velocity or 0.0)
-        abs_flip_score = abs(flip_score or 0.0)
-        fan_to_slope_ratio = fan_width / max(abs_slope_sum, 1e-9)
+            geometry = compute_geometry_features(row, prev)
+            row.update(geometry)
+            energy = compute_energy_features(row, prev)
+            row.update(energy)
+            hinge = compute_hinge_features(row, prev)
+            row.update(hinge)
+            snap = compute_snap_features(row, prev)
+            row.update(snap)
 
-        collapse_flag = bool(
-            compression_velocity is not None
-            and alignment is not None
-            and compression_velocity < COLLAPSE_COMPRESSION_THRESHOLD
-            and alignment < WEAK_ALIGNMENT_THRESHOLD
-        )
-        weak_bull_exhaustion_flag = bool(
-            slope_sum > 0
-            and compression_velocity is not None
-            and alignment is not None
-            and flip_score is not None
-            and compression_velocity < COLLAPSE_COMPRESSION_THRESHOLD
-            and alignment < WEAK_ALIGNMENT_THRESHOLD
-            and flip_score > FLIP_SCORE_ALERT_THRESHOLD
-        )
-        weak_bear_exhaustion_flag = bool(
-            slope_sum < 0
-            and compression_velocity is not None
-            and alignment is not None
-            and flip_score is not None
-            and compression_velocity > abs(COLLAPSE_COMPRESSION_THRESHOLD)
-            and alignment < WEAK_ALIGNMENT_THRESHOLD
-            and flip_score > FLIP_SCORE_ALERT_THRESHOLD
-        )
-        possible_flip_zone = bool(
-            slope_disagreement
-            or (flip_score is not None and flip_score > FLIP_SCORE_ALERT_THRESHOLD)
-            or (alignment is not None and alignment < WEAK_ALIGNMENT_THRESHOLD)
-            or (fan_to_slope_ratio < FLIP_ZONE_RATIO_THRESHOLD)
-        )
-        possible_run_zone = bool(
-            abs_slope_sum > NOISE_SLOPE_MAX
-            and alignment is not None
-            and alignment >= RUN_ALIGNMENT_MIN
-            and not slope_disagreement
-        )
-        possible_transition_zone = bool((not possible_run_zone) and possible_flip_zone)
+            if row.get("fan_energy_total") is not None:
+                rolling_phase_strength_max = max(rolling_phase_strength_max, float(row["fan_energy_total"]))
+            phase = compute_phase_features(row, prev, rolling_phase_strength_max)
 
-        fan_width_v22 = (g83 - g8) if (g83 is not None and g8 is not None) else None
-        prev_fan_width_v22 = _as_float((prev or {}).get("fan_width"))
-        fan_width_velocity = (
-            fan_width_v22 - prev_fan_width_v22
-            if fan_width_v22 is not None and prev_fan_width_v22 is not None
-            else None
-        )
-        prev_fan_width_velocity = _as_float((prev or {}).get("fan_width_velocity"))
-        fan_width_acceleration = (
-            fan_width_velocity - prev_fan_width_velocity
-            if fan_width_velocity is not None and prev_fan_width_velocity is not None
-            else None
-        )
+            truth = row.get("truth") if row.get("truth") in {"Bull", "Bear", "Neutral"} else "Unknown"
+            pred = row.get("prediction") if row.get("prediction") in {"Bull", "Bear", "Neutral"} else "Unknown"
 
-        stack = [g8, g23, g38, g53, g68, g83]
-        direction = _sign(slope_sum)
-        fan_order_score = _ordered_score(stack, direction if direction != 0 else 1)
+            directional_error_type = "none"
+            if pred == "Bull" and truth == "Bear":
+                directional_error_type = "bull_called_bear_truth"
+            elif pred == "Bear" and truth == "Bull":
+                directional_error_type = "bear_called_bull_truth"
+            elif pred == "Neutral" and truth == "Bull":
+                directional_error_type = "neutral_called_bull_truth"
+            elif pred == "Neutral" and truth == "Bear":
+                directional_error_type = "neutral_called_bear_truth"
+            elif pred == "Bull" and truth == "Bull":
+                directional_error_type = "correct_bull"
+            elif pred == "Bear" and truth == "Bear":
+                directional_error_type = "correct_bear"
+            elif pred == "Neutral" and truth == "Neutral":
+                directional_error_type = "correct_neutral"
 
-        prev_g83 = _as_float((prev or {}).get("g83"))
-        prev_prev_g83 = _as_float((prev or {}).get("prev_g83"))
-        g83_curvature = (g83 - 2 * prev_g83 + prev_prev_g83) if None not in (g83, prev_g83, prev_prev_g83) else None
+            row.update(
+                {
+                    "slope_sign_s23": slope_sign_s23,
+                    "slope_sign_s53": slope_sign_s53,
+                    "slope_disagreement": slope_disagreement,
+                    "slope_gap": slope_gap,
+                    "abs_slope_sum": abs_slope_sum,
+                    "abs_compression_velocity": abs_compression_velocity,
+                    "abs_flip_score": abs_flip_score,
+                    "fan_to_slope_ratio": fan_to_slope_ratio,
+                    "collapse_flag": collapse_flag,
+                    "weak_bull_exhaustion_flag": weak_bull_exhaustion_flag,
+                    "weak_bear_exhaustion_flag": weak_bear_exhaustion_flag,
+                    "possible_flip_zone": possible_flip_zone,
+                    "possible_run_zone": possible_run_zone,
+                    "possible_transition_zone": possible_transition_zone,
+                    "phase_alignment": phase["phase_alignment"],
+                    "phase_strength": phase["phase_strength"],
+                    "phase_velocity": phase["phase_velocity"],
+                    "fan_phase_score": phase["fan_phase_score"],
+                    "truth_direction_group": truth,
+                    "prediction_direction_group": pred,
+                    "directional_error_type": directional_error_type,
+                }
+            )
+            row["prev_g83"] = _as_float((prev or {}).get("g83"))
+            row["phase_input_count"] = phase["phase_input_count"]
+            prev = row
+            derived_rows.append(row)
 
-        slope_values = [slope_g8, slope_g23, slope_g38, slope_g53, slope_g68, slope_g83]
-        valid_slopes = [x for x in slope_values if x is not None]
-        fan_energy_total = sum(abs(x) for x in valid_slopes) if valid_slopes else None
-        inner_energy = sum(abs(x) for x in [slope_g8, slope_g23, slope_g38] if x is not None)
-        outer_energy = sum(abs(x) for x in [slope_g53, slope_g68, slope_g83] if x is not None)
-        fan_energy_ratio = (inner_energy / max(outer_energy, 1e-9)) if valid_slopes else None
-        prev_energy = _as_float((prev or {}).get("fan_energy_total"))
-        fan_energy_velocity = (fan_energy_total - prev_energy) if fan_energy_total is not None and prev_energy is not None else None
-        prev_energy_velocity = _as_float((prev or {}).get("fan_energy_velocity"))
-        fan_energy_acceleration = (
-            fan_energy_velocity - prev_energy_velocity
-            if fan_energy_velocity is not None and prev_energy_velocity is not None
-            else None
-        )
+        return sorted(derived_rows, key=lambda r: (str(r.get("model_id") or MODEL_DEFAULT),) + _resolve_sort_key(r))
 
-        sign_g8 = _phase_sign(slope_g8)
-        sign_g83 = _phase_sign(slope_g83)
-        fan_sign_conflict = bool(sign_g8 is not None and sign_g83 is not None and sign_g8 != sign_g83)
-        normalized_ratio = 0.0 if fan_energy_ratio is None else min(max(fan_energy_ratio / (1.0 + fan_energy_ratio), 0.0), 1.0)
-        negative_accel = 0.0 if fan_energy_acceleration is None else min(max(-fan_energy_acceleration, 0.0), 1.0)
-        fan_energy_instability = 0.4 * normalized_ratio + 0.3 * (1.0 if fan_sign_conflict else 0.0) + 0.3 * negative_accel
+        def build_feature_population_audit(rows: Sequence[Dict[str, Any]]) -> Tuple[
+            List[Dict[str, Any]], Dict[str, Any], List[str]]:
+            """Build non-null/non-zero population diagnostics for sigma and advanced feature families."""
+            total_rows = len(rows)
+            metrics = [
+                "g8", "g23", "g38", "g53", "g68", "g83",
+                "slope_g8", "slope_g23", "slope_g38", "slope_g53", "slope_g68", "slope_g83",
+                "fan_width", "fan_order_score", "g83_curvature", "fan_energy_total", "fan_energy_ratio",
+                "hinge_gap", "hinge_torsion", "snap_score", "phase_alignment", "fan_phase_score",
+            ]
+            audit_rows: List[Dict[str, Any]] = []
+            summary_counts: Dict[str, Any] = {"total_rows": total_rows}
 
-        hinge_gap = (g23 - g38) if (g23 is not None and g38 is not None) else None
-        prev_hinge_gap = _as_float((prev or {}).get("hinge_gap"))
-        hinge_velocity = (hinge_gap - prev_hinge_gap) if hinge_gap is not None and prev_hinge_gap is not None else None
-        sign_g23 = _phase_sign(slope_g23)
-        sign_g38 = _phase_sign(slope_g38)
-        hinge_conflict = bool(sign_g23 is not None and sign_g38 is not None and sign_g23 != sign_g38)
-        hinge_torsion = None
-        if slope_g23 is not None and slope_g38 is not None:
-            hinge_torsion = abs(slope_g23 - slope_g38) / max(abs(slope_g23) + abs(slope_g38), 1e-9)
-
-        snap_divergence = None
-        if None not in (slope_g8, slope_g23, slope_g38):
-            snap_divergence = abs(slope_g8 - slope_g23) + abs(slope_g23 - slope_g38)
-        prev_snap_divergence = _as_float((prev or {}).get("snap_divergence"))
-        snap_velocity = (
-            snap_divergence - prev_snap_divergence
-            if snap_divergence is not None and prev_snap_divergence is not None
-            else None
-        )
-        snap_score = None
-        if None not in (slope_g8, slope_g23, slope_g38):
-            denom = max(abs(slope_g8) + abs(slope_g23) + abs(slope_g38), 1e-9)
-            snap_score = snap_divergence / denom if snap_divergence is not None else None
-
-        signs = [s for s in [_phase_sign(x) for x in slope_values] if s is not None]
-        phase_alignment = None
-        if signs:
-            pos = sum(1 for s in signs if s > 0)
-            neg = sum(1 for s in signs if s < 0)
-            phase_alignment = max(pos, neg) / len(signs)
-        phase_strength = fan_energy_total
-        prev_phase_alignment = _as_float((prev or {}).get("phase_alignment"))
-        phase_velocity = (
-            phase_alignment - prev_phase_alignment
-            if phase_alignment is not None and prev_phase_alignment is not None
-            else None
-        )
-        if phase_strength is not None:
-            rolling_phase_strength_max = max(rolling_phase_strength_max, phase_strength)
-        normalized_phase_strength = (phase_strength / rolling_phase_strength_max) if phase_strength is not None else 0.0
-        fan_phase_score = (phase_alignment or 0.0) * normalized_phase_strength
-
-        truth = row.get("truth") if row.get("truth") in {"Bull", "Bear", "Neutral"} else "Unknown"
-        pred = row.get("prediction") if row.get("prediction") in {"Bull", "Bear", "Neutral"} else "Unknown"
-
-        directional_error_type = "none"
-        if pred == "Bull" and truth == "Bear":
-            directional_error_type = "bull_called_bear_truth"
-        elif pred == "Bear" and truth == "Bull":
-            directional_error_type = "bear_called_bull_truth"
-        elif pred == "Neutral" and truth == "Bull":
-            directional_error_type = "neutral_called_bull_truth"
-        elif pred == "Neutral" and truth == "Bear":
-            directional_error_type = "neutral_called_bear_truth"
-        elif pred == "Bull" and truth == "Bull":
-            directional_error_type = "correct_bull"
-        elif pred == "Bear" and truth == "Bear":
-            directional_error_type = "correct_bear"
-        elif pred == "Neutral" and truth == "Neutral":
-            directional_error_type = "correct_neutral"
-
-        row.update(
+            for feature in metrics:
+                values = [_as_float(r.get(feature)) for r in rows]
+                non_null_count = sum(1 for v in values if v is not None)
+                non_zero_count = sum(1 for v in values if v is not None and abs(v) > 0.0)
+                audit_rows.append(
             {
-                "slope_sign_s23": slope_sign_s23,
-                "slope_sign_s53": slope_sign_s53,
-                "slope_disagreement": slope_disagreement,
-                "slope_gap": slope_gap,
-                "abs_slope_sum": abs_slope_sum,
-                "abs_compression_velocity": abs_compression_velocity,
-                "abs_flip_score": abs_flip_score,
-                "fan_to_slope_ratio": fan_to_slope_ratio,
-                "collapse_flag": collapse_flag,
-                "weak_bull_exhaustion_flag": weak_bull_exhaustion_flag,
-                "weak_bear_exhaustion_flag": weak_bear_exhaustion_flag,
-                "possible_flip_zone": possible_flip_zone,
-                "possible_run_zone": possible_run_zone,
-                "possible_transition_zone": possible_transition_zone,
-                "fan_width": fan_width_v22 if fan_width_v22 is not None else row.get("fan_width"),
-                "fan_width_velocity": fan_width_velocity,
-                "fan_width_acceleration": fan_width_acceleration,
-                "fan_order_score": fan_order_score,
-                "g83_curvature": g83_curvature,
-                "fan_energy_total": fan_energy_total,
-                "fan_energy_ratio": fan_energy_ratio,
-                "fan_energy_velocity": fan_energy_velocity,
-                "fan_energy_acceleration": fan_energy_acceleration,
-                "fan_sign_conflict": fan_sign_conflict,
-                "fan_energy_instability": fan_energy_instability,
-                "hinge_gap": hinge_gap,
-                "hinge_velocity": hinge_velocity,
-                "hinge_conflict": hinge_conflict,
-                "hinge_torsion": hinge_torsion,
-                "snap_divergence": snap_divergence,
-                "snap_velocity": snap_velocity,
-                "snap_score": snap_score,
-                "phase_alignment": phase_alignment,
-                "phase_strength": phase_strength,
-                "phase_velocity": phase_velocity,
-                "fan_phase_score": fan_phase_score,
-                "truth_direction_group": truth,
-                "prediction_direction_group": pred,
-                "directional_error_type": directional_error_type,
+                "feature_name": feature,
+                "non_null_count": non_null_count,
+                "non_zero_count": non_zero_count,
+                "total_rows": total_rows,
+                "population_rate": _safe_ratio(non_null_count, total_rows),
+                "non_zero_rate": _safe_ratio(non_zero_count, total_rows),
             }
         )
-        row["prev_g83"] = prev_g83
-        prev = row
-        derived_rows.append(row)
-    return derived_rows
+                summary_counts[f"rows_with_{feature}"] = non_null_count
+
+            summary_counts["rows_with_nonzero_fan_order_score"] = sum(
+                1 for r in rows if (_as_float(r.get("fan_order_score")) or 0.0) != 0.0)
+            summary_counts["rows_with_nonzero_hinge_torsion"] = sum(
+                1 for r in rows if (_as_float(r.get("hinge_torsion")) or 0.0) != 0.0)
+            summary_counts["rows_with_nonzero_snap_score"] = sum(
+                1 for r in rows if (_as_float(r.get("snap_score")) or 0.0) != 0.0)
+            summary_counts["rows_with_nonzero_phase_alignment"] = sum(
+                1 for r in rows if (_as_float(r.get("phase_alignment")) or 0.0) != 0.0)
+            summary_counts["rows_with_valid_phase_inputs_ge_4"] = sum(
+                1 for r in rows if (_as_int(r.get("phase_input_count")) or 0) >= 4)
+
+            warnings: List[str] = []
+            for feat, hint in [
+                ("fan_order_score", "check sigma extraction"),
+                ("hinge_torsion", "check slope_g23/slope_g38 extraction"),
+                ("snap_score", "check slope_g8/slope_g23/slope_g38 extraction"),
+                ("phase_alignment", "check multi-sigma slope extraction"),
+            ]:
+                audit = next((r for r in audit_rows if r["feature_name"] == feat), None)
+                if not audit:
+                    continue
+                if audit["non_null_count"] <= max(1, int(total_rows * 0.05)) or audit["non_zero_count"] <= max(1,
+                                                                                                               int(total_rows * 0.05)):
+                    warnings.append(f"WARNING: {feat} population too low; {hint}")
+
+            return audit_rows, summary_counts, warnings
+
+        def write_feature_population_audit(path: Path, audit_rows: Sequence[Dict[str, Any]]) -> None:
+            """Persist feature population audit CSV."""
+            _write_csv(path, audit_rows,
+                       ["feature_name", "non_null_count", "non_zero_count", "total_rows", "population_rate",
+                        "non_zero_rate"])
+
+        def write_feature_source_map(path: Path, model_audits: Dict[str, Dict[str, Any]]) -> None:
+            """Document sigma extraction and observed feature population coverage per model."""
+            lines = [
+                "gaussian_fan_feature_source_map",
+                "",
+                "Sigma extraction sources:",
+                "- top-level model fields (g8..g83, slope_g8..slope_g83)",
+                "- model.debug.signals aliases (gauss/sigma/slope variants)",
+                "- model.raw_features_used aliases",
+                "- nested containers: gaussian_levels/sigma_levels and gaussian_slopes/sigma_slopes",
+                "",
+            ]
+            for model_id, counts in model_audits.items():
+                lines.append(f"[{model_id}]")
+                for key in ["g8", "g23", "g38", "g53", "g68", "g83", "slope_g8", "slope_g23", "slope_g38", "slope_g53",
+                            "slope_g68", "slope_g83", "fan_order_score", "hinge_torsion", "snap_score",
+                            "phase_alignment"]:
+                    lines.append(f"- rows_with_{key}: {int(counts.get(f'rows_with_{key}', 0))}")
+                lines.append("")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
 
 
 def _build_group_stats(rows: Sequence[Dict[str, Any]], group_name: str, group_value: str) -> Dict[str, Any]:
@@ -859,6 +1005,7 @@ def _build_group_stats(rows: Sequence[Dict[str, Any]], group_name: str, group_va
         "mean_fan_width_velocity": _safe_mean(rows, "fan_width_velocity"),
         "mean_fan_width_acceleration": _safe_mean(rows, "fan_width_acceleration"),
         "mean_fan_order_score": _safe_mean(rows, "fan_order_score"),
+        "count_fan_order_score": sum(1 for r in rows if _as_float(r.get("fan_order_score")) is not None),
         "mean_g83_curvature": _safe_mean(rows, "g83_curvature"),
         "mean_fan_energy_total": _safe_mean(rows, "fan_energy_total"),
         "mean_fan_energy_ratio": _safe_mean(rows, "fan_energy_ratio"),
@@ -870,10 +1017,13 @@ def _build_group_stats(rows: Sequence[Dict[str, Any]], group_name: str, group_va
         "mean_hinge_velocity": _safe_mean(rows, "hinge_velocity"),
         "hinge_conflict_rate": _safe_ratio(sum(1 for r in rows if r.get("hinge_conflict")), len(rows)),
         "mean_hinge_torsion": _safe_mean(rows, "hinge_torsion"),
+        "count_hinge_torsion": sum(1 for r in rows if _as_float(r.get("hinge_torsion")) is not None),
         "mean_snap_divergence": _safe_mean(rows, "snap_divergence"),
         "mean_snap_velocity": _safe_mean(rows, "snap_velocity"),
         "mean_snap_score": _safe_mean(rows, "snap_score"),
+        "count_snap_score": sum(1 for r in rows if _as_float(r.get("snap_score")) is not None),
         "mean_phase_alignment": _safe_mean(rows, "phase_alignment"),
+        "count_phase_alignment": sum(1 for r in rows if _as_float(r.get("phase_alignment")) is not None),
         "mean_phase_strength": _safe_mean(rows, "phase_strength"),
         "mean_phase_velocity": _safe_mean(rows, "phase_velocity"),
         "mean_fan_phase_score": _safe_mean(rows, "fan_phase_score"),
@@ -1373,6 +1523,7 @@ def write_outputs(
     v2_1_bull_instability_scan: Sequence[Dict[str, Any]],
     fan_feature_diagnostics: Sequence[Dict[str, Any]],
     v2_2_feature_candidates: Sequence[Dict[str, Any]],
+    feature_population_audit: Sequence[Dict[str, Any]],
     model_suffix: str,
 ) -> Dict[str, Path]:
     """Write all required datasets and summary files."""
@@ -1388,6 +1539,8 @@ def write_outputs(
         "v2_1_bull_instability_scan": output_dir / f"gaussian_fan_v2_1_bull_instability_scan_{model_suffix}.csv",
         "fan_feature_diagnostics": output_dir / f"gaussian_fan_feature_diagnostics_{model_suffix}.csv",
         "v2_2_feature_candidates": output_dir / f"gaussian_fan_v2_2_feature_candidates_{model_suffix}.csv",
+        "feature_population_audit": output_dir / f"gaussian_fan_feature_population_audit_{model_suffix}.csv",
+        "feature_source_map": output_dir / "gaussian_fan_feature_source_map.txt",
     }
     if model_suffix == "v2_1":
         paths["v2_2_feature_candidates"] = output_dir / "gaussian_fan_v2_2_feature_candidates_v2_1.csv"
@@ -1420,6 +1573,7 @@ def write_outputs(
         v2_2_feature_candidates,
         list(v2_2_feature_candidates[0].keys()) if v2_2_feature_candidates else ["group_name", "group_value", "row_count"],
     )
+    write_feature_population_audit(paths["feature_population_audit"], feature_population_audit)
 
     return paths
 
@@ -1436,6 +1590,8 @@ def print_terminal_summary(
     v2_1_scan_baseline: Dict[str, Any],
     top_bull_to_neutral_candidates: Sequence[Dict[str, Any]],
     top_bull_to_bear_candidates: Sequence[Dict[str, Any]],
+    feature_population_counts: Dict[str, Any],
+    population_warnings: Sequence[str],
     show_scan: bool,
 ) -> None:
     """Print readable diagnostics sections in terminal."""
@@ -1536,6 +1692,38 @@ def print_terminal_summary(
                 f"phase_score={wrong_bear.get('mean_fan_phase_score', 0.0):.4f} vs {correct_bear.get('mean_fan_phase_score', 0.0):.4f}"
             )
 
+    print("\n=== Advanced Feature Population Audit ===")
+    print(
+        "sigma population: "
+        + " | ".join(
+            f"{k}={int(feature_population_counts.get(f'rows_with_{k}', 0))}/{int(feature_population_counts.get('total_rows', 0))}"
+            for k in ["g8", "g23", "g38", "g53", "g68", "g83"]
+        )
+    )
+    print(
+        "slope population: "
+        + " | ".join(
+            f"{k}={int(feature_population_counts.get(f'rows_with_{k}', 0))}/{int(feature_population_counts.get('total_rows', 0))}"
+            for k in ["slope_g8", "slope_g23", "slope_g38", "slope_g53", "slope_g68", "slope_g83"]
+        )
+    )
+    print(
+        "advanced population: "
+        + " | ".join(
+            f"{k}={int(feature_population_counts.get(f'rows_with_{k}', 0))}"
+            for k in ["fan_width", "fan_order_score", "g83_curvature", "fan_energy_total", "fan_energy_ratio", "hinge_gap", "hinge_torsion", "snap_score", "phase_alignment", "fan_phase_score"]
+        )
+    )
+    print(
+        "non-zero counts: "
+        f"fan_order_score={int(feature_population_counts.get('rows_with_nonzero_fan_order_score', 0))} | "
+        f"hinge_torsion={int(feature_population_counts.get('rows_with_nonzero_hinge_torsion', 0))} | "
+        f"snap_score={int(feature_population_counts.get('rows_with_nonzero_snap_score', 0))} | "
+        f"phase_alignment={int(feature_population_counts.get('rows_with_nonzero_phase_alignment', 0))}"
+    )
+    for warn in population_warnings:
+        print(warn)
+
     if show_scan:
         print_v2_1_scan_summary(
             v2_1_scan_baseline,
@@ -1556,6 +1744,7 @@ def print_terminal_summary(
         "v2_1_bull_instability_scan",
         "fan_feature_diagnostics",
         "v2_2_feature_candidates",
+        "feature_population_audit",
     ]:
         print(f"- {paths[key].resolve()}")
 
@@ -1646,6 +1835,7 @@ def run_model_export(
     fan_feature_diagnostics.extend(_group_rows(rows, "truth", ["Bull", "Bear", "Neutral", "Unknown"]))
     fan_feature_diagnostics.extend(build_regime_breakdown(rows))
     fan_feature_diagnostics.extend(build_error_breakdown(rows))
+    feature_population_audit, feature_population_counts, population_warnings = build_feature_population_audit(rows)
     v2_2_feature_candidates = build_v2_2_feature_candidates_v2_1(rows)
     v2_1_scan_rows, v2_1_scan_baseline, top_bull_to_neutral_candidates, top_bull_to_bear_candidates = run_v2_1_bull_instability_scan(rows)
 
@@ -1655,6 +1845,8 @@ def run_model_export(
         "top_bull_to_bear_candidates": top_bull_to_bear_candidates,
     }
     summary["v2_2_feature_preview"] = build_v2_2_feature_preview(rows)
+    summary["advanced_feature_population_audit"] = feature_population_counts
+    summary["advanced_feature_population_warnings"] = population_warnings
 
     paths = write_outputs(
         output_dir=output_dir,
@@ -1667,6 +1859,7 @@ def run_model_export(
         v2_1_bull_instability_scan=v2_1_scan_rows,
         fan_feature_diagnostics=fan_feature_diagnostics,
         v2_2_feature_candidates=v2_2_feature_candidates,
+        feature_population_audit=feature_population_audit,
         model_suffix="v2_0" if model_id == MODEL_V2_0 else "v2_1",
 
     )
@@ -1680,6 +1873,8 @@ def run_model_export(
         v2_1_scan_baseline,
         top_bull_to_neutral_candidates,
         top_bull_to_bear_candidates,
+        feature_population_counts,
+        population_warnings,
         show_scan=(model_id == MODEL_V2_1),
     )
     return {
@@ -1725,7 +1920,13 @@ def main() -> int:
 
     result_v2_0 = run_model_export(MODEL_V2_0, replay_history_rows, round_rows, args.output_dir)
     result_v2_1 = run_model_export(MODEL_V2_1, replay_history_rows, round_rows, args.output_dir)
-
+    write_feature_source_map(
+        args.output_dir / "gaussian_fan_feature_source_map.txt",
+        {
+            MODEL_V2_0: result_v2_0.get("feature_population_counts", {}),
+            MODEL_V2_1: result_v2_1.get("feature_population_counts", {}),
+        },
+    )
     override_impact = build_v2_1_override_impact(
         result_v2_0["rows"],
         result_v2_1["rows"],
