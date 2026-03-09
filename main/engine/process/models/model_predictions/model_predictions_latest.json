@@ -1,16 +1,16 @@
 {
-  "epoch": 320625,
-  "next_epoch": 320626,
-  "timestamp": "2026-03-09T10:56:51.073351",
+  "epoch": 320633,
+  "next_epoch": 320634,
+  "timestamp": "2026-03-09T11:37:01.082773",
   "models": [
     {
       "model_id": "trend_method_v2_0",
-      "trend": "Neutral",
+      "trend": "Bear",
       "confidence": 1.0,
-      "score": 0.0,
-      "reason": "regime=NOISE|slope_sum=-0.607435",
+      "score": -1.7298841766005353,
+      "reason": "regime=RUN|slope_sum=-1.729884",
       "debug": {
-        "regime": "NOISE",
+        "regime": "RUN",
         "run_direction": "Bear",
         "thresholds": {
           "run_fan_threshold": 0.01,
@@ -21,27 +21,27 @@
           "alignment_threshold": 0.5
         },
         "signals": {
-          "fan_width": 33.977431937804795,
-          "alignment": 0.0,
-          "compression_velocity": 17.677886118006427,
-          "flip_score": 0.14944048109783106,
-          "slope_sum": -0.6074349541595438,
-          "slope_magnitude": 0.6074349541595438,
-          "ratio_8_23_to_23_53": 22.002310930790387
+          "fan_width": 126.53768167649105,
+          "alignment": 1.0,
+          "compression_velocity": 4.582233465247555,
+          "flip_score": 0.2769677369414629,
+          "slope_sum": -1.7298841766005353,
+          "slope_magnitude": 1.7298841766005353,
+          "ratio_8_23_to_23_53": 0.4364692370220035
         }
       },
       "raw_features_used": {
-        "s23": -0.6299462397910247,
-        "s53": 0.02251128563148086,
-        "fan_width": 33.977431937804795,
-        "alignment": 0.0,
-        "compression_velocity": 17.677886118006427,
-        "flip_score": 0.14944048109783106
+        "s23": -0.840361615177244,
+        "s53": -0.8895225614232913,
+        "fan_width": 126.53768167649105,
+        "alignment": 1.0,
+        "compression_velocity": 4.582233465247555,
+        "flip_score": 0.2769677369414629
       }
     }
   ],
-  "v2.0_trend": "Neutral",
-  "v2.0_score": 0.0,
+  "v2.0_trend": "Bear",
+  "v2.0_score": -1.7298841766005353,
   "v2.0_confidence": 1.0,
   "v2.0_correct": null
 }

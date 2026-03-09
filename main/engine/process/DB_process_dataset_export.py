@@ -220,47 +220,103 @@ def flatten_model_rows(history_rows: Iterable[Dict[str, Any]], model_id: str) ->
             )
     return flat
 
-def join_truth(flat_rows: Iterable[Dict[str, Any]], round_rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
-     """Join truth using next_epoch -> nextEpoch."""
+def join_truth(
+    flat_rows: Iterable[Dict[str, Any]],
+    round_rows: Iterable[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """
+    Join prediction rows with round-record truth data using:
+
+        history.next_epoch  ->  round_record.nextEpoch
+
+    Returns a list of flattened rows ready for derived feature processing.
+    """
+
+    # -------------------------------------------------
+    # Build lookup table: nextEpoch -> round_row
+    # -------------------------------------------------
     round_lookup: Dict[int, Dict[str, Any]] = {}
-    for row in round_rows:
-        ne = _as_int(row.get("nextEpoch"))
-        if ne is not None:
-            round_lookup[ne] = row
+
+    for round_row in round_rows:
+        if not isinstance(round_row, dict):
+            continue
+
+        next_epoch = _as_int(round_row.get("nextEpoch"))
+        if next_epoch is None:
+            continue
+
+        round_lookup[next_epoch] = round_row
 
     output: List[Dict[str, Any]] = []
+
+    # -------------------------------------------------
+    # Iterate flattened prediction rows
+    # -------------------------------------------------
     for block in flat_rows:
-        history = block["history"]
-        model = block["model"]
+
+        if not isinstance(block, dict):
+            continue
+
+        history = block.get("history")
+        model = block.get("model")
+
+        if not isinstance(history, dict) or not isinstance(model, dict):
+            continue
+
         debug = model.get("debug") if isinstance(model.get("debug"), dict) else {}
         signals = debug.get("signals") if isinstance(debug.get("signals"), dict) else {}
         raw = model.get("raw_features_used") if isinstance(model.get("raw_features_used"), dict) else {}
 
         next_epoch = _as_int(history.get("next_epoch"))
-        round_row = round_lookup.get(next_epoch) if next_epoch is not None else None
 
+        matched_round: Optional[Dict[str, Any]] = None
+        if next_epoch is not None:
+            matched_round = round_lookup.get(next_epoch)
 
-        price_difference = _as_float(round_row.get("priceDifference")) if round_row else None
+        # -------------------------------------------------
+        # Extract round truth values
+        # -------------------------------------------------
+        price_difference = None
+        start_price = None
+        end_price = None
+        round_ts = None
+        round_next_epoch_time = None
+
+        if matched_round:
+            price_difference = _as_float(matched_round.get("priceDifference"))
+            start_price = _as_float(matched_round.get("startPrice"))
+            end_price = _as_float(matched_round.get("endPrice"))
+            round_ts = matched_round.get("current_timestamp")
+            round_next_epoch_time = matched_round.get("nextEpochTime")
+
         truth = _truth_from_price_diff(price_difference)
         prediction = _norm_direction(model.get("trend"))
 
+        # -------------------------------------------------
+        # Build flattened row
+        # -------------------------------------------------
         row: Dict[str, Any] = {
             "model_id": str(model.get("model_id") or ""),
             "epoch": _as_int(history.get("epoch")),
             "next_epoch": next_epoch,
             "timestamp": history.get("timestamp"),
+
             "prediction": prediction,
             "confidence": _as_float(model.get("confidence")),
             "score": _as_float(model.get("score")),
             "reason": model.get("reason"),
+
             "truth": truth,
-            "start_price": _as_float(round_row.get("startPrice")) if round_row else None,
-            "end_price": _as_float(round_row.get("endPrice")) if round_row else None,
+            "start_price": start_price,
+            "end_price": end_price,
             "price_difference": price_difference,
-            "round_current_timestamp": round_row.get("current_timestamp") if round_row else None,
-            "round_next_epoch_time": round_row.get("nextEpochTime") if round_row else None,
+            "round_current_timestamp": round_ts,
+            "round_next_epoch_time": round_next_epoch_time,
+
             "regime": _normalize_regime(debug.get("regime")),
             "run_direction": str(debug.get("run_direction") or ""),
+
+            # Signals
             "fan_width": _as_float(signals.get("fan_width")),
             "alignment": _as_float(signals.get("alignment")),
             "compression_velocity": _as_float(signals.get("compression_velocity")),
@@ -268,6 +324,8 @@ def join_truth(flat_rows: Iterable[Dict[str, Any]], round_rows: Iterable[Dict[st
             "slope_sum": _as_float(signals.get("slope_sum")),
             "slope_magnitude": _as_float(signals.get("slope_magnitude")),
             "ratio_8_23_to_23_53": _as_float(signals.get("ratio_8_23_to_23_53")),
+
+            # Raw features
             "s23": _as_float(raw.get("s23")),
             "s53": _as_float(raw.get("s53")),
             "fan_width_raw": _as_float(raw.get("fan_width")),
@@ -276,13 +334,25 @@ def join_truth(flat_rows: Iterable[Dict[str, Any]], round_rows: Iterable[Dict[st
             "flip_score_raw": _as_float(raw.get("flip_score")),
         }
 
+        # -------------------------------------------------
+        # Evaluation flags
+        # -------------------------------------------------
         row["directional_called"] = row["prediction"] in {"Bull", "Bear"}
-        row["directional_correct"] = bool(row["directional_called"] and row["prediction"] == row["truth"])
-        row["correct"] = bool(row["prediction"] == row["truth"] and row["truth"] != "Unknown")
+        row["directional_correct"] = bool(
+            row["directional_called"] and row["prediction"] == row["truth"]
+        )
+
+        row["correct"] = bool(
+            row["prediction"] == row["truth"] and row["truth"] != "Unknown"
+        )
+
         row["bull_called"] = row["prediction"] == "Bull"
         row["bear_called"] = row["prediction"] == "Bear"
         row["neutral_called"] = row["prediction"] == "Neutral"
 
+        # -------------------------------------------------
+        # Error taxonomy flags
+        # -------------------------------------------------
         row["bull_called_bear_truth"] = bool(row["bull_called"] and row["truth"] == "Bear")
         row["bear_called_bull_truth"] = bool(row["bear_called"] and row["truth"] == "Bull")
         row["neutral_called_bull_truth"] = bool(row["neutral_called"] and row["truth"] == "Bull")
