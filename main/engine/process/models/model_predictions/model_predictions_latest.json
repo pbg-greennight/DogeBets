@@ -1,0 +1,134 @@
+{
+  "epoch": 320937,
+  "next_epoch": 320938,
+  "timestamp": "2026-03-10T13:04:27.070275",
+  "models": [
+    {
+      "model_id": "trend_method_v2_0",
+      "trend": "Neutral",
+      "confidence": 1.0,
+      "score": 0.0,
+      "reason": "regime=NOISE|slope_sum=-0.295640",
+      "debug": {
+        "regime": "NOISE",
+        "run_direction": "Bear",
+        "thresholds": {
+          "run_fan_threshold": 0.01,
+          "noise_fan_threshold": 0.004,
+          "compression_threshold": 0.003,
+          "flip_score_threshold": 0.5,
+          "slope_noise_threshold": 0.002,
+          "alignment_threshold": 0.5
+        },
+        "signals": {
+          "fan_width": 8.432825702868286,
+          "alignment": 0.0,
+          "compression_velocity": -0.07374439759587403,
+          "flip_score": 0.047904604019381014,
+          "slope_sum": -0.2956402185263869,
+          "slope_magnitude": 0.2956402185263869,
+          "ratio_8_23_to_23_53": 1.19738399318225,
+          "gaussian_levels": {
+            "g8": 71236.05349285899,
+            "g23": 71242.0332220489,
+            "g38": 71246.85006528912,
+            "g53": 71247.02721664276,
+            "g68": 71245.5626251612,
+            "g83": 71244.48631856186
+          }
+        },
+        "gaussian_stack": {
+          "g8": 71236.05349285899,
+          "g23": 71242.0332220489,
+          "g38": 71246.85006528912,
+          "g53": 71247.02721664276,
+          "g68": 71245.5626251612,
+          "g83": 71244.48631856186
+        },
+        "gaussian_slopes": {
+          "slope_g8": 0.3211776027492306,
+          "tan_g8": 0.3217369578778744,
+          "curve_g8": 0.598698906905927,
+          "slope_g23": -0.29298633608414093,
+          "tan_g23": -0.27705434922730393,
+          "curve_g23": 0.03341042126869853,
+          "slope_g38": -0.09886394512977859,
+          "tan_g38": -0.1027594052478283,
+          "curve_g38": -0.0165619682398669,
+          "slope_g53": -0.0026538824422459584,
+          "tan_g53": -0.006731661269441247,
+          "curve_g53": -0.01449418275068248,
+          "slope_g68": 0.03197711934990366,
+          "tan_g68": 0.029809028186718933,
+          "curve_g68": -0.00662775794917252,
+          "slope_g83": 0.020392050018926966,
+          "tan_g83": 0.02063830512634013,
+          "curve_g83": 0.0014330185328920685
+        },
+        "fan_physics": {
+          "geometry": {
+            "fan_width": 8.432825702868286,
+            "outer_fan_width": -2.5408980809006607,
+            "fan_order_signature": "53>38>68>83>23>8",
+            "outer_order_signature": "53>68>83"
+          },
+          "hinge": {
+            "hinge_gap": 4.816843240216258,
+            "hinge_conflict": false,
+            "hinge_torsion": 0.49539939170896435
+          },
+          "snap": {
+            "snap_divergence": 0.8082863297877338,
+            "snap_score": 1.1335970836022828
+          },
+          "phase": {
+            "fast_phase_sign": -1,
+            "slow_phase_sign": 1,
+            "phase_disagreement": true,
+            "phase_alignment": 0.5,
+            "phase_strength": 0.7680509357742267,
+            "fan_phase_score": 0.21720271747654668,
+            "phase_valid_count": 6
+          },
+          "energy": {
+            "fan_energy_total": 0.7680509357742267,
+            "fan_energy_ratio": 12.958712039662108,
+            "fan_sign_conflict": false,
+            "fan_energy_instability": 4.319570679887369,
+            "slow_retention": 0.055023051811076584
+          }
+        },
+        "context": {
+          "tail_anchor_type": null,
+          "extrema_pair": null,
+          "pv_direction": null,
+          "decision_time": "2026-03-10 13:04:27.069945",
+          "next_epoch_time": "",
+          "full_window_start": "",
+          "full_window_end": "",
+          "analyzed_epoch": 320937,
+          "predicted_epoch": 320938,
+          "model_timestamp": "2026-03-10T13:04:27.070275"
+        }
+      },
+      "raw_features_used": {
+        "s23": -0.29298633608414093,
+        "s53": -0.0026538824422459584,
+        "fan_width": 8.432825702868286,
+        "alignment": 0.0,
+        "compression_velocity": -0.07374439759587403,
+        "flip_score": 0.047904604019381014
+      },
+      "g8": 71236.05349285899,
+      "g23": 71242.0332220489,
+      "g38": 71246.85006528912,
+      "g53": 71247.02721664276,
+      "g68": 71245.5626251612,
+      "g83": 71244.48631856186
+    }
+  ],
+  "v2.0_trend": "Neutral",
+  "v2.0_score": 0.0,
+  "v2.0_confidence": 1.0,
+  "v2.0_correct": null
+}

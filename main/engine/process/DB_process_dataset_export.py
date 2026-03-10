@@ -11,7 +11,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_HISTORY_PATH = (SCRIPT_DIR / "models" / "model_predictions_history" / "model_predictions_history.jsonl").resolve()
-DEFAULT_REPLAY_HISTORY_PATH = (SCRIPT_DIR / "models" / "model_predictions_history" / "model_predictions_history_with_v2_1.jsonl").resolve()
+DEFAULT_REPLAY_HISTORY_PATH = (SCRIPT_DIR / "models" / "model_predictions_history" / "model_predictions_history_with_v2_2.jsonl").resolve()
 DEFAULT_ROUND_PATH = (SCRIPT_DIR / "../ts/json/round_record.json").resolve()
 DEFAULT_OUTPUT_DIR = (SCRIPT_DIR / "datasets").resolve()
 
@@ -25,6 +25,7 @@ FLIP_ZONE_RATIO_THRESHOLD = 0.0
 
 MODEL_V2_0 = "trend_method_v2_0"
 MODEL_V2_1 = "trend_method_v2_1"
+MODEL_V2_2 = "trend_method_v2_2"
 MODEL_DEFAULT = MODEL_V2_0
 
 CSV_COLUMNS = [
@@ -116,6 +117,14 @@ CSV_COLUMNS = [
     "phase_strength",
     "phase_velocity",
     "fan_phase_score",
+    "phase_disagreement",
+    "outer_fan_width",
+    "outer_order_signature",
+    "slow_retention",
+    "reversal_pressure",
+    "tail_anchor_type",
+    "extrema_pair",
+    "v2_2_rule",
     "directional_error_type",
     "truth_direction_group",
     "prediction_direction_group",
@@ -532,6 +541,154 @@ def build_replay_history_with_v2_1(
 
     return replay_rows, stats
 
+def _build_features_from_history_model(model_row: Dict[str, Any], history_row: Dict[str, Any]) -> Dict[str, Any]:
+    """Reconstruct model feature payload from stored history/debug fields for deterministic replay."""
+    debug = model_row.get("debug") if isinstance(model_row.get("debug"), dict) else {}
+    signals = debug.get("signals") if isinstance(debug.get("signals"), dict) else {}
+    stack = debug.get("gaussian_stack") if isinstance(debug.get("gaussian_stack"), dict) else {}
+    slopes = debug.get("gaussian_slopes") if isinstance(debug.get("gaussian_slopes"), dict) else {}
+    physics = debug.get("fan_physics") if isinstance(debug.get("fan_physics"), dict) else {}
+    context = debug.get("context") if isinstance(debug.get("context"), dict) else {}
+    raw = model_row.get("raw_features_used") if isinstance(model_row.get("raw_features_used"), dict) else {}
+
+    return {
+        "meta": {
+            "curr_epoch": _as_int(history_row.get("epoch")) or 0,
+            "next_epoch": _as_int(history_row.get("next_epoch")) or 0,
+            "timestamp": str(history_row.get("timestamp") or ""),
+        },
+        "gauss": {
+            "latest": {
+                "s8": _as_float(stack.get("g8")) or 0.0,
+                "s23": _as_float(stack.get("g23")) or 0.0,
+                "s38": _as_float(stack.get("g38")) or 0.0,
+                "s53": _as_float(stack.get("g53")) or 0.0,
+                "s68": _as_float(stack.get("g68")) or 0.0,
+                "s83": _as_float(stack.get("g83")) or 0.0,
+            },
+            "slopes": {
+                "s8": _as_float(slopes.get("slope_g8")) or 0.0,
+                "s23": _as_float(slopes.get("slope_g23")) or (_as_float(raw.get("s23")) or 0.0),
+                "s38": _as_float(slopes.get("slope_g38")) or 0.0,
+                "s53": _as_float(slopes.get("slope_g53")) or (_as_float(raw.get("s53")) or 0.0),
+                "s68": _as_float(slopes.get("slope_g68")) or 0.0,
+                "s83": _as_float(slopes.get("slope_g83")) or 0.0,
+            },
+        },
+        "fan": {
+            "width": _as_float(signals.get("fan_width")) or (_as_float(raw.get("fan_width")) or 0.0),
+            "width_abs": abs(_as_float(signals.get("fan_width")) or (_as_float(raw.get("fan_width")) or 0.0)),
+            "width_velocity": _as_float(((physics.get("geometry") or {}).get("fan_width_velocity"))) or 0.0,
+            "width_acceleration": _as_float(((physics.get("geometry") or {}).get("fan_width_acceleration"))) or 0.0,
+            "hinge_velocity": _as_float(((physics.get("hinge") or {}).get("hinge_velocity"))) or 0.0,
+            "snap_velocity": _as_float(((physics.get("snap") or {}).get("snap_velocity"))) or 0.0,
+        },
+        "spacing": {
+            "ratio_8_23_to_23_53": _as_float(signals.get("ratio_8_23_to_23_53")) or 0.0,
+        },
+        "compression": {
+            "velocity": _as_float(signals.get("compression_velocity")) or (_as_float(raw.get("compression_velocity")) or 0.0),
+        },
+        "hysteresis": {
+            "flip_score": _as_float(signals.get("flip_score")) or (_as_float(raw.get("flip_score")) or 0.0),
+        },
+        "torque": {
+            "alignment": _as_float(signals.get("alignment")) or (_as_float(raw.get("alignment")) or 0.0),
+        },
+        "history": {
+            "fan_physics": physics,
+            "context": context,
+        },
+        "context": {
+            "tail_anchor_type": context.get("tail_anchor_type"),
+            "extrema_pair": context.get("extrema_pair"),
+        },
+    }
+
+
+def build_replay_history_with_v2_2(
+    history_rows: Sequence[Dict[str, Any]],
+    v2_2_config: Dict[str, Any],
+) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
+    try:
+        from main.engine.process.models import model_v2_2
+    except Exception:
+        import importlib.util
+        model_path = SCRIPT_DIR / "models" / "model_v2_2.py"
+        spec = importlib.util.spec_from_file_location("model_v2_2", model_path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"Unable to load model_v2_2 from {model_path}")
+        model_v2_2 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(model_v2_2)
+
+    replay_rows: List[Dict[str, Any]] = []
+    stats = {
+        "rows_seen": 0,
+        "rows_with_models": 0,
+        "rows_with_v2_1": 0,
+        "rows_with_existing_v2_2": 0,
+        "rows_with_v2_2_appended": 0,
+        "rows_skipped_missing_base": 0,
+        "continuation_protection_blocks": 0,
+        "collapse_reversal_overrides": 0,
+        "false_snap_blocks": 0,
+        "inertia_wall_neutrals": 0,
+        "reversal_pressure_overrides": 0,
+        "neutral_promotions": 0,
+    }
+
+    for row in history_rows:
+        stats["rows_seen"] += 1
+        if not isinstance(row, dict):
+            continue
+        new_row = dict(row)
+        models = row.get("models") if isinstance(row.get("models"), list) else None
+        if models is None:
+            replay_rows.append(new_row)
+            continue
+        stats["rows_with_models"] += 1
+        new_models = list(models)
+
+        if any(str(m.get("model_id") or "") == MODEL_V2_2 for m in models if isinstance(m, dict)):
+            stats["rows_with_existing_v2_2"] += 1
+            new_row["models"] = new_models
+            replay_rows.append(new_row)
+            continue
+
+        base = next((m for m in models if isinstance(m, dict) and str(m.get("model_id") or "") == MODEL_V2_1), None)
+        if base is None:
+            stats["rows_skipped_missing_base"] += 1
+            new_row["models"] = new_models
+            replay_rows.append(new_row)
+            continue
+
+        stats["rows_with_v2_1"] += 1
+        feats = _build_features_from_history_model(base, row)
+        try:
+            v2_2 = model_v2_2.run_model(feats, v2_2_config)
+            debug = v2_2.get("debug") if isinstance(v2_2.get("debug"), dict) else {}
+            counts = ((debug.get("v2_2") or {}).get("override_impact") or {}) if isinstance(debug.get("v2_2"), dict) else {}
+            for k in [
+                "continuation_protection_blocks",
+                "collapse_reversal_overrides",
+                "false_snap_blocks",
+                "inertia_wall_neutrals",
+                "reversal_pressure_overrides",
+                "neutral_promotions",
+            ]:
+                stats[k] += int(bool(counts.get(k, 0)))
+        except Exception:
+            v2_2 = dict(base)
+            v2_2["model_id"] = MODEL_V2_2
+            v2_2["trend"] = "Neutral"
+            v2_2["reason"] = f"{base.get('reason')}|v2_2_replay=model_error"
+
+        new_models.append(v2_2)
+        new_row["models"] = new_models
+        replay_rows.append(new_row)
+        stats["rows_with_v2_2_appended"] += 1
+
+    return replay_rows, stats
 
 def write_prediction_history(path: Path, rows: Sequence[Dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -646,6 +803,14 @@ def join_truth(
         debug = model.get("debug") if isinstance(model.get("debug"), dict) else {}
         signals = debug.get("signals") if isinstance(debug.get("signals"), dict) else {}
         raw = model.get("raw_features_used") if isinstance(model.get("raw_features_used"), dict) else {}
+        fan_physics = debug.get("fan_physics") if isinstance(debug.get("fan_physics"), dict) else {}
+        fan_geo = fan_physics.get("geometry") if isinstance(fan_physics.get("geometry"), dict) else {}
+        fan_hinge = fan_physics.get("hinge") if isinstance(fan_physics.get("hinge"), dict) else {}
+        fan_snap = fan_physics.get("snap") if isinstance(fan_physics.get("snap"), dict) else {}
+        fan_phase = fan_physics.get("phase") if isinstance(fan_physics.get("phase"), dict) else {}
+        fan_energy = fan_physics.get("energy") if isinstance(fan_physics.get("energy"), dict) else {}
+        context = debug.get("context") if isinstance(debug.get("context"), dict) else {}
+        v2_2_block = debug.get("v2_2") if isinstance(debug.get("v2_2"), dict) else {}
         sigma_features = _extract_sigma_level_features(model, debug, raw)
 
         next_epoch = _as_int(history.get("next_epoch"))
@@ -713,6 +878,14 @@ def join_truth(
             "alignment_raw": _as_float(raw.get("alignment")),
             "compression_velocity_raw": _as_float(raw.get("compression_velocity")),
             "flip_score_raw": _as_float(raw.get("flip_score")),
+            "phase_disagreement": bool(fan_phase.get("phase_disagreement")) if fan_phase else None,
+            "outer_fan_width": _as_float(fan_geo.get("outer_fan_width")),
+            "outer_order_signature": fan_geo.get("outer_order_signature"),
+            "slow_retention": _as_float(fan_energy.get("slow_retention")),
+            "reversal_pressure": _as_float(fan_snap.get("reversal_pressure")) if _as_float(fan_snap.get("reversal_pressure")) is not None else _as_float(signals.get("reversal_pressure")),
+            "tail_anchor_type": context.get("tail_anchor_type"),
+            "extrema_pair": context.get("extrema_pair"),
+            "v2_2_rule": v2_2_block.get("rule"),
         }
         row.update(sigma_features)
 
@@ -832,6 +1005,17 @@ def add_derived_columns(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
             if row.get("fan_energy_total") is not None:
                 rolling_phase_strength_max = max(rolling_phase_strength_max, float(row["fan_energy_total"]))
             phase = compute_phase_features(row, prev, rolling_phase_strength_max)
+            fan_width_acc = _as_float(row.get("fan_width_acceleration"))
+            hinge_velocity = _as_float(row.get("hinge_velocity"))
+            snap_velocity = _as_float(row.get("snap_velocity"))
+            reversal_pressure_terms = []
+            if fan_width_acc is not None:
+                reversal_pressure_terms.append(-fan_width_acc)
+            if hinge_velocity is not None:
+                reversal_pressure_terms.append(abs(hinge_velocity))
+            if snap_velocity is not None:
+                reversal_pressure_terms.append(snap_velocity)
+            reversal_pressure = sum(reversal_pressure_terms) if reversal_pressure_terms else _as_float(row.get("reversal_pressure"))
 
             truth = row.get("truth") if row.get("truth") in {"Bull", "Bear", "Neutral"} else "Unknown"
             pred = row.get("prediction") if row.get("prediction") in {"Bull", "Bear", "Neutral"} else "Unknown"
@@ -872,6 +1056,7 @@ def add_derived_columns(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     "phase_strength": phase["phase_strength"],
                     "phase_velocity": phase["phase_velocity"],
                     "fan_phase_score": phase["fan_phase_score"],
+                    "reversal_pressure": reversal_pressure,
                     "truth_direction_group": truth,
                     "prediction_direction_group": pred,
                     "directional_error_type": directional_error_type,
@@ -882,7 +1067,7 @@ def add_derived_columns(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
             prev = row
             derived_rows.append(row)
 
-        return sorted(derived_rows, key=lambda r: (str(r.get("model_id") or MODEL_DEFAULT),) + _resolve_sort_key(r))
+    return sorted(derived_rows, key=lambda r: (str(r.get("model_id") or MODEL_DEFAULT),) + _resolve_sort_key(r))
 
 def build_feature_population_audit(rows: Sequence[Dict[str, Any]]) -> Tuple[
     List[Dict[str, Any]], Dict[str, Any], List[str]]:
@@ -1772,16 +1957,22 @@ def _summary_slice(summary: Dict[str, Any]) -> Dict[str, Any]:
     return {k: summary.get(k, 0.0) for k in keys}
 
 
-def build_model_comparison(summary_v2_0: Dict[str, Any], summary_v2_1: Dict[str, Any]) -> Dict[str, Any]:
-    deltas = {}
+def build_model_comparison(summary_v2_0: Dict[str, Any], summary_v2_1: Dict[str, Any], summary_v2_2: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    deltas_v21 = {}
     for key in ["directional_accuracy", "directional_coverage", "neutral_rate", "bull_precision", "bear_precision"]:
-        deltas[f"delta_{key}"] = (summary_v2_1.get(key, 0.0) or 0.0) - (summary_v2_0.get(key, 0.0) or 0.0)
-    return {
+        deltas_v21[f"delta_{key}"] = (summary_v2_1.get(key, 0.0) or 0.0) - (summary_v2_0.get(key, 0.0) or 0.0)
+    out = {
         MODEL_V2_0: _summary_slice(summary_v2_0),
         MODEL_V2_1: _summary_slice(summary_v2_1),
-        "delta_v2_1_minus_v2_0": deltas,
+        "delta_v2_1_minus_v2_0": deltas_v21,
     }
-
+    if isinstance(summary_v2_2, dict):
+        deltas_v22 = {}
+        for key in ["directional_accuracy", "directional_coverage", "neutral_rate", "bull_precision", "bear_precision"]:
+            deltas_v22[f"delta_{key}"] = (summary_v2_2.get(key, 0.0) or 0.0) - (summary_v2_1.get(key, 0.0) or 0.0)
+        out[MODEL_V2_2] = _summary_slice(summary_v2_2)
+        out["delta_v2_2_minus_v2_1"] = deltas_v22
+    return out
 
 def build_v2_1_override_impact(
     rows_v2_0: Sequence[Dict[str, Any]],
@@ -1860,8 +2051,7 @@ def run_model_export(
         fan_feature_diagnostics=fan_feature_diagnostics,
         v2_2_feature_candidates=v2_2_feature_candidates,
         feature_population_audit=feature_population_audit,
-        model_suffix="v2_0" if model_id == MODEL_V2_0 else "v2_1",
-
+        model_suffix="v2_0" if model_id == MODEL_V2_0 else ("v2_1" if model_id == MODEL_V2_1 else "v2_2"),
     )
 
     print_terminal_summary(
@@ -1881,12 +2071,51 @@ def run_model_export(
         "rows": rows,
         "summary": summary,
         "paths": paths,
+        "feature_population_counts": feature_population_counts,
     }
+
+def summarize_v2_2_override_impact(
+    rows_v2_1: Sequence[Dict[str, Any]],
+    rows_v2_2: Sequence[Dict[str, Any]],
+    summary_v2_1: Dict[str, Any],
+    summary_v2_2: Dict[str, Any],
+) -> Dict[str, Any]:
+    counts = {
+        "continuation_protection_blocks": 0,
+        "collapse_reversal_overrides": 0,
+        "false_snap_blocks": 0,
+        "inertia_wall_neutrals": 0,
+        "reversal_pressure_overrides": 0,
+        "neutral_promotions": 0,
+    }
+    for row in rows_v2_2:
+        rule = str(row.get("v2_2_rule") or "")
+        if rule == "RUN_CONTINUATION_PROTECTION":
+            counts["continuation_protection_blocks"] += 1
+        elif rule == "COLLAPSE_REVERSAL":
+            counts["collapse_reversal_overrides"] += 1
+        elif rule == "FALSE_SNAP_BLOCK":
+            counts["false_snap_blocks"] += 1
+        elif rule == "INERTIA_WALL_NEUTRAL":
+            counts["inertia_wall_neutrals"] += 1
+        elif rule == "REVERSAL_PRESSURE_OVERRIDE":
+            counts["reversal_pressure_overrides"] += 1
+        elif rule == "STRONG_RUN_PROMOTION":
+            counts["neutral_promotions"] += 1
+
+    return {
+        **counts,
+        "v2_2_accuracy_delta_vs_v2_1": (summary_v2_2.get("directional_accuracy", 0.0) or 0.0) - (summary_v2_1.get("directional_accuracy", 0.0) or 0.0),
+        "v2_2_bull_precision_delta_vs_v2_1": (summary_v2_2.get("bull_precision", 0.0) or 0.0) - (summary_v2_1.get("bull_precision", 0.0) or 0.0),
+        "v2_2_bear_precision_delta_vs_v2_1": (summary_v2_2.get("bear_precision", 0.0) or 0.0) - (summary_v2_1.get("bear_precision", 0.0) or 0.0),
+        "v2_2_coverage_delta_vs_v2_1": (summary_v2_2.get("directional_coverage", 0.0) or 0.0) - (summary_v2_1.get("directional_coverage", 0.0) or 0.0),
+    }
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Gaussian fan dataset exporter + diagnostics")
     parser.add_argument("--history", type=Path, default=DEFAULT_HISTORY_PATH, help="Prediction history JSONL path")
-    parser.add_argument("--history-with-v2-1", type=Path, default=DEFAULT_REPLAY_HISTORY_PATH,
+    parser.add_argument("--history-with-v2-2", "--history-with-v2-1", dest="history_with_v2_2", type=Path, default=DEFAULT_REPLAY_HISTORY_PATH,
                         help="Replay-enriched prediction history JSONL output path")
     parser.add_argument("--round", dest="round_path", type=Path, default=DEFAULT_ROUND_PATH,
                         help="Round record JSON path")
@@ -1894,6 +2123,9 @@ def main() -> int:
     parser.add_argument("--v2-1-config", type=Path,
                         default=(SCRIPT_DIR / "models" / "trend_method_v2_1.json").resolve(),
                         help="v2_1 config JSON path")
+    parser.add_argument("--v2-2-config", type=Path,
+                        default=(SCRIPT_DIR / "models" / "trend_method_v2_2.json").resolve(),
+                        help="v2_2 config JSON path")
     args = parser.parse_args()
 
     history_rows = load_prediction_history(args.history)
@@ -1901,9 +2133,10 @@ def main() -> int:
 
     v2_1_config = load_json_file(args.v2_1_config)
     v2_1_thresholds = v2_1_config.get("thresholds", {}) if isinstance(v2_1_config, dict) else {}
-
-    replay_history_rows, replay_stats = build_replay_history_with_v2_1(history_rows, v2_1_thresholds)
-    write_prediction_history(args.history_with_v2_1, replay_history_rows)
+    replay_history_rows, replay_stats_v21 = build_replay_history_with_v2_1(history_rows, v2_1_thresholds)
+    v2_2_config = load_json_file(args.v2_2_config)
+    replay_history_rows, replay_stats_v22 = build_replay_history_with_v2_2(replay_history_rows, v2_2_config if isinstance(v2_2_config, dict) else {})
+    write_prediction_history(args.history_with_v2_2, replay_history_rows)
 
     print("\n=== Replay Generation ===")
     for k in [
@@ -1915,16 +2148,25 @@ def main() -> int:
         "rows_skipped_missing_signals",
         "bull_to_bear_overrides",
     ]:
-        print(f"{k}: {replay_stats.get(k, 0)}")
-    print(f"replay_output: {args.history_with_v2_1.resolve()}")
+        print(f"{k}: {replay_stats_v21.get(k, 0)}")
+    for k in [
+        "rows_with_v2_1",
+        "rows_with_existing_v2_2",
+        "rows_with_v2_2_appended",
+        "rows_skipped_missing_base",
+    ]:
+        print(f"{k}: {replay_stats_v22.get(k, 0)}")
+    print(f"replay_output: {args.history_with_v2_2.resolve()}")
 
     result_v2_0 = run_model_export(MODEL_V2_0, replay_history_rows, round_rows, args.output_dir)
     result_v2_1 = run_model_export(MODEL_V2_1, replay_history_rows, round_rows, args.output_dir)
+    result_v2_2 = run_model_export(MODEL_V2_2, replay_history_rows, round_rows, args.output_dir)
     write_feature_source_map(
         args.output_dir / "gaussian_fan_feature_source_map.txt",
         {
             MODEL_V2_0: result_v2_0.get("feature_population_counts", {}),
             MODEL_V2_1: result_v2_1.get("feature_population_counts", {}),
+            MODEL_V2_2: result_v2_2.get("feature_population_counts", {}),
         },
     )
     override_impact = build_v2_1_override_impact(
@@ -1933,9 +2175,16 @@ def main() -> int:
         result_v2_0["summary"],
         result_v2_1["summary"],
     )
+    v2_2_impact = summarize_v2_2_override_impact(
+        result_v2_1["rows"],
+        result_v2_2["rows"],
+        result_v2_1["summary"],
+        result_v2_2["summary"],
+    )
 
-    comparison = build_model_comparison(result_v2_0["summary"], result_v2_1["summary"])
+    comparison = build_model_comparison(result_v2_0["summary"], result_v2_1["summary"], result_v2_2["summary"])
     comparison["v2_1_override_impact"] = override_impact
+    comparison["v2_2_override_impact"] = v2_2_impact
 
     comparison_path = args.output_dir / "gaussian_fan_model_comparison.json"
     comparison_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1953,6 +2202,20 @@ def main() -> int:
         f"Bull precision delta vs v2_0: {_pct((override_impact['change_vs_v2_0'].get('delta_bull_precision') or 0.0))}")
     print(
         f"Coverage delta vs v2_0: {_pct((override_impact['change_vs_v2_0'].get('delta_directional_coverage') or 0.0))}")
+    print("\n=== V2_2 Fan-Physics Override Impact ===")
+    for key in [
+        "continuation_protection_blocks",
+        "collapse_reversal_overrides",
+        "false_snap_blocks",
+        "inertia_wall_neutrals",
+        "reversal_pressure_overrides",
+        "neutral_promotions",
+    ]:
+        print(f"{key}: {v2_2_impact.get(key, 0)}")
+    print(f"v2_2 accuracy delta vs v2_1: {_pct(v2_2_impact.get('v2_2_accuracy_delta_vs_v2_1', 0.0))}")
+    print(f"v2_2 bull precision delta vs v2_1: {_pct(v2_2_impact.get('v2_2_bull_precision_delta_vs_v2_1', 0.0))}")
+    print(f"v2_2 bear precision delta vs v2_1: {_pct(v2_2_impact.get('v2_2_bear_precision_delta_vs_v2_1', 0.0))}")
+    print(f"v2_2 coverage delta vs v2_1: {_pct(v2_2_impact.get('v2_2_coverage_delta_vs_v2_1', 0.0))}")
     print(f"comparison_output: {comparison_path.resolve()}")
 
     return 0

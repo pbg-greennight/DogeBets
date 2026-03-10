@@ -1,0 +1,32 @@
+{
+  "model_id": "trend_method_v2_2",
+  "enabled": true,
+  "description": "Gaussian fan physics trend model v2_2 with continuation/collapse/snap/inertia/reversal-pressure rule layers",
+  "thresholds": {
+    "run_fan_threshold": 0.01,
+    "noise_fan_threshold": 0.004,
+    "compression_threshold": 0.003,
+    "flip_score_threshold": 0.5,
+    "slope_noise_threshold": 0.002,
+    "alignment_threshold": 0.5,
+    "bull_run_flip_score_threshold": 0.18,
+    "bull_run_compression_min": 0.0,
+    "bull_run_ratio_max": -0.1,
+
+    "reversal_pressure_high": 0.08,
+    "snap_score_high": 0.33,
+    "snap_velocity_min": 0.0,
+    "hinge_torsion_high": 0.35,
+    "hinge_velocity_min": 0.001,
+    "fan_width_velocity_collapse": -0.005,
+    "fan_width_velocity_expand": 0.005,
+    "fan_width_acceleration_collapse": -0.002,
+    "phase_alignment_min": 0.6,
+    "fan_phase_score_min": 0.2,
+    "slow_retention_high": 0.03,
+    "outer_fan_width_min": 0.01,
+    "neutral_promotion_min_strength": 0.0025,
+    "false_snap_hinge_max": 0.2,
+    "true_snap_hinge_min": 0.32
+  }
+}

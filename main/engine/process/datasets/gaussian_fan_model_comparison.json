@@ -1,39 +1,67 @@
 {
   "trend_method_v2_0": {
-    "directional_accuracy": 1.0,
-    "directional_coverage": 1.0,
-    "neutral_rate": 0.0,
-    "bull_precision": 1.0,
-    "bear_precision": 0.0,
-    "directional_called": 1,
-    "total_rows": 1
+    "directional_accuracy": 0.5303030303030303,
+    "directional_coverage": 0.38372093023255816,
+    "neutral_rate": 0.6162790697674418,
+    "bull_precision": 0.5,
+    "bear_precision": 0.5555555555555556,
+    "directional_called": 66,
+    "total_rows": 172
   },
   "trend_method_v2_1": {
-    "directional_accuracy": 1.0,
-    "directional_coverage": 1.0,
-    "neutral_rate": 0.0,
-    "bull_precision": 1.0,
-    "bear_precision": 0.0,
-    "directional_called": 1,
-    "total_rows": 1
+    "directional_accuracy": 0.5909090909090909,
+    "directional_coverage": 0.38372093023255816,
+    "neutral_rate": 0.6162790697674418,
+    "bull_precision": 0.5833333333333334,
+    "bear_precision": 0.5952380952380952,
+    "directional_called": 66,
+    "total_rows": 172
   },
   "delta_v2_1_minus_v2_0": {
+    "delta_directional_accuracy": 0.06060606060606066,
+    "delta_directional_coverage": 0.0,
+    "delta_neutral_rate": 0.0,
+    "delta_bull_precision": 0.08333333333333337,
+    "delta_bear_precision": 0.03968253968253965
+  },
+  "trend_method_v2_2": {
+    "directional_accuracy": 0.5909090909090909,
+    "directional_coverage": 0.38372093023255816,
+    "neutral_rate": 0.6162790697674418,
+    "bull_precision": 0.5769230769230769,
+    "bear_precision": 0.6,
+    "directional_called": 66,
+    "total_rows": 172
+  },
+  "delta_v2_2_minus_v2_1": {
     "delta_directional_accuracy": 0.0,
     "delta_directional_coverage": 0.0,
     "delta_neutral_rate": 0.0,
-    "delta_bull_precision": 0.0,
-    "delta_bear_precision": 0.0
+    "delta_bull_precision": -0.0064102564102564985,
+    "delta_bear_precision": 0.004761904761904745
   },
   "v2_1_override_impact": {
-    "bull_to_bear_overrides_applied": 0,
-    "bull_to_bear_overrides_became_correct": 0,
-    "bull_to_bear_overrides_became_incorrect": 0,
+    "bull_to_bear_overrides_applied": 6,
+    "bull_to_bear_overrides_became_correct": 5,
+    "bull_to_bear_overrides_became_incorrect": 1,
     "change_vs_v2_0": {
-      "delta_directional_accuracy": 0.0,
+      "delta_directional_accuracy": 0.06060606060606066,
       "delta_directional_coverage": 0.0,
       "delta_neutral_rate": 0.0,
-      "delta_bull_precision": 0.0,
-      "delta_bear_precision": 0.0
+      "delta_bull_precision": 0.08333333333333337,
+      "delta_bear_precision": 0.03968253968253965
     }
+  },
+  "v2_2_override_impact": {
+    "continuation_protection_blocks": 0,
+    "collapse_reversal_overrides": 0,
+    "false_snap_blocks": 19,
+    "inertia_wall_neutrals": 0,
+    "reversal_pressure_overrides": 0,
+    "neutral_promotions": 19,
+    "v2_2_accuracy_delta_vs_v2_1": 0.0,
+    "v2_2_bull_precision_delta_vs_v2_1": -0.0064102564102564985,
+    "v2_2_bear_precision_delta_vs_v2_1": 0.004761904761904745,
+    "v2_2_coverage_delta_vs_v2_1": 0.0
   }
 }

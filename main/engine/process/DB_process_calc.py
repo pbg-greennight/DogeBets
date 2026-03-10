@@ -676,7 +676,7 @@ import importlib.util
 import traceback
 
 MODELS_DIR = Path(__file__).resolve().parent / "models"
-MODEL_CONFIG_GLOB = "trend_method_v2_0.json"
+MODEL_CONFIG_GLOB = "trend_method_v2_*.json"
 PREDICTIONS_LATEST_FILE = MODELS_DIR / "model_predictions" / "model_predictions_latest.json"
 PREDICTIONS_HISTORY_FILE = MODELS_DIR / "model_predictions_history" / "model_predictions_history.jsonl"
 
@@ -794,11 +794,15 @@ def _build_history_gaussian_slopes(features: Dict[str, Any]) -> Dict[str, Any]:
     return out
 
 
-def _build_history_fan_physics(stack: Dict[str, Any], slope_pack: Dict[str, Any]) -> Dict[str, Any]:
+def _build_history_fan_physics(features: Dict[str, Any], stack: Dict[str, Any], slope_pack: Dict[str, Any]) -> Dict[str, Any]:
     g = lambda k: stack.get(k)
     s = lambda k: slope_pack.get(k)
 
+    fan = (features.get("fan") or {})
+    gauss = (features.get("gauss") or {})
+    curvature = (gauss.get("curvature") or {})
     fan_width = (_safe_number(g("g83"), 0.0) - _safe_number(g("g8"), 0.0))
+    fan_width_abs = abs(fan_width)
     outer_fan_width = (_safe_number(g("g83"), 0.0) - _safe_number(g("g53"), 0.0))
 
     fan_order_signature = _order_signature(stack, ["g8", "g23", "g38", "g53", "g68", "g83"])
@@ -814,12 +818,17 @@ def _build_history_fan_physics(stack: Dict[str, Any], slope_pack: Dict[str, Any]
     slope_g68 = _safe_number(s("slope_g68"), 0.0)
     slope_g83 = _safe_number(s("slope_g83"), 0.0)
 
+    fan_width_velocity = _safe_number(fan.get("width_slope"), slope_g83 - slope_g8)
+    fan_width_acceleration = _safe_number((gauss.get("curvature") or {}).get("s83"), 0.0) - _safe_number((gauss.get("curvature") or {}).get("s8"), 0.0)
+
     hinge_gap = _safe_number(g("g38"), 0.0) - _safe_number(g("g23"), 0.0)
+    hinge_velocity = slope_g38 - slope_g23
     hinge_den = abs(slope_g23) + abs(slope_g38)
     hinge_torsion = abs(slope_g23 - slope_g38) / max(hinge_den, 1e-9)
 
     snap_divergence = abs(slope_g8 - slope_g23) + abs(slope_g23 - slope_g38)
     snap_score = snap_divergence / max(abs(slope_g8) + abs(slope_g23) + abs(slope_g38), 1e-9)
+    snap_velocity = (_safe_number((gauss.get("tangent") or {}).get("s8"), 0.0) - _safe_number((gauss.get("tangent") or {}).get("s23"), 0.0))
 
     fast = [slope_g8, slope_g23, slope_g38]
     slow = [slope_g53, slope_g68, slope_g83]
@@ -847,22 +856,38 @@ def _build_history_fan_physics(stack: Dict[str, Any], slope_pack: Dict[str, Any]
     fan_sign_conflict = bool(_safe_sign(slope_g8) and _safe_sign(slope_g83) and _safe_sign(slope_g8) != _safe_sign(slope_g83))
     slow_retention = outer_energy
     fan_energy_instability = float((abs(fan_energy_ratio - 1.0) + (1.0 if fan_sign_conflict else 0.0) + (1.0 if phase_disagreement else 0.0)) / 3.0)
+    fan_energy_velocity = (abs(_safe_number((gauss.get("tangent") or {}).get("s8"), 0.0)) + abs(_safe_number((gauss.get("tangent") or {}).get("s23"), 0.0)) + abs(_safe_number((gauss.get("tangent") or {}).get("s38"), 0.0)))
+    fan_energy_acceleration = (abs(_safe_number(curvature.get("s8"), 0.0)) + abs(_safe_number(curvature.get("s23"), 0.0)) + abs(_safe_number(curvature.get("s38"), 0.0)))
+
+    reversal_pressure = (-fan_width_acceleration) + abs(hinge_velocity) + snap_velocity
+
+    fan_order_score = 0.0
+    if fan_order_signature.startswith("8>23>38") or fan_order_signature.startswith("83>68>53"):
+        fan_order_score = 1.0
 
     return {
         "geometry": {
             "fan_width": fan_width,
+            "fan_width_abs": fan_width_abs,
+            "fan_width_velocity": fan_width_velocity,
+            "fan_width_acceleration": fan_width_acceleration,
             "outer_fan_width": outer_fan_width,
             "fan_order_signature": fan_order_signature,
             "outer_order_signature": outer_order_signature,
+            "fan_order_score": fan_order_score,
+            "g83_curvature": _safe_number(curvature.get("s83"), 0.0),
         },
         "hinge": {
             "hinge_gap": hinge_gap,
+            "hinge_velocity": hinge_velocity,
             "hinge_conflict": _safe_sign(slope_g23) != _safe_sign(slope_g38),
             "hinge_torsion": hinge_torsion,
         },
         "snap": {
             "snap_divergence": snap_divergence,
+            "snap_velocity": snap_velocity,
             "snap_score": snap_score,
+            "reversal_pressure": reversal_pressure,
         },
         "phase": {
             "fast_phase_sign": fast_phase_sign,
@@ -876,6 +901,8 @@ def _build_history_fan_physics(stack: Dict[str, Any], slope_pack: Dict[str, Any]
         "energy": {
             "fan_energy_total": fan_energy_total,
             "fan_energy_ratio": fan_energy_ratio,
+            "fan_energy_velocity": fan_energy_velocity,
+            "fan_energy_acceleration": fan_energy_acceleration,
             "fan_sign_conflict": fan_sign_conflict,
             "fan_energy_instability": fan_energy_instability,
             "slow_retention": slow_retention,
@@ -907,7 +934,7 @@ def _enrich_model_history_result(model_result: Dict[str, Any], features: Dict[st
 
     stack = _build_history_gaussian_stack(features)
     slopes = _build_history_gaussian_slopes(features)
-    physics = _build_history_fan_physics(stack, slopes)
+    physics = _build_history_fan_physics(features, stack, slopes)
     context = _build_history_context(features, timestamp=timestamp)
 
     dbg["gaussian_stack"] = stack
