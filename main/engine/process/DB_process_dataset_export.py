@@ -884,89 +884,89 @@ def add_derived_columns(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
         return sorted(derived_rows, key=lambda r: (str(r.get("model_id") or MODEL_DEFAULT),) + _resolve_sort_key(r))
 
-        def build_feature_population_audit(rows: Sequence[Dict[str, Any]]) -> Tuple[
-            List[Dict[str, Any]], Dict[str, Any], List[str]]:
-            """Build non-null/non-zero population diagnostics for sigma and advanced feature families."""
-            total_rows = len(rows)
-            metrics = [
-                "g8", "g23", "g38", "g53", "g68", "g83",
-                "slope_g8", "slope_g23", "slope_g38", "slope_g53", "slope_g68", "slope_g83",
-                "fan_width", "fan_order_score", "g83_curvature", "fan_energy_total", "fan_energy_ratio",
-                "hinge_gap", "hinge_torsion", "snap_score", "phase_alignment", "fan_phase_score",
-            ]
-            audit_rows: List[Dict[str, Any]] = []
-            summary_counts: Dict[str, Any] = {"total_rows": total_rows}
+def build_feature_population_audit(rows: Sequence[Dict[str, Any]]) -> Tuple[
+    List[Dict[str, Any]], Dict[str, Any], List[str]]:
+    """Build non-null/non-zero population diagnostics for sigma and advanced feature families."""
+    total_rows = len(rows)
+    metrics = [
+        "g8", "g23", "g38", "g53", "g68", "g83",
+        "slope_g8", "slope_g23", "slope_g38", "slope_g53", "slope_g68", "slope_g83",
+        "fan_width", "fan_order_score", "g83_curvature", "fan_energy_total", "fan_energy_ratio",
+        "hinge_gap", "hinge_torsion", "snap_score", "phase_alignment", "fan_phase_score",
+    ]
+    audit_rows: List[Dict[str, Any]] = []
+    summary_counts: Dict[str, Any] = {"total_rows": total_rows}
 
-            for feature in metrics:
-                values = [_as_float(r.get(feature)) for r in rows]
-                non_null_count = sum(1 for v in values if v is not None)
-                non_zero_count = sum(1 for v in values if v is not None and abs(v) > 0.0)
-                audit_rows.append(
-            {
-                "feature_name": feature,
-                "non_null_count": non_null_count,
-                "non_zero_count": non_zero_count,
-                "total_rows": total_rows,
-                "population_rate": _safe_ratio(non_null_count, total_rows),
-                "non_zero_rate": _safe_ratio(non_zero_count, total_rows),
-            }
-        )
-                summary_counts[f"rows_with_{feature}"] = non_null_count
+    for feature in metrics:
+        values = [_as_float(r.get(feature)) for r in rows]
+        non_null_count = sum(1 for v in values if v is not None)
+        non_zero_count = sum(1 for v in values if v is not None and abs(v) > 0.0)
+        audit_rows.append(
+    {
+        "feature_name": feature,
+        "non_null_count": non_null_count,
+        "non_zero_count": non_zero_count,
+        "total_rows": total_rows,
+        "population_rate": _safe_ratio(non_null_count, total_rows),
+        "non_zero_rate": _safe_ratio(non_zero_count, total_rows),
+    }
+)
+        summary_counts[f"rows_with_{feature}"] = non_null_count
 
-            summary_counts["rows_with_nonzero_fan_order_score"] = sum(
+    summary_counts["rows_with_nonzero_fan_order_score"] = sum(
                 1 for r in rows if (_as_float(r.get("fan_order_score")) or 0.0) != 0.0)
-            summary_counts["rows_with_nonzero_hinge_torsion"] = sum(
+    summary_counts["rows_with_nonzero_hinge_torsion"] = sum(
                 1 for r in rows if (_as_float(r.get("hinge_torsion")) or 0.0) != 0.0)
-            summary_counts["rows_with_nonzero_snap_score"] = sum(
+    summary_counts["rows_with_nonzero_snap_score"] = sum(
                 1 for r in rows if (_as_float(r.get("snap_score")) or 0.0) != 0.0)
-            summary_counts["rows_with_nonzero_phase_alignment"] = sum(
+    summary_counts["rows_with_nonzero_phase_alignment"] = sum(
                 1 for r in rows if (_as_float(r.get("phase_alignment")) or 0.0) != 0.0)
-            summary_counts["rows_with_valid_phase_inputs_ge_4"] = sum(
+    summary_counts["rows_with_valid_phase_inputs_ge_4"] = sum(
                 1 for r in rows if (_as_int(r.get("phase_input_count")) or 0) >= 4)
 
-            warnings: List[str] = []
-            for feat, hint in [
-                ("fan_order_score", "check sigma extraction"),
-                ("hinge_torsion", "check slope_g23/slope_g38 extraction"),
-                ("snap_score", "check slope_g8/slope_g23/slope_g38 extraction"),
-                ("phase_alignment", "check multi-sigma slope extraction"),
-            ]:
-                audit = next((r for r in audit_rows if r["feature_name"] == feat), None)
-                if not audit:
-                    continue
-                if audit["non_null_count"] <= max(1, int(total_rows * 0.05)) or audit["non_zero_count"] <= max(1,
+    warnings: List[str] = []
+    for feat, hint in [
+        ("fan_order_score", "check sigma extraction"),
+        ("hinge_torsion", "check slope_g23/slope_g38 extraction"),
+        ("snap_score", "check slope_g8/slope_g23/slope_g38 extraction"),
+        ("phase_alignment", "check multi-sigma slope extraction"),
+    ]:
+        audit = next((r for r in audit_rows if r["feature_name"] == feat), None)
+        if not audit:
+            continue
+        if audit["non_null_count"] <= max(1, int(total_rows * 0.05)) or audit["non_zero_count"] <= max(1,
                                                                                                                int(total_rows * 0.05)):
-                    warnings.append(f"WARNING: {feat} population too low; {hint}")
+            warnings.append(f"WARNING: {feat} population too low; {hint}")
 
-            return audit_rows, summary_counts, warnings
+    return audit_rows, summary_counts, warnings
 
-        def write_feature_population_audit(path: Path, audit_rows: Sequence[Dict[str, Any]]) -> None:
-            """Persist feature population audit CSV."""
-            _write_csv(path, audit_rows,
-                       ["feature_name", "non_null_count", "non_zero_count", "total_rows", "population_rate",
-                        "non_zero_rate"])
+def write_feature_population_audit(path: Path, audit_rows: Sequence[Dict[str, Any]]) -> None:
+    """Persist feature population audit CSV."""
+    _write_csv(path, audit_rows,
+                ["feature_name", "non_null_count", "non_zero_count", "total_rows", "population_rate",
+                "non_zero_rate"])
 
-        def write_feature_source_map(path: Path, model_audits: Dict[str, Dict[str, Any]]) -> None:
-            """Document sigma extraction and observed feature population coverage per model."""
-            lines = [
-                "gaussian_fan_feature_source_map",
-                "",
-                "Sigma extraction sources:",
-                "- top-level model fields (g8..g83, slope_g8..slope_g83)",
-                "- model.debug.signals aliases (gauss/sigma/slope variants)",
-                "- model.raw_features_used aliases",
-                "- nested containers: gaussian_levels/sigma_levels and gaussian_slopes/sigma_slopes",
-                "",
-            ]
-            for model_id, counts in model_audits.items():
-                lines.append(f"[{model_id}]")
-                for key in ["g8", "g23", "g38", "g53", "g68", "g83", "slope_g8", "slope_g23", "slope_g38", "slope_g53",
-                            "slope_g68", "slope_g83", "fan_order_score", "hinge_torsion", "snap_score",
-                            "phase_alignment"]:
-                    lines.append(f"- rows_with_{key}: {int(counts.get(f'rows_with_{key}', 0))}")
-                lines.append("")
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
+def write_feature_source_map(path: Path, model_audits: Dict[str, Dict[str, Any]]) -> None:
+    """Document sigma extraction and observed feature population coverage per model."""
+    lines = [
+        "gaussian_fan_feature_source_map",
+        "",
+        "Sigma extraction sources:",
+        "- top-level model fields (g8..g83, slope_g8..slope_g83)",
+        "- model.debug.signals aliases (gauss/sigma/slope variants)",
+        "- model.raw_features_used aliases",
+        "- nested containers: gaussian_levels/sigma_levels and gaussian_slopes/sigma_slopes",
+        "",
+    ]
+    for model_id, counts in model_audits.items():
+        lines.append(f"[{model_id}]")
+        for key in ["g8", "g23", "g38", "g53", "g68", "g83", "slope_g8", "slope_g23", "slope_g38", "slope_g53",
+                    "slope_g68", "slope_g83", "fan_order_score", "hinge_torsion", "snap_score",
+                    "phase_alignment"]:
+            lines.append(f"- rows_with_{key}: {int(counts.get(f'rows_with_{key}', 0))}")
+        lines.append("")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
 
 
 def _build_group_stats(rows: Sequence[Dict[str, Any]], group_name: str, group_value: str) -> Dict[str, Any]:

@@ -1,39 +1,39 @@
 {
   "trend_method_v2_0": {
-    "directional_accuracy": 0.5185185185185185,
-    "directional_coverage": 0.3894230769230769,
-    "neutral_rate": 0.6105769230769231,
-    "bull_precision": 0.5454545454545454,
-    "bear_precision": 0.4864864864864865,
-    "directional_called": 81,
-    "total_rows": 208
+    "directional_accuracy": 0.5339805825242718,
+    "directional_coverage": 0.412,
+    "neutral_rate": 0.588,
+    "bull_precision": 0.625,
+    "bear_precision": 0.425531914893617,
+    "directional_called": 103,
+    "total_rows": 250
   },
   "trend_method_v2_1": {
-    "directional_accuracy": 0.5925925925925926,
-    "directional_coverage": 0.3894230769230769,
-    "neutral_rate": 0.6105769230769231,
-    "bull_precision": 0.6388888888888888,
-    "bear_precision": 0.5555555555555556,
-    "directional_called": 81,
-    "total_rows": 208
+    "directional_accuracy": 0.5922330097087378,
+    "directional_coverage": 0.412,
+    "neutral_rate": 0.588,
+    "bull_precision": 0.7083333333333334,
+    "bear_precision": 0.4909090909090909,
+    "directional_called": 103,
+    "total_rows": 250
   },
   "delta_v2_1_minus_v2_0": {
-    "delta_directional_accuracy": 0.07407407407407407,
+    "delta_directional_accuracy": 0.058252427184465994,
     "delta_directional_coverage": 0.0,
     "delta_neutral_rate": 0.0,
-    "delta_bull_precision": 0.09343434343434343,
-    "delta_bear_precision": 0.06906906906906907
+    "delta_bull_precision": 0.08333333333333337,
+    "delta_bear_precision": 0.06537717601547388
   },
   "v2_1_override_impact": {
     "bull_to_bear_overrides_applied": 8,
     "bull_to_bear_overrides_became_correct": 7,
     "bull_to_bear_overrides_became_incorrect": 1,
     "change_vs_v2_0": {
-      "delta_directional_accuracy": 0.07407407407407407,
+      "delta_directional_accuracy": 0.058252427184465994,
       "delta_directional_coverage": 0.0,
       "delta_neutral_rate": 0.0,
-      "delta_bull_precision": 0.09343434343434343,
-      "delta_bear_precision": 0.06906906906906907
+      "delta_bull_precision": 0.08333333333333337,
+      "delta_bear_precision": 0.06537717601547388
     }
   }
 }
