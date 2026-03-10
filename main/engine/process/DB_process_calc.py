@@ -731,6 +731,208 @@ def _normalize_model_result(model_id: str, result: Dict[str, Any]) -> Dict[str, 
                                                                               dict) else {}
     return out
 
+def _safe_sign(v: Any) -> int:
+    try:
+        x = float(v)
+    except Exception:
+        return 0
+    if x > 0:
+        return 1
+    if x < 0:
+        return -1
+    return 0
+
+
+def _safe_div(num: float, den: float, eps: float = 1e-9) -> float:
+    d = den if abs(den) > eps else (eps if den >= 0 else -eps)
+    return float(num) / float(d)
+
+
+def _order_signature(values: Dict[str, Any], keys: List[str]) -> str:
+    pairs = []
+    for k in keys:
+        v = values.get(k)
+        if v is None:
+            continue
+        try:
+            pairs.append((k, float(v)))
+        except Exception:
+            continue
+    if not pairs:
+        return ""
+    pairs.sort(key=lambda t: t[1], reverse=True)
+    return ">".join([k.replace("g", "") for k, _ in pairs])
+
+
+def _build_history_gaussian_stack(features: Dict[str, Any]) -> Dict[str, Any]:
+    latest = ((features or {}).get("gauss") or {}).get("latest") or {}
+    out: Dict[str, Any] = {}
+    for s in (8, 23, 38, 53, 68, 83):
+        key = f"s{s}"
+        if key in latest:
+            out[f"g{s}"] = _safe_number(latest.get(key), 0.0)
+    return out
+
+
+def _build_history_gaussian_slopes(features: Dict[str, Any]) -> Dict[str, Any]:
+    gauss = (features or {}).get("gauss") or {}
+    slopes = gauss.get("slopes") or {}
+    tangent = gauss.get("tangent") or {}
+    curvature = gauss.get("curvature") or {}
+
+    out: Dict[str, Any] = {}
+    for s in (8, 23, 38, 53, 68, 83):
+        k = f"s{s}"
+        out[f"slope_g{s}"] = _safe_number(slopes.get(k), 0.0)
+        if k in tangent:
+            out[f"tan_g{s}"] = _safe_number(tangent.get(k), 0.0)
+        if k in curvature:
+            out[f"curve_g{s}"] = _safe_number(curvature.get(k), 0.0)
+    return out
+
+
+def _build_history_fan_physics(stack: Dict[str, Any], slope_pack: Dict[str, Any]) -> Dict[str, Any]:
+    g = lambda k: stack.get(k)
+    s = lambda k: slope_pack.get(k)
+
+    fan_width = (_safe_number(g("g83"), 0.0) - _safe_number(g("g8"), 0.0))
+    outer_fan_width = (_safe_number(g("g83"), 0.0) - _safe_number(g("g53"), 0.0))
+
+    fan_order_signature = _order_signature(stack, ["g8", "g23", "g38", "g53", "g68", "g83"])
+    outer_order_signature = _order_signature(stack, ["g53", "g68", "g83"])
+
+    slope_vals = [s(f"slope_g{x}") for x in (8, 23, 38, 53, 68, 83)]
+    valid_slopes = [float(v) for v in slope_vals if v is not None]
+
+    slope_g8 = _safe_number(s("slope_g8"), 0.0)
+    slope_g23 = _safe_number(s("slope_g23"), 0.0)
+    slope_g38 = _safe_number(s("slope_g38"), 0.0)
+    slope_g53 = _safe_number(s("slope_g53"), 0.0)
+    slope_g68 = _safe_number(s("slope_g68"), 0.0)
+    slope_g83 = _safe_number(s("slope_g83"), 0.0)
+
+    hinge_gap = _safe_number(g("g38"), 0.0) - _safe_number(g("g23"), 0.0)
+    hinge_den = abs(slope_g23) + abs(slope_g38)
+    hinge_torsion = abs(slope_g23 - slope_g38) / max(hinge_den, 1e-9)
+
+    snap_divergence = abs(slope_g8 - slope_g23) + abs(slope_g23 - slope_g38)
+    snap_score = snap_divergence / max(abs(slope_g8) + abs(slope_g23) + abs(slope_g38), 1e-9)
+
+    fast = [slope_g8, slope_g23, slope_g38]
+    slow = [slope_g53, slope_g68, slope_g83]
+    fast_signs = [_safe_sign(v) for v in fast if _safe_sign(v) != 0]
+    slow_signs = [_safe_sign(v) for v in slow if _safe_sign(v) != 0]
+    fast_phase_sign = _safe_sign(sum(fast_signs)) if fast_signs else 0
+    slow_phase_sign = _safe_sign(sum(slow_signs)) if slow_signs else 0
+    phase_disagreement = bool(fast_phase_sign and slow_phase_sign and fast_phase_sign != slow_phase_sign)
+
+    non_zero_signs = [_safe_sign(v) for v in valid_slopes if _safe_sign(v) != 0]
+    if non_zero_signs:
+        sign_counts = [non_zero_signs.count(-1), non_zero_signs.count(1)]
+        phase_alignment = max(sign_counts) / max(len(non_zero_signs), 1)
+    else:
+        phase_alignment = 0.0
+
+    phase_strength = sum(abs(v) for v in valid_slopes)
+    normalized_phase_strength = _safe_div(phase_strength, phase_strength + 1.0)
+    fan_phase_score = phase_alignment * normalized_phase_strength
+
+    inner_energy = abs(slope_g8) + abs(slope_g23) + abs(slope_g38)
+    outer_energy = abs(slope_g53) + abs(slope_g68) + abs(slope_g83)
+    fan_energy_total = inner_energy + outer_energy
+    fan_energy_ratio = _safe_div(inner_energy, max(outer_energy, 1e-9))
+    fan_sign_conflict = bool(_safe_sign(slope_g8) and _safe_sign(slope_g83) and _safe_sign(slope_g8) != _safe_sign(slope_g83))
+    slow_retention = outer_energy
+    fan_energy_instability = float((abs(fan_energy_ratio - 1.0) + (1.0 if fan_sign_conflict else 0.0) + (1.0 if phase_disagreement else 0.0)) / 3.0)
+
+    return {
+        "geometry": {
+            "fan_width": fan_width,
+            "outer_fan_width": outer_fan_width,
+            "fan_order_signature": fan_order_signature,
+            "outer_order_signature": outer_order_signature,
+        },
+        "hinge": {
+            "hinge_gap": hinge_gap,
+            "hinge_conflict": _safe_sign(slope_g23) != _safe_sign(slope_g38),
+            "hinge_torsion": hinge_torsion,
+        },
+        "snap": {
+            "snap_divergence": snap_divergence,
+            "snap_score": snap_score,
+        },
+        "phase": {
+            "fast_phase_sign": fast_phase_sign,
+            "slow_phase_sign": slow_phase_sign,
+            "phase_disagreement": phase_disagreement,
+            "phase_alignment": phase_alignment,
+            "phase_strength": phase_strength,
+            "fan_phase_score": fan_phase_score,
+            "phase_valid_count": len(non_zero_signs),
+        },
+        "energy": {
+            "fan_energy_total": fan_energy_total,
+            "fan_energy_ratio": fan_energy_ratio,
+            "fan_sign_conflict": fan_sign_conflict,
+            "fan_energy_instability": fan_energy_instability,
+            "slow_retention": slow_retention,
+        },
+    }
+
+
+def _build_history_context(features: Dict[str, Any], *, timestamp: str) -> Dict[str, Any]:
+    meta = (features or {}).get("meta") or {}
+    ctx = (features or {}).get("context") or {}
+    return {
+        "tail_anchor_type": ctx.get("tail_anchor_type"),
+        "extrema_pair": ctx.get("extrema_pair"),
+        "pv_direction": ctx.get("pv_direction"),
+        "decision_time": str(meta.get("decision_time") or meta.get("timestamp") or timestamp),
+        "next_epoch_time": str(meta.get("next_epoch_time") or ""),
+        "full_window_start": str(meta.get("full_window_start") or ""),
+        "full_window_end": str(meta.get("full_window_end") or ""),
+        "analyzed_epoch": int(meta.get("curr_epoch", 0) or 0),
+        "predicted_epoch": int(meta.get("next_epoch", 0) or 0),
+        "model_timestamp": str(timestamp),
+    }
+
+
+def _enrich_model_history_result(model_result: Dict[str, Any], features: Dict[str, Any], *, timestamp: str) -> Dict[str, Any]:
+    out = dict(model_result or {})
+    dbg = out.get("debug") if isinstance(out.get("debug"), dict) else {}
+    dbg = dict(dbg)
+
+    stack = _build_history_gaussian_stack(features)
+    slopes = _build_history_gaussian_slopes(features)
+    physics = _build_history_fan_physics(stack, slopes)
+    context = _build_history_context(features, timestamp=timestamp)
+
+    dbg["gaussian_stack"] = stack
+    dbg["gaussian_slopes"] = slopes
+    dbg["fan_physics"] = physics
+    dbg["context"] = context
+    out["debug"] = dbg
+
+    channel = (features or {}).get("channel") or {}
+    band_width = channel.get("band_width") or {}
+    if isinstance(out.get("raw_features_used"), dict):
+        rfu = dict(out.get("raw_features_used") or {})
+        for s in (23, 53, 83):
+            k = f"s{s}"
+            if k in band_width:
+                rfu[f"band_width_g{s}"] = _safe_number(band_width.get(k), 0.0)
+        out["raw_features_used"] = rfu
+
+    stack_cov = sum(1 for k in ("g8", "g23", "g38", "g53", "g68", "g83") if k in stack)
+    slope_cov = sum(1 for k in ("slope_g8", "slope_g23", "slope_g38", "slope_g53", "slope_g68", "slope_g83") if k in slopes)
+    logging.debug(
+        "[models] history_payload: stack=%d/6 slopes=%d/6 hinge=ok snap=ok phase=ok context=%s",
+        stack_cov,
+        slope_cov,
+        "ok" if context.get("tail_anchor_type") or context.get("extrema_pair") else "partial",
+    )
+    return out
+
 def load_enabled_model_configs(models_dir: Optional[Path] = None) -> List[Dict[str, Any]]:
     base = models_dir or MODELS_DIR
     out: List[Dict[str, Any]] = []
@@ -783,7 +985,8 @@ def run_enabled_models(
             if not hasattr(module, "run_model"):
                 raise AttributeError("run_model(features, config) not found")
             raw = module.run_model(features, cfg)
-            results.append(_normalize_model_result(model_id, raw))
+            normalized = _normalize_model_result(model_id, raw)
+            results.append(_enrich_model_history_result(normalized, features, timestamp=timestamp))
         except Exception as exc:
             logging.exception("[models] %s failed", model_id)
             results.append(_error_result(model_id, exc))

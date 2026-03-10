@@ -49,7 +49,9 @@ def build_feature_catalog(
 
     s8 = sigma_values.get(8, [])
     s23 = sigma_values.get(23, [])
+    s38 = sigma_values.get(38, [])
     s53 = sigma_values.get(53, [])
+    s68 = sigma_values.get(68, [])
     s83 = sigma_values.get(83, [])
 
     fan_width = last(83) - last(8)
@@ -63,11 +65,24 @@ def build_feature_catalog(
 
     slope_8 = _slope(s8, 8)
     slope_23 = _slope(s23, 8)
+    slope_38 = _slope(s38, 8)
     slope_53 = _slope(s53, 8)
+    slope_68 = _slope(s68, 8)
     slope_83 = _slope(s83, 8)
 
+    tan_8 = _slope(s8, 3)
+    tan_23 = _slope(s23, 3)
+    tan_38 = _slope(s38, 3)
+    tan_53 = _slope(s53, 3)
+    tan_68 = _slope(s68, 3)
+    tan_83 = _slope(s83, 3)
+
+    curv_8 = _curvature(s8)
     curv_23 = _curvature(s23)
+    curv_38 = _curvature(s38)
     curv_53 = _curvature(s53)
+    curv_68 = _curvature(s68)
+    curv_83 = _curvature(s83)
 
     compression_now = abs(spacing_8_23) + abs(spacing_23_53) + abs(spacing_53_83)
     h8 = _tail(s8, 20)
@@ -85,16 +100,55 @@ def build_feature_catalog(
     torque_alignment = 1.0 if aligned else 0.0
     flip_score = abs(curv_23) + abs(curv_53)
 
+    # Optional contextual anchors (safe fallback to None when unavailable).
+    pv_pair = None
+    pv_ref_sigma = 23
+    pv_blob = per_sigma_hist.get(pv_ref_sigma, {}) or {}
+    pv_ts = (pv_blob.get("ts") or [])
+    pv_vals = (pv_blob.get("values") or [])
+    if pv_ts and pv_vals:
+        try:
+            from DB_process_metrics import find_last_extrema_pair
+        except Exception:
+            from main.engine.process.DB_process_metrics import find_last_extrema_pair
+
+        try:
+            pv_pair = find_last_extrema_pair(
+                pv_ts,
+                pv_vals,
+                getattr(timing, "full_end", None) or getattr(timing, "dt_curr", None),
+                min_sep_seconds=float((config or {}).get("PV_MIN_SEPARATION_SECONDS", 10.0)),
+            )
+        except Exception:
+            pv_pair = None
+
     return {
         "meta": {
             "curr_epoch": int(getattr(timing, "curr_epoch", 0) or 0),
             "next_epoch": int(getattr(timing, "next_epoch", 0) or 0),
             "timestamp": str(getattr(timing, "dt_curr", "")),
+            "decision_time": str(getattr(timing, "dt_curr", "")),
+            "next_epoch_time": str(getattr(timing, "next_epoch_time", "")),
+            "full_window_start": str(getattr(timing, "full_start", "")),
+            "full_window_end": str(getattr(timing, "full_end", "")),
         },
         "gauss": {
-            "latest": {"s8": last(8), "s23": last(23), "s53": last(53), "s83": last(83)},
-            "slopes": {"s8": slope_8, "s23": slope_23, "s53": slope_53, "s83": slope_83},
-            "curvature": {"s23": curv_23, "s53": curv_53},
+            "latest": {
+                "s8": last(8), "s23": last(23), "s38": last(38),
+                "s53": last(53), "s68": last(68), "s83": last(83)
+            },
+            "slopes": {
+                "s8": slope_8, "s23": slope_23, "s38": slope_38,
+                "s53": slope_53, "s68": slope_68, "s83": slope_83
+            },
+            "tangent": {
+                "s8": tan_8, "s23": tan_23, "s38": tan_38,
+                "s53": tan_53, "s68": tan_68, "s83": tan_83
+            },
+            "curvature": {
+                "s8": curv_8, "s23": curv_23, "s38": curv_38,
+                "s53": curv_53, "s68": curv_68, "s83": curv_83
+            },
         },
         "msbc": {
             "mid_bias": _safe_float((slope_23 + slope_53) / 2.0),
@@ -127,5 +181,10 @@ def build_feature_catalog(
         "compression": {
             "value": compression_now,
             "velocity": compression_velocity,
+        },
+        "context": {
+            "tail_anchor_type": (pv_pair or {}).get("last", {}).get("kind"),
+            "extrema_pair": (pv_pair or {}).get("swing"),
+            "pv_direction": (pv_pair or {}).get("swing"),
         },
     }

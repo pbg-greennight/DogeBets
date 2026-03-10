@@ -1,39 +1,39 @@
 {
   "trend_method_v2_0": {
-    "directional_accuracy": 0.5339805825242718,
-    "directional_coverage": 0.412,
-    "neutral_rate": 0.588,
+    "directional_accuracy": 0.5283018867924528,
+    "directional_coverage": 0.4015151515151515,
+    "neutral_rate": 0.5984848484848485,
     "bull_precision": 0.625,
-    "bear_precision": 0.425531914893617,
-    "directional_called": 103,
-    "total_rows": 250
+    "bear_precision": 0.42,
+    "directional_called": 106,
+    "total_rows": 264
   },
   "trend_method_v2_1": {
-    "directional_accuracy": 0.5922330097087378,
-    "directional_coverage": 0.412,
-    "neutral_rate": 0.588,
+    "directional_accuracy": 0.5849056603773585,
+    "directional_coverage": 0.4015151515151515,
+    "neutral_rate": 0.5984848484848485,
     "bull_precision": 0.7083333333333334,
-    "bear_precision": 0.4909090909090909,
-    "directional_called": 103,
-    "total_rows": 250
+    "bear_precision": 0.4827586206896552,
+    "directional_called": 106,
+    "total_rows": 264
   },
   "delta_v2_1_minus_v2_0": {
-    "delta_directional_accuracy": 0.058252427184465994,
+    "delta_directional_accuracy": 0.05660377358490565,
     "delta_directional_coverage": 0.0,
     "delta_neutral_rate": 0.0,
     "delta_bull_precision": 0.08333333333333337,
-    "delta_bear_precision": 0.06537717601547388
+    "delta_bear_precision": 0.06275862068965521
   },
   "v2_1_override_impact": {
     "bull_to_bear_overrides_applied": 8,
     "bull_to_bear_overrides_became_correct": 7,
     "bull_to_bear_overrides_became_incorrect": 1,
     "change_vs_v2_0": {
-      "delta_directional_accuracy": 0.058252427184465994,
+      "delta_directional_accuracy": 0.05660377358490565,
       "delta_directional_coverage": 0.0,
       "delta_neutral_rate": 0.0,
       "delta_bull_precision": 0.08333333333333337,
-      "delta_bear_precision": 0.06537717601547388
+      "delta_bear_precision": 0.06275862068965521
     }
   }
 }
