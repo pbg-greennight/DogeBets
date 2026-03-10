@@ -1,21 +1,21 @@
 {
   "trend_method_v2_0": {
     "directional_accuracy": 0.5303030303030303,
-    "directional_coverage": 0.38372093023255816,
-    "neutral_rate": 0.6162790697674418,
+    "directional_coverage": 0.37714285714285717,
+    "neutral_rate": 0.6228571428571429,
     "bull_precision": 0.5,
     "bear_precision": 0.5555555555555556,
     "directional_called": 66,
-    "total_rows": 172
+    "total_rows": 175
   },
   "trend_method_v2_1": {
     "directional_accuracy": 0.5909090909090909,
-    "directional_coverage": 0.38372093023255816,
-    "neutral_rate": 0.6162790697674418,
+    "directional_coverage": 0.37714285714285717,
+    "neutral_rate": 0.6228571428571429,
     "bull_precision": 0.5833333333333334,
     "bear_precision": 0.5952380952380952,
     "directional_called": 66,
-    "total_rows": 172
+    "total_rows": 175
   },
   "delta_v2_1_minus_v2_0": {
     "delta_directional_accuracy": 0.06060606060606066,
@@ -26,12 +26,12 @@
   },
   "trend_method_v2_2": {
     "directional_accuracy": 0.5909090909090909,
-    "directional_coverage": 0.38372093023255816,
-    "neutral_rate": 0.6162790697674418,
+    "directional_coverage": 0.37714285714285717,
+    "neutral_rate": 0.6228571428571429,
     "bull_precision": 0.5769230769230769,
     "bear_precision": 0.6,
     "directional_called": 66,
-    "total_rows": 172
+    "total_rows": 175
   },
   "delta_v2_2_minus_v2_1": {
     "delta_directional_accuracy": 0.0,
@@ -55,7 +55,7 @@
   "v2_2_override_impact": {
     "continuation_protection_blocks": 0,
     "collapse_reversal_overrides": 0,
-    "false_snap_blocks": 19,
+    "false_snap_blocks": 20,
     "inertia_wall_neutrals": 0,
     "reversal_pressure_overrides": 0,
     "neutral_promotions": 19,

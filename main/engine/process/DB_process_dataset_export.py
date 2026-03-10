@@ -5,6 +5,7 @@ import csv
 import itertools
 import json
 import logging
+from copy import deepcopy
 from pathlib import Path
 from statistics import mean
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
@@ -605,6 +606,51 @@ def _build_features_from_history_model(model_row: Dict[str, Any], history_row: D
         },
     }
 
+def _merge_dict_deep(base: Dict[str, Any], updates: Dict[str, Any]) -> Dict[str, Any]:
+    """Recursively merge update keys into base dictionary in place."""
+    for key, value in updates.items():
+        if isinstance(value, dict) and isinstance(base.get(key), dict):
+            _merge_dict_deep(base[key], value)
+            continue
+        base[key] = deepcopy(value)
+    return base
+
+
+def _build_v2_2_replay_block(base_model: Dict[str, Any], v2_2_output: Dict[str, Any]) -> Dict[str, Any]:
+    """Build replayed v2_2 block by inheriting the full base model payload."""
+    replay_model = deepcopy(base_model)
+    replay_model["model_id"] = MODEL_V2_2
+
+    for key in ["trend", "confidence", "score", "reason", "notes"]:
+        if key in v2_2_output:
+            replay_model[key] = deepcopy(v2_2_output.get(key))
+
+    base_debug = replay_model.get("debug") if isinstance(replay_model.get("debug"), dict) else {}
+    new_debug = v2_2_output.get("debug") if isinstance(v2_2_output.get("debug"), dict) else {}
+    replay_model["debug"] = _merge_dict_deep(base_debug, new_debug)
+
+    base_raw = replay_model.get("raw_features_used") if isinstance(replay_model.get("raw_features_used"), dict) else {}
+    new_raw = v2_2_output.get("raw_features_used") if isinstance(v2_2_output.get("raw_features_used"), dict) else {}
+    replay_model["raw_features_used"] = _merge_dict_deep(base_raw, new_raw)
+
+    return replay_model
+
+
+def _replay_payload_health(model_row: Dict[str, Any]) -> str:
+    """Compact replay payload health summary for v2_2 appended rows."""
+    debug = model_row.get("debug") if isinstance(model_row.get("debug"), dict) else {}
+    stack = debug.get("gaussian_stack") if isinstance(debug.get("gaussian_stack"), dict) else {}
+    slopes = debug.get("gaussian_slopes") if isinstance(debug.get("gaussian_slopes"), dict) else {}
+    fan = debug.get("fan_physics") if isinstance(debug.get("fan_physics"), dict) else {}
+    context = debug.get("context") if isinstance(debug.get("context"), dict) else {}
+
+    stack_keys = ["g8", "g23", "g38", "g53", "g68", "g83"]
+    slope_keys = ["slope_g8", "slope_g23", "slope_g38", "slope_g53", "slope_g68", "slope_g83"]
+    stack_present = sum(1 for k in stack_keys if _as_float(stack.get(k)) is not None)
+    slope_present = sum(1 for k in slope_keys if _as_float(slopes.get(k)) is not None)
+    fan_ok = "ok" if fan else "missing"
+    context_ok = "ok" if context else "missing"
+    return f"stack={stack_present}/6 slopes={slope_present}/6 fan={fan_ok} context={context_ok}"
 
 def build_replay_history_with_v2_2(
     history_rows: Sequence[Dict[str, Any]],
@@ -665,7 +711,8 @@ def build_replay_history_with_v2_2(
         stats["rows_with_v2_1"] += 1
         feats = _build_features_from_history_model(base, row)
         try:
-            v2_2 = model_v2_2.run_model(feats, v2_2_config)
+            v2_2_out = model_v2_2.run_model(feats, v2_2_config)
+            v2_2 = _build_v2_2_replay_block(base, v2_2_out if isinstance(v2_2_out, dict) else {})
             debug = v2_2.get("debug") if isinstance(v2_2.get("debug"), dict) else {}
             counts = ((debug.get("v2_2") or {}).get("override_impact") or {}) if isinstance(debug.get("v2_2"), dict) else {}
             for k in [
@@ -684,6 +731,7 @@ def build_replay_history_with_v2_2(
             v2_2["reason"] = f"{base.get('reason')}|v2_2_replay=model_error"
 
         new_models.append(v2_2)
+        log.debug("[v2_2_replay_payload] %s", _replay_payload_health(v2_2))
         new_row["models"] = new_models
         replay_rows.append(new_row)
         stats["rows_with_v2_2_appended"] += 1
