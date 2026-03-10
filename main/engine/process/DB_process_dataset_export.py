@@ -122,6 +122,9 @@ CSV_COLUMNS = [
     "outer_fan_width",
     "outer_order_signature",
     "slow_retention",
+    "gaussian_wave",
+    "wave_strength",
+    "inertia_wall_score",
     "reversal_pressure",
     "tail_anchor_type",
     "extrema_pair",
@@ -202,6 +205,117 @@ def _normalize_regime(value: Any) -> str:
     if txt in {"RUN", "REVERSAL", "NOISE"}:
         return txt
     return "UNKNOWN"
+
+def compute_gaussian_wave(velocity_window: Sequence[float]) -> Optional[int]:
+    """Compute baseline gaussian-wave pattern from the latest 3 valid fan width velocities."""
+    if len(velocity_window) < 3:
+        return None
+    v2, v1, v0 = velocity_window[-3], velocity_window[-2], velocity_window[-1]
+    return 1 if (v2 > 0 and v1 < 0 and v0 > 0) else 0
+
+
+def compute_wave_strength(velocity_window: Sequence[float]) -> Optional[float]:
+    """Compute oscillation magnitude from the latest 3 valid fan width velocities."""
+    if len(velocity_window) < 3:
+        return None
+    v2, v1, v0 = velocity_window[-3], velocity_window[-2], velocity_window[-1]
+    return abs(v2) + abs(v1) + abs(v0)
+
+
+def compute_slow_retention(row: Dict[str, Any]) -> Optional[float]:
+    """Sum absolute slow-stack slopes over valid values only (g53/g68/g83)."""
+    slow_slopes = [_as_float(row.get("slope_g53")), _as_float(row.get("slope_g68")), _as_float(row.get("slope_g83"))]
+    valid = [v for v in slow_slopes if v is not None]
+    if not valid:
+        return None
+    return sum(abs(v) for v in valid)
+
+
+def compute_outer_fan_width(row: Dict[str, Any]) -> Optional[float]:
+    """Compute absolute spacing between outer slow-fan levels g83 and g53."""
+    g53 = _as_float(row.get("g53"))
+    g83 = _as_float(row.get("g83"))
+    if None in (g53, g83):
+        return None
+    return abs(g83 - g53)
+
+
+def compute_phase_disagreement(row: Dict[str, Any]) -> Optional[int]:
+    """Detect fast/slow phase-sign disagreement via mean slope signs."""
+    fast = [
+        _as_float(row.get("slope_g8")),
+        _as_float(row.get("slope_g23")),
+        _as_float(row.get("slope_g38")),
+    ]
+    slow = [
+        _as_float(row.get("slope_g53")),
+        _as_float(row.get("slope_g68")),
+        _as_float(row.get("slope_g83")),
+    ]
+    fast_valid = [v for v in fast if v is not None]
+    slow_valid = [v for v in slow if v is not None]
+    if not fast_valid or not slow_valid:
+        return None
+    fast_sign = _sign(sum(fast_valid) / len(fast_valid))
+    slow_sign = _sign(sum(slow_valid) / len(slow_valid))
+    if fast_sign == 0 or slow_sign == 0:
+        return None
+    return 1 if fast_sign != slow_sign else 0
+
+
+def compute_inertia_wall_score(row: Dict[str, Any]) -> Optional[float]:
+    """Blend wave/inertia terms using normalized valid weights only."""
+    terms = [
+        (0.40, _as_float(row.get("slow_retention"))),
+        (0.25, _as_float(row.get("outer_fan_width"))),
+        (0.20, _as_float(row.get("phase_disagreement"))),
+        (0.15, _as_float(row.get("hinge_torsion"))),
+    ]
+    weighted_sum = 0.0
+    valid_weight_sum = 0.0
+    for weight, value in terms:
+        if value is None:
+            continue
+        weighted_sum += weight * value
+        valid_weight_sum += weight
+    if valid_weight_sum <= 0.0:
+        return None
+    return weighted_sum / valid_weight_sum
+
+
+def build_wave_inertia_profile(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Build class-wise wave/inertia feature means and non-null counts."""
+    classes = [
+        "correct_bull",
+        "correct_bear",
+        "bull_called_bear_truth",
+        "bear_called_bull_truth",
+        "neutral_called_bull_truth",
+        "neutral_called_bear_truth",
+    ]
+    features = [
+        "gaussian_wave",
+        "wave_strength",
+        "slow_retention",
+        "outer_fan_width",
+        "phase_disagreement",
+        "inertia_wall_score",
+    ]
+    out: List[Dict[str, Any]] = []
+    for label in classes:
+        subset = [r for r in rows if r.get("directional_error_type") == label]
+        profile: Dict[str, Any] = {
+            "directional_error_type": label,
+            "row_count": len(subset),
+            "coverage_within_export_set": _safe_ratio(len(subset), len(rows)),
+        }
+        for feat in features:
+            values = [_as_float(r.get(feat)) for r in subset]
+            valid = [v for v in values if v is not None]
+            profile[f"mean_{feat}"] = float(mean(valid)) if valid else None
+            profile[f"count_{feat}"] = len(valid)
+        out.append(profile)
+    return out
 
 def _read_nested_float(payload: Dict[str, Any], keys: Sequence[str]) -> Optional[float]:
     """Return first parseable numeric field from a dict for candidate keys."""
@@ -979,6 +1093,7 @@ def add_derived_columns(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
         sorted_rows = sorted(model_rows, key=_resolve_sort_key)
         prev: Optional[Dict[str, Any]] = None
         rolling_phase_strength_max = 1e-9
+        velocity_history: List[float] = []
 
         for row in sorted_rows:
             s23 = _as_float(row.get("s23"))
@@ -1053,6 +1168,22 @@ def add_derived_columns(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
             if row.get("fan_energy_total") is not None:
                 rolling_phase_strength_max = max(rolling_phase_strength_max, float(row["fan_energy_total"]))
             phase = compute_phase_features(row, prev, rolling_phase_strength_max)
+            # v2_3 research-only wave/inertia structure features (exporter-only, no live model impact).
+            velocity_now = _as_float(row.get("fan_width_velocity"))
+            if velocity_now is not None:
+                velocity_history.append(velocity_now)
+            velocity_window = velocity_history[-3:]
+            gaussian_wave = compute_gaussian_wave(velocity_window)
+            wave_strength = compute_wave_strength(velocity_window)
+            slow_retention = compute_slow_retention(row)
+            outer_fan_width = compute_outer_fan_width(row)
+            phase_disagreement = compute_phase_disagreement(row)
+            row["gaussian_wave"] = gaussian_wave
+            row["wave_strength"] = wave_strength
+            row["slow_retention"] = slow_retention
+            row["outer_fan_width"] = outer_fan_width
+            row["phase_disagreement"] = phase_disagreement
+            row["inertia_wall_score"] = compute_inertia_wall_score(row)
             fan_width_acc = _as_float(row.get("fan_width_acceleration"))
             hinge_velocity = _as_float(row.get("hinge_velocity"))
             snap_velocity = _as_float(row.get("snap_velocity"))
@@ -1126,6 +1257,8 @@ def build_feature_population_audit(rows: Sequence[Dict[str, Any]]) -> Tuple[
         "slope_g8", "slope_g23", "slope_g38", "slope_g53", "slope_g68", "slope_g83",
         "fan_width", "fan_order_score", "g83_curvature", "fan_energy_total", "fan_energy_ratio",
         "hinge_gap", "hinge_torsion", "snap_score", "phase_alignment", "fan_phase_score",
+        "gaussian_wave", "wave_strength", "slow_retention", "outer_fan_width", "phase_disagreement",
+        "inertia_wall_score",
     ]
     audit_rows: List[Dict[str, Any]] = []
     summary_counts: Dict[str, Any] = {"total_rows": total_rows}
@@ -1260,6 +1393,18 @@ def _build_group_stats(rows: Sequence[Dict[str, Any]], group_name: str, group_va
         "mean_phase_strength": _safe_mean(rows, "phase_strength"),
         "mean_phase_velocity": _safe_mean(rows, "phase_velocity"),
         "mean_fan_phase_score": _safe_mean(rows, "fan_phase_score"),
+        "mean_gaussian_wave": _safe_mean(rows, "gaussian_wave"),
+        "count_gaussian_wave": sum(1 for r in rows if _as_float(r.get("gaussian_wave")) is not None),
+        "mean_wave_strength": _safe_mean(rows, "wave_strength"),
+        "count_wave_strength": sum(1 for r in rows if _as_float(r.get("wave_strength")) is not None),
+        "mean_slow_retention": _safe_mean(rows, "slow_retention"),
+        "count_slow_retention": sum(1 for r in rows if _as_float(r.get("slow_retention")) is not None),
+        "mean_outer_fan_width": _safe_mean(rows, "outer_fan_width"),
+        "count_outer_fan_width": sum(1 for r in rows if _as_float(r.get("outer_fan_width")) is not None),
+        "mean_phase_disagreement": _safe_mean(rows, "phase_disagreement"),
+        "count_phase_disagreement": sum(1 for r in rows if _as_float(r.get("phase_disagreement")) is not None),
+        "mean_inertia_wall_score": _safe_mean(rows, "inertia_wall_score"),
+        "count_inertia_wall_score": sum(1 for r in rows if _as_float(r.get("inertia_wall_score")) is not None),
         "collapse_flag_rate": _safe_ratio(sum(1 for r in rows if r.get("collapse_flag")), len(rows)),
         "weak_bull_exhaustion_flag_rate": _safe_ratio(
             sum(1 for r in rows if r.get("weak_bull_exhaustion_flag")), len(rows)
@@ -1323,7 +1468,7 @@ def build_run_flip_breakdown(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, A
     return output
 
 def build_v2_2_feature_preview(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
-    """Compact v2_2 family aggregates for JSON summaries and terminal previews."""
+    """Compact v2_2/v2_3 research aggregates for JSON summaries and terminal previews."""
     return {
         "geometry": {
             "mean_fan_width": _safe_mean(rows, "fan_width"),
@@ -1356,6 +1501,14 @@ def build_v2_2_feature_preview(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]
             "mean_phase_strength": _safe_mean(rows, "phase_strength"),
             "mean_phase_velocity": _safe_mean(rows, "phase_velocity"),
             "mean_fan_phase_score": _safe_mean(rows, "fan_phase_score"),
+        },
+        "wave_inertia": {
+            "gaussian_wave_rate": _safe_mean(rows, "gaussian_wave"),
+            "mean_wave_strength": _safe_mean(rows, "wave_strength"),
+            "mean_slow_retention": _safe_mean(rows, "slow_retention"),
+            "phase_disagreement_rate": _safe_mean(rows, "phase_disagreement"),
+            "mean_outer_fan_width": _safe_mean(rows, "outer_fan_width"),
+            "mean_inertia_wall_score": _safe_mean(rows, "inertia_wall_score"),
         },
     }
 
@@ -1773,6 +1926,7 @@ def write_outputs(
         "fan_feature_diagnostics": output_dir / f"gaussian_fan_feature_diagnostics_{model_suffix}.csv",
         "v2_2_feature_candidates": output_dir / f"gaussian_fan_v2_2_feature_candidates_{model_suffix}.csv",
         "feature_population_audit": output_dir / f"gaussian_fan_feature_population_audit_{model_suffix}.csv",
+        "wave_inertia_profile": output_dir / f"gaussian_fan_wave_inertia_profile_{model_suffix}.csv",
         "feature_source_map": output_dir / "gaussian_fan_feature_source_map.txt",
     }
     if model_suffix == "v2_1":
@@ -1807,6 +1961,12 @@ def write_outputs(
         list(v2_2_feature_candidates[0].keys()) if v2_2_feature_candidates else ["group_name", "group_value", "row_count"],
     )
     write_feature_population_audit(paths["feature_population_audit"], feature_population_audit)
+    wave_inertia_profile = build_wave_inertia_profile(rows)
+    _write_csv(
+        paths["wave_inertia_profile"],
+        wave_inertia_profile,
+        list(wave_inertia_profile[0].keys()) if wave_inertia_profile else ["directional_error_type", "row_count"],
+    )
 
     return paths
 
@@ -1898,6 +2058,7 @@ def print_terminal_summary(
     hinge = preview.get("hinge", {}) if isinstance(preview.get("hinge"), dict) else {}
     snap = preview.get("snap", {}) if isinstance(preview.get("snap"), dict) else {}
     phase = preview.get("phase", {}) if isinstance(preview.get("phase"), dict) else {}
+    wave_inertia = preview.get("wave_inertia", {}) if isinstance(preview.get("wave_inertia"), dict) else {}
 
     print("\n=== v2_2 Feature Preview ===")
     print(f"mean fan_width: {geom.get('mean_fan_width', 0.0):.5f}")
@@ -1905,6 +2066,13 @@ def print_terminal_summary(
     print(f"hinge_conflict_rate: {_pct(hinge.get('hinge_conflict_rate', 0.0) or 0.0)}")
     print(f"mean snap_score: {snap.get('mean_snap_score', 0.0):.5f}")
     print(f"mean fan_phase_score: {phase.get('mean_fan_phase_score', 0.0):.5f}")
+
+    print("\n=== v2_3 Wave / Inertia Preview ===")
+    print(f"gaussian_wave_rate: {_pct(wave_inertia.get('gaussian_wave_rate', 0.0) or 0.0)}")
+    print(f"mean wave_strength: {wave_inertia.get('mean_wave_strength', 0.0):.5f}")
+    print(f"mean slow_retention: {wave_inertia.get('mean_slow_retention', 0.0):.5f}")
+    print(f"phase_disagreement_rate: {_pct(wave_inertia.get('phase_disagreement_rate', 0.0) or 0.0)}")
+    print(f"mean inertia_wall_score: {wave_inertia.get('mean_inertia_wall_score', 0.0):.5f}")
 
     if model_id == MODEL_V2_1:
         wrong_bull = next((r for r in error_breakdown if r.get("group_value") == "bull_called_bear_truth"), None)
@@ -1978,6 +2146,7 @@ def print_terminal_summary(
         "fan_feature_diagnostics",
         "v2_2_feature_candidates",
         "feature_population_audit",
+        "wave_inertia_profile",
     ]:
         print(f"- {paths[key].resolve()}")
 
