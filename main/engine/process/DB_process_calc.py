@@ -768,9 +768,12 @@ def _build_history_gaussian_stack(features: Dict[str, Any]) -> Dict[str, Any]:
     latest = ((features or {}).get("gauss") or {}).get("latest") or {}
     out: Dict[str, Any] = {}
     for s in (8, 23, 38, 53, 68, 83):
-        key = f"s{s}"
-        if key in latest:
-            out[f"g{s}"] = _safe_number(latest.get(key), 0.0)
+        out_key = f"g{s}"
+        sigma_key = f"s{s}"
+        if sigma_key in latest:
+            out[out_key] = _safe_number(latest.get(sigma_key), 0.0)
+        elif out_key in latest:
+            out[out_key] = _safe_number(latest.get(out_key), 0.0)
     return out
 
 
@@ -911,7 +914,15 @@ def _enrich_model_history_result(model_result: Dict[str, Any], features: Dict[st
     dbg["gaussian_slopes"] = slopes
     dbg["fan_physics"] = physics
     dbg["context"] = context
+    signals = dbg.get("signals") if isinstance(dbg.get("signals"), dict) else {}
+    signals = dict(signals)
+    signals["gaussian_levels"] = dict(stack)
+    dbg["signals"] = signals
     out["debug"] = dbg
+
+    for sigma_key in ("g8", "g23", "g38", "g53", "g68", "g83"):
+        if sigma_key in stack:
+            out[sigma_key] = stack[sigma_key]
 
     channel = (features or {}).get("channel") or {}
     band_width = channel.get("band_width") or {}
