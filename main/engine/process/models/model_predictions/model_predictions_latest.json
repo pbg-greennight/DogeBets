@@ -1,16 +1,16 @@
 {
-  "epoch": 320983,
-  "next_epoch": 320984,
-  "timestamp": "2026-03-10T16:55:39.057683",
+  "epoch": 321170,
+  "next_epoch": 321171,
+  "timestamp": "2026-03-11T08:34:59.083074",
   "models": [
     {
       "model_id": "trend_method_v2_0",
-      "trend": "Neutral",
+      "trend": "Bear",
       "confidence": 1.0,
-      "score": 0.0,
-      "reason": "regime=NOISE|slope_sum=-0.013243",
+      "score": -1.692326862077607,
+      "reason": "regime=RUN|slope_sum=-1.692327",
       "debug": {
-        "regime": "NOISE",
+        "regime": "RUN",
         "run_direction": "Bear",
         "thresholds": {
           "run_fan_threshold": 0.01,
@@ -21,114 +21,456 @@
           "alignment_threshold": 0.5
         },
         "signals": {
-          "fan_width": 3.3339323236286873,
-          "alignment": 0.0,
-          "compression_velocity": -1.0424352169357007,
-          "flip_score": 0.07468037597081137,
-          "slope_sum": -0.01324339098391647,
-          "slope_magnitude": 0.01324339098391647,
-          "ratio_8_23_to_23_53": -2.217049498871452,
+          "fan_width": 110.72704305269872,
+          "alignment": 1.0,
+          "compression_velocity": 3.079782469314523,
+          "flip_score": 0.370026279128589,
+          "slope_sum": -1.692326862077607,
+          "slope_magnitude": 1.692326862077607,
+          "ratio_8_23_to_23_53": 0.2532199081194257,
           "gaussian_levels": {
-            "g8": 70268.71181472382,
-            "g23": 70262.01652134485,
-            "g38": 70264.20395890236,
-            "g53": 70265.03643288952,
-            "g68": 70265.24162949332,
-            "g83": 70265.3778824002
+            "g8": 69282.362627698,
+            "g23": 69298.47639848723,
+            "g38": 69330.96944814606,
+            "g53": 69362.1118800283,
+            "g68": 69382.13580840336,
+            "g83": 69393.0896707507
           }
         },
         "gaussian_stack": {
-          "g8": 70268.71181472382,
-          "g23": 70262.01652134485,
-          "g38": 70264.20395890236,
-          "g53": 70265.03643288952,
-          "g68": 70265.24162949332,
-          "g83": 70265.3778824002
+          "g8": 69282.362627698,
+          "g23": 69298.47639848723,
+          "g38": 69330.96944814606,
+          "g53": 69362.1118800283,
+          "g68": 69382.13580840336,
+          "g83": 69393.0896707507
         },
         "gaussian_slopes": {
-          "slope_g8": 0.5979922169153724,
-          "tan_g8": 0.47696158080846845,
-          "curve_g8": -0.21316522343161826,
-          "slope_g23": 0.005107854811285506,
-          "tan_g23": 0.025117642968931857,
-          "curve_g23": 0.0728945416444081,
-          "slope_g38": -0.04753667434670206,
-          "tan_g38": -0.045661392903033025,
-          "curve_g38": 0.003810314883594401,
-          "slope_g53": -0.018351245795201976,
-          "tan_g53": -0.018791463061158236,
-          "curve_g53": -0.001785834326403262,
-          "slope_g68": -0.008536305993402493,
-          "tan_g68": -0.008700306032551453,
-          "curve_g68": -0.0004882764611725838,
-          "slope_g83": -0.006170255759570864,
-          "tan_g83": -0.00621623652599131,
-          "curve_g83": -0.00013285181388103702
+          "slope_g8": -0.7544646244896285,
+          "tan_g8": -0.7634937208107052,
+          "curve_g8": -0.21978621524592323,
+          "slope_g23": -0.7885716594792029,
+          "tan_g23": -0.7050134674063884,
+          "curve_g23": 0.3310098873915628,
+          "slope_g38": -1.0929239205634076,
+          "tan_g38": -1.0427329918699495,
+          "curve_g38": 0.16357691535335372,
+          "slope_g53": -0.9037552025984041,
+          "tan_g53": -0.8896548172633629,
+          "curve_g53": 0.0390163917370262,
+          "slope_g68": -0.6122831926859362,
+          "tan_g68": -0.6125072794772374,
+          "curve_g68": -0.004712539733043752,
+          "slope_g83": -0.3865928667401022,
+          "tan_g83": -0.39050412651946925,
+          "curve_g83": -0.014456375637174834
         },
         "fan_physics": {
           "geometry": {
-            "fan_width": -3.3339323236286873,
-            "outer_fan_width": 0.3414495106699178,
-            "fan_order_signature": "8>83>68>53>38>23",
-            "outer_order_signature": "83>68>53"
+            "fan_width": 110.72704305269872,
+            "fan_width_abs": 110.72704305269872,
+            "fan_width_velocity": 0.0,
+            "fan_width_acceleration": 0.2053298396087484,
+            "outer_fan_width": 30.97779072240519,
+            "fan_order_signature": "83>68>53>38>23>8",
+            "outer_order_signature": "83>68>53",
+            "fan_order_score": 1.0,
+            "g83_curvature": -0.014456375637174834
           },
           "hinge": {
-            "hinge_gap": 2.1874375575134763,
-            "hinge_conflict": true,
-            "hinge_torsion": 1.0
+            "hinge_gap": 32.493049658834934,
+            "hinge_velocity": -0.30435226108420466,
+            "hinge_conflict": false,
+            "hinge_torsion": 0.1617608164018711
           },
           "snap": {
-            "snap_divergence": 0.6455288912620745,
-            "snap_score": 0.9921494522986724
+            "snap_divergence": 0.3384592960737791,
+            "snap_velocity": -0.05848025340431684,
+            "snap_score": 0.1284007609416243,
+            "reversal_pressure": 0.04054216807113942
           },
           "phase": {
-            "fast_phase_sign": 1,
+            "fast_phase_sign": -1,
             "slow_phase_sign": -1,
-            "phase_disagreement": true,
-            "phase_alignment": 0.6666666666666666,
-            "phase_strength": 0.6836945536215353,
-            "fan_phase_score": 0.2707120291507924,
+            "phase_disagreement": false,
+            "phase_alignment": 1.0,
+            "phase_strength": 4.5385914665566816,
+            "fan_phase_score": 0.8194486800410835,
             "phase_valid_count": 6
           },
           "energy": {
-            "fan_energy_total": 0.6836945536215353,
-            "fan_energy_ratio": 19.68178758150199,
-            "fan_sign_conflict": true,
-            "fan_energy_instability": 6.893929193833997,
-            "slow_retention": 0.03305780754817533
+            "fan_energy_total": 4.5385914665566816,
+            "fan_energy_ratio": 1.3854288306644966,
+            "fan_energy_velocity": 2.511240180087043,
+            "fan_energy_acceleration": 0.7143730179908397,
+            "fan_sign_conflict": false,
+            "fan_energy_instability": 0.12847627688816554,
+            "slow_retention": 1.9026312620244425
           }
         },
         "context": {
           "tail_anchor_type": null,
           "extrema_pair": null,
           "pv_direction": null,
-          "decision_time": "2026-03-10 16:55:39.057348",
+          "decision_time": "2026-03-11 08:34:59.082748",
           "next_epoch_time": "",
           "full_window_start": "",
           "full_window_end": "",
-          "analyzed_epoch": 320983,
-          "predicted_epoch": 320984,
-          "model_timestamp": "2026-03-10T16:55:39.057683"
+          "analyzed_epoch": 321170,
+          "predicted_epoch": 321171,
+          "model_timestamp": "2026-03-11T08:34:59.083074"
         }
       },
       "raw_features_used": {
-        "s23": 0.005107854811285506,
-        "s53": -0.018351245795201976,
-        "fan_width": 3.3339323236286873,
-        "alignment": 0.0,
-        "compression_velocity": -1.0424352169357007,
-        "flip_score": 0.07468037597081137
+        "s23": -0.7885716594792029,
+        "s53": -0.9037552025984041,
+        "fan_width": 110.72704305269872,
+        "alignment": 1.0,
+        "compression_velocity": 3.079782469314523,
+        "flip_score": 0.370026279128589
       },
-      "g8": 70268.71181472382,
-      "g23": 70262.01652134485,
-      "g38": 70264.20395890236,
-      "g53": 70265.03643288952,
-      "g68": 70265.24162949332,
-      "g83": 70265.3778824002
+      "g8": 69282.362627698,
+      "g23": 69298.47639848723,
+      "g38": 69330.96944814606,
+      "g53": 69362.1118800283,
+      "g68": 69382.13580840336,
+      "g83": 69393.0896707507
+    },
+    {
+      "model_id": "trend_method_v2_1",
+      "trend": "Bear",
+      "confidence": 1.0,
+      "score": -1.692326862077607,
+      "reason": "regime=RUN|slope_sum=-1.692327|v2_1_override=none",
+      "debug": {
+        "regime": "RUN",
+        "run_direction": "Bear",
+        "thresholds": {
+          "run_fan_threshold": 0.01,
+          "noise_fan_threshold": 0.004,
+          "compression_threshold": 0.003,
+          "flip_score_threshold": 0.5,
+          "slope_noise_threshold": 0.002,
+          "alignment_threshold": 0.5,
+          "bull_run_flip_score_threshold": 0.18,
+          "bull_run_compression_min": 0.0,
+          "bull_run_ratio_max": -0.1
+        },
+        "signals": {
+          "fan_width": 110.72704305269872,
+          "alignment": 1.0,
+          "compression_velocity": 3.079782469314523,
+          "flip_score": 0.370026279128589,
+          "slope_sum": -1.692326862077607,
+          "slope_magnitude": 1.692326862077607,
+          "ratio_8_23_to_23_53": 0.2532199081194257,
+          "gaussian_levels": {
+            "g8": 69282.362627698,
+            "g23": 69298.47639848723,
+            "g38": 69330.96944814606,
+            "g53": 69362.1118800283,
+            "g68": 69382.13580840336,
+            "g83": 69393.0896707507
+          }
+        },
+        "v2_1_replay": {
+          "override_applied": false,
+          "rule": "bull_run_instability_inversion"
+        },
+        "gaussian_stack": {
+          "g8": 69282.362627698,
+          "g23": 69298.47639848723,
+          "g38": 69330.96944814606,
+          "g53": 69362.1118800283,
+          "g68": 69382.13580840336,
+          "g83": 69393.0896707507
+        },
+        "gaussian_slopes": {
+          "slope_g8": -0.7544646244896285,
+          "tan_g8": -0.7634937208107052,
+          "curve_g8": -0.21978621524592323,
+          "slope_g23": -0.7885716594792029,
+          "tan_g23": -0.7050134674063884,
+          "curve_g23": 0.3310098873915628,
+          "slope_g38": -1.0929239205634076,
+          "tan_g38": -1.0427329918699495,
+          "curve_g38": 0.16357691535335372,
+          "slope_g53": -0.9037552025984041,
+          "tan_g53": -0.8896548172633629,
+          "curve_g53": 0.0390163917370262,
+          "slope_g68": -0.6122831926859362,
+          "tan_g68": -0.6125072794772374,
+          "curve_g68": -0.004712539733043752,
+          "slope_g83": -0.3865928667401022,
+          "tan_g83": -0.39050412651946925,
+          "curve_g83": -0.014456375637174834
+        },
+        "fan_physics": {
+          "geometry": {
+            "fan_width": 110.72704305269872,
+            "fan_width_abs": 110.72704305269872,
+            "fan_width_velocity": 0.0,
+            "fan_width_acceleration": 0.2053298396087484,
+            "outer_fan_width": 30.97779072240519,
+            "fan_order_signature": "83>68>53>38>23>8",
+            "outer_order_signature": "83>68>53",
+            "fan_order_score": 1.0,
+            "g83_curvature": -0.014456375637174834
+          },
+          "hinge": {
+            "hinge_gap": 32.493049658834934,
+            "hinge_velocity": -0.30435226108420466,
+            "hinge_conflict": false,
+            "hinge_torsion": 0.1617608164018711
+          },
+          "snap": {
+            "snap_divergence": 0.3384592960737791,
+            "snap_velocity": -0.05848025340431684,
+            "snap_score": 0.1284007609416243,
+            "reversal_pressure": 0.04054216807113942
+          },
+          "phase": {
+            "fast_phase_sign": -1,
+            "slow_phase_sign": -1,
+            "phase_disagreement": false,
+            "phase_alignment": 1.0,
+            "phase_strength": 4.5385914665566816,
+            "fan_phase_score": 0.8194486800410835,
+            "phase_valid_count": 6
+          },
+          "energy": {
+            "fan_energy_total": 4.5385914665566816,
+            "fan_energy_ratio": 1.3854288306644966,
+            "fan_energy_velocity": 2.511240180087043,
+            "fan_energy_acceleration": 0.7143730179908397,
+            "fan_sign_conflict": false,
+            "fan_energy_instability": 0.12847627688816554,
+            "slow_retention": 1.9026312620244425
+          }
+        },
+        "context": {
+          "tail_anchor_type": null,
+          "extrema_pair": null,
+          "pv_direction": null,
+          "decision_time": "2026-03-11 08:34:59.082748",
+          "next_epoch_time": "",
+          "full_window_start": "",
+          "full_window_end": "",
+          "analyzed_epoch": 321170,
+          "predicted_epoch": 321171,
+          "model_timestamp": "2026-03-11T08:34:59.083074"
+        }
+      },
+      "raw_features_used": {
+        "s23": -0.7885716594792029,
+        "s53": -0.9037552025984041,
+        "fan_width": 110.72704305269872,
+        "alignment": 1.0,
+        "compression_velocity": 3.079782469314523,
+        "flip_score": 0.370026279128589
+      },
+      "g8": 69282.362627698,
+      "g23": 69298.47639848723,
+      "g38": 69330.96944814606,
+      "g53": 69362.1118800283,
+      "g68": 69382.13580840336,
+      "g83": 69393.0896707507
+    },
+    {
+      "model_id": "trend_method_v2_2",
+      "trend": "Bear",
+      "confidence": 1.0,
+      "score": -1.692326862077607,
+      "reason": "regime=RUN|slope_sum=-1.692327|v2_2_rule=BASELINE_V2_1",
+      "debug": {
+        "regime": "RUN",
+        "run_direction": "Bear",
+        "thresholds": {
+          "run_fan_threshold": 0.01,
+          "noise_fan_threshold": 0.004,
+          "compression_threshold": 0.003,
+          "flip_score_threshold": 0.5,
+          "slope_noise_threshold": 0.002,
+          "alignment_threshold": 0.5,
+          "bull_run_flip_score_threshold": 0.18,
+          "bull_run_compression_min": 0.0,
+          "bull_run_ratio_max": -0.1,
+          "reversal_pressure_high": 0.08,
+          "snap_score_high": 0.33,
+          "snap_velocity_min": 0.0,
+          "hinge_torsion_high": 0.35,
+          "hinge_velocity_min": 0.001,
+          "fan_width_velocity_collapse": -0.005,
+          "fan_width_velocity_expand": 0.005,
+          "fan_width_acceleration_collapse": -0.002,
+          "phase_alignment_min": 0.6,
+          "fan_phase_score_min": 0.2,
+          "slow_retention_high": 0.03,
+          "outer_fan_width_min": 0.01,
+          "neutral_promotion_min_strength": 0.0025,
+          "false_snap_hinge_max": 0.2,
+          "true_snap_hinge_min": 0.32
+        },
+        "signals": {
+          "fan_width": 110.72704305269872,
+          "alignment": 1.0,
+          "compression_velocity": 3.079782469314523,
+          "flip_score": 0.370026279128589,
+          "slope_sum": -1.692326862077607,
+          "slope_magnitude": 1.692326862077607,
+          "ratio_8_23_to_23_53": 0.2532199081194257,
+          "reversal_pressure": 0.0,
+          "gaussian_levels": {
+            "g8": 69282.362627698,
+            "g23": 69298.47639848723,
+            "g38": 69330.96944814606,
+            "g53": 69362.1118800283,
+            "g68": 69382.13580840336,
+            "g83": 69393.0896707507
+          }
+        },
+        "v2_1_replay": {
+          "override_applied": false,
+          "rule": "bull_run_instability_inversion"
+        },
+        "v2_2": {
+          "base_trend": "Bear",
+          "rule": "BASELINE_V2_1",
+          "override_impact": {
+            "continuation_protection_blocks": 0,
+            "collapse_reversal_overrides": 0,
+            "false_snap_blocks": 0,
+            "inertia_wall_neutrals": 0,
+            "reversal_pressure_overrides": 0,
+            "neutral_promotions": 0
+          },
+          "fan_features": {
+            "fan_width_velocity": 0.0,
+            "fan_width_acceleration": 0.0,
+            "fan_order_score": 0.0,
+            "outer_fan_width": 0.0,
+            "hinge_velocity": 0.0,
+            "hinge_conflict": 0.0,
+            "hinge_torsion": 0.0,
+            "snap_score": 0.0,
+            "snap_velocity": 0.0,
+            "phase_alignment": 1.0,
+            "fan_phase_score": 0.0,
+            "phase_disagreement": 0.0,
+            "slow_retention": 0.0,
+            "g83_curvature": -0.014456375637174834,
+            "outer_order_signature": "",
+            "outer_order_intact": 0.0,
+            "outer_resistance": 0.0,
+            "reversal_pressure": 0.0
+          }
+        },
+        "gaussian_stack": {
+          "g8": 69282.362627698,
+          "g23": 69298.47639848723,
+          "g38": 69330.96944814606,
+          "g53": 69362.1118800283,
+          "g68": 69382.13580840336,
+          "g83": 69393.0896707507
+        },
+        "gaussian_slopes": {
+          "slope_g8": -0.7544646244896285,
+          "tan_g8": -0.7634937208107052,
+          "curve_g8": -0.21978621524592323,
+          "slope_g23": -0.7885716594792029,
+          "tan_g23": -0.7050134674063884,
+          "curve_g23": 0.3310098873915628,
+          "slope_g38": -1.0929239205634076,
+          "tan_g38": -1.0427329918699495,
+          "curve_g38": 0.16357691535335372,
+          "slope_g53": -0.9037552025984041,
+          "tan_g53": -0.8896548172633629,
+          "curve_g53": 0.0390163917370262,
+          "slope_g68": -0.6122831926859362,
+          "tan_g68": -0.6125072794772374,
+          "curve_g68": -0.004712539733043752,
+          "slope_g83": -0.3865928667401022,
+          "tan_g83": -0.39050412651946925,
+          "curve_g83": -0.014456375637174834
+        },
+        "fan_physics": {
+          "geometry": {
+            "fan_width": 110.72704305269872,
+            "fan_width_abs": 110.72704305269872,
+            "fan_width_velocity": 0.0,
+            "fan_width_acceleration": 0.2053298396087484,
+            "outer_fan_width": 30.97779072240519,
+            "fan_order_signature": "83>68>53>38>23>8",
+            "outer_order_signature": "83>68>53",
+            "fan_order_score": 1.0,
+            "g83_curvature": -0.014456375637174834
+          },
+          "hinge": {
+            "hinge_gap": 32.493049658834934,
+            "hinge_velocity": -0.30435226108420466,
+            "hinge_conflict": false,
+            "hinge_torsion": 0.1617608164018711
+          },
+          "snap": {
+            "snap_divergence": 0.3384592960737791,
+            "snap_velocity": -0.05848025340431684,
+            "snap_score": 0.1284007609416243,
+            "reversal_pressure": 0.04054216807113942
+          },
+          "phase": {
+            "fast_phase_sign": -1,
+            "slow_phase_sign": -1,
+            "phase_disagreement": false,
+            "phase_alignment": 1.0,
+            "phase_strength": 4.5385914665566816,
+            "fan_phase_score": 0.8194486800410835,
+            "phase_valid_count": 6
+          },
+          "energy": {
+            "fan_energy_total": 4.5385914665566816,
+            "fan_energy_ratio": 1.3854288306644966,
+            "fan_energy_velocity": 2.511240180087043,
+            "fan_energy_acceleration": 0.7143730179908397,
+            "fan_sign_conflict": false,
+            "fan_energy_instability": 0.12847627688816554,
+            "slow_retention": 1.9026312620244425
+          }
+        },
+        "context": {
+          "tail_anchor_type": null,
+          "extrema_pair": null,
+          "pv_direction": null,
+          "decision_time": "2026-03-11 08:34:59.082748",
+          "next_epoch_time": "",
+          "full_window_start": "",
+          "full_window_end": "",
+          "analyzed_epoch": 321170,
+          "predicted_epoch": 321171,
+          "model_timestamp": "2026-03-11T08:34:59.083074"
+        }
+      },
+      "raw_features_used": {
+        "s23": -0.7885716594792029,
+        "s53": -0.9037552025984041,
+        "fan_width": 110.72704305269872,
+        "alignment": 1.0,
+        "compression_velocity": 3.079782469314523,
+        "flip_score": 0.370026279128589,
+        "reversal_pressure": 0.0,
+        "hinge_velocity": 0.0,
+        "snap_velocity": 0.0,
+        "fan_width_acceleration": 0.0
+      },
+      "g8": 69282.362627698,
+      "g23": 69298.47639848723,
+      "g38": 69330.96944814606,
+      "g53": 69362.1118800283,
+      "g68": 69382.13580840336,
+      "g83": 69393.0896707507
     }
   ],
-  "v2.0_trend": "Neutral",
-  "v2.0_score": 0.0,
+  "v2.0_trend": "Bear",
+  "v2.0_score": -1.692326862077607,
   "v2.0_confidence": 1.0,
   "v2.0_correct": null
 }

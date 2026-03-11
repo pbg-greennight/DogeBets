@@ -23,6 +23,13 @@ FLIP_SCORE_ALERT_THRESHOLD = 0.05
 RUN_ALIGNMENT_MIN = 0.50
 NOISE_SLOPE_MAX = 0.002
 FLIP_ZONE_RATIO_THRESHOLD = 0.0
+EPSILON = 1e-9
+HINGE_TORSION_SPIKE_THRESHOLD = 0.8
+FAN_COLLAPSE_V2_VELOCITY_THRESHOLD = -20.0
+FAN_COLLAPSE_V2_STRICT_VELOCITY_THRESHOLD = -40.0
+COMPRESSION_TRAP_VELOCITY_THRESHOLD = -10.0
+COMPRESSION_TRAP_STRICT_VELOCITY_THRESHOLD = -20.0
+INERTIA_WALL_HIGH_THRESHOLD = 0.75
 
 MODEL_V2_0 = "trend_method_v2_0"
 MODEL_V2_1 = "trend_method_v2_1"
@@ -119,11 +126,46 @@ CSV_COLUMNS = [
     "phase_velocity",
     "fan_phase_score",
     "phase_disagreement",
+    "hinge_torsion_spike",
+    "transition_score_base",
+    "fan_polarity_inversion",
+    "fan_polarity_normal",
     "outer_fan_width",
+    "outer_fan_width_prev",
     "outer_order_signature",
     "slow_retention",
     "gaussian_wave",
     "wave_strength",
+    "fan_velocity_sign_t0",
+    "fan_velocity_sign_t1",
+    "fan_velocity_sign_t2",
+    "fan_velocity_pattern_3",
+    "fan_velocity_oscillation",
+    "fan_velocity_oscillation_strength",
+    "fan_collapse_v2",
+    "fan_collapse_v2_strict",
+    "compression_trap",
+    "compression_trap_strict",
+    "epoch_start_price",
+    "epoch_end_price",
+    "epoch_price_diff",
+    "epoch_return",
+    "epoch_volatility",
+    "price_diff_t0",
+    "price_diff_t1",
+    "price_diff_t2",
+    "momentum_3epoch",
+    "price_diff_3epoch_abs_sum",
+    "price_diff_sign_pattern",
+    "direction_flip",
+    "price_diff_decay_ratio",
+    "price_diff_vol_squeeze",
+    "fan_energy_t0",
+    "fan_energy_t1",
+    "fan_energy_t2",
+    "fan_energy_t3",
+    "fan_energy_release_signal",
+    "fan_energy_cycle_stage",
     "inertia_wall_score",
     "reversal_pressure",
     "tail_anchor_type",
@@ -549,6 +591,31 @@ def _phase_sign(value: Optional[float]) -> Optional[int]:
     if value is None or value == 0:
         return None
     return 1 if value > 0 else -1
+
+def _sign_to_char(value: Optional[float]) -> str:
+    s = _sign(value)
+    if s > 0:
+        return "+"
+    if s < 0:
+        return "-"
+    return "0"
+
+
+def _is_transition_reversal(row: Dict[str, Any]) -> bool:
+    truth = str(row.get("truth") or "")
+    run_direction = str(row.get("run_direction") or "")
+    if truth not in {"Bull", "Bear"}:
+        return False
+    if run_direction not in {"Bull", "Bear"}:
+        return False
+    return truth != run_direction
+
+
+def _resolve_directional_prediction(row: Dict[str, Any], key: str) -> str:
+    pred = str(row.get(key) or "")
+    if pred in {"Bull", "Bear", "Neutral"}:
+        return pred
+    return "Neutral"
 
 def _extract_v2_0_override_context(model_row: Dict[str, Any]) -> Dict[str, Any]:
     debug = model_row.get("debug") if isinstance(model_row.get("debug"), dict) else {}
@@ -1018,6 +1085,9 @@ def join_truth(
             "start_price": start_price,
             "end_price": end_price,
             "price_difference": price_difference,
+            "epoch_start_price": start_price,
+            "epoch_end_price": end_price,
+            "epoch_price_diff": price_difference,
             "round_current_timestamp": round_ts,
             "round_next_epoch_time": round_next_epoch_time,
 
@@ -1089,11 +1159,13 @@ def add_derived_columns(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
     for row in prepared:
         grouped.setdefault(str(row.get("model_id") or MODEL_DEFAULT), []).append(row)
     derived_rows: List[Dict[str, Any]] = []
-    for model_id, model_rows in grouped.items():
+    for _, model_rows in grouped.items():
         sorted_rows = sorted(model_rows, key=_resolve_sort_key)
         prev: Optional[Dict[str, Any]] = None
-        rolling_phase_strength_max = 1e-9
+        rolling_phase_strength_max = EPSILON
         velocity_history: List[float] = []
+        price_diff_history: List[float] = []
+        fan_energy_history: List[float] = []
 
         for row in sorted_rows:
             s23 = _as_float(row.get("s23"))
@@ -1116,44 +1188,13 @@ def add_derived_columns(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
             abs_slope_sum = abs(slope_sum)
             abs_compression_velocity = abs(compression_velocity or 0.0)
             abs_flip_score = abs(flip_score or 0.0)
-            fan_to_slope_ratio = fan_width / max(abs_slope_sum, 1e-9)
+            fan_to_slope_ratio = fan_width / max(abs_slope_sum, EPSILON)
 
-            collapse_flag = bool(
-                compression_velocity is not None
-                and alignment is not None
-                and compression_velocity < COLLAPSE_COMPRESSION_THRESHOLD
-                and alignment < WEAK_ALIGNMENT_THRESHOLD
-            )
-            weak_bull_exhaustion_flag = bool(
-                slope_sum > 0
-                and compression_velocity is not None
-                and alignment is not None
-                and flip_score is not None
-                and compression_velocity < COLLAPSE_COMPRESSION_THRESHOLD
-                and alignment < WEAK_ALIGNMENT_THRESHOLD
-                and flip_score > FLIP_SCORE_ALERT_THRESHOLD
-            )
-            weak_bear_exhaustion_flag = bool(
-                slope_sum < 0
-                and compression_velocity is not None
-                and alignment is not None
-                and flip_score is not None
-                and compression_velocity > abs(COLLAPSE_COMPRESSION_THRESHOLD)
-                and alignment < WEAK_ALIGNMENT_THRESHOLD
-                and flip_score > FLIP_SCORE_ALERT_THRESHOLD
-            )
-            possible_flip_zone = bool(
-                slope_disagreement
-                or (flip_score is not None and flip_score > FLIP_SCORE_ALERT_THRESHOLD)
-                or (alignment is not None and alignment < WEAK_ALIGNMENT_THRESHOLD)
-                or (fan_to_slope_ratio < FLIP_ZONE_RATIO_THRESHOLD)
-            )
-            possible_run_zone = bool(
-                abs_slope_sum > NOISE_SLOPE_MAX
-                and alignment is not None
-                and alignment >= RUN_ALIGNMENT_MIN
-                and not slope_disagreement
-            )
+            collapse_flag = bool(compression_velocity is not None and alignment is not None and compression_velocity < COLLAPSE_COMPRESSION_THRESHOLD and alignment < WEAK_ALIGNMENT_THRESHOLD)
+            weak_bull_exhaustion_flag = bool(slope_sum > 0 and compression_velocity is not None and alignment is not None and flip_score is not None and compression_velocity < COLLAPSE_COMPRESSION_THRESHOLD and alignment < WEAK_ALIGNMENT_THRESHOLD and flip_score > FLIP_SCORE_ALERT_THRESHOLD)
+            weak_bear_exhaustion_flag = bool(slope_sum < 0 and compression_velocity is not None and alignment is not None and flip_score is not None and compression_velocity < COLLAPSE_COMPRESSION_THRESHOLD and alignment < WEAK_ALIGNMENT_THRESHOLD and flip_score < -FLIP_SCORE_ALERT_THRESHOLD)
+            possible_flip_zone = bool(collapse_flag or weak_bull_exhaustion_flag or weak_bear_exhaustion_flag or ((flip_score or 0.0) > FLIP_SCORE_ALERT_THRESHOLD and (alignment or 0.0) < WEAK_ALIGNMENT_THRESHOLD))
+            possible_run_zone = bool((alignment or 0.0) >= RUN_ALIGNMENT_MIN and abs((_as_float(row.get("compression_velocity")) or 0.0)) <= NOISE_SLOPE_MAX and (_as_float(row.get("ratio_8_23_to_23_53")) or 0.0) >= FLIP_ZONE_RATIO_THRESHOLD)
             possible_transition_zone = bool((not possible_run_zone) and possible_flip_zone)
 
             geometry = compute_geometry_features(row, prev)
@@ -1166,13 +1207,18 @@ def add_derived_columns(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
             row.update(snap)
 
             if row.get("fan_energy_total") is not None:
+                fan_energy_history.append(float(row["fan_energy_total"]))
                 rolling_phase_strength_max = max(rolling_phase_strength_max, float(row["fan_energy_total"]))
             phase = compute_phase_features(row, prev, rolling_phase_strength_max)
-            # v2_3 research-only wave/inertia structure features (exporter-only, no live model impact).
             velocity_now = _as_float(row.get("fan_width_velocity"))
             if velocity_now is not None:
                 velocity_history.append(velocity_now)
             velocity_window = velocity_history[-3:]
+
+            price_diff = _as_float(row.get("price_difference"))
+            if price_diff is not None:
+                price_diff_history.append(price_diff)
+
             gaussian_wave = compute_gaussian_wave(velocity_window)
             wave_strength = compute_wave_strength(velocity_window)
             slow_retention = compute_slow_retention(row)
@@ -1184,6 +1230,74 @@ def add_derived_columns(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
             row["outer_fan_width"] = outer_fan_width
             row["phase_disagreement"] = phase_disagreement
             row["inertia_wall_score"] = compute_inertia_wall_score(row)
+            # Transition/collapse and polarity research features (offline exporter only).
+            gvals = [_as_float(row.get(k)) for k in ["g8", "g23", "g38", "g53", "g68", "g83"]]
+            fan_polarity_normal = int(all(gvals[i] is not None and gvals[i] > gvals[i + 1] for i in range(len(gvals) - 1)))
+            fan_polarity_inversion = int(all(gvals[i] is not None and gvals[i] < gvals[i + 1] for i in range(len(gvals) - 1)))
+            hinge_torsion = _as_float(row.get("hinge_torsion")) or 0.0
+            hinge_torsion_spike = int(abs(hinge_torsion) > HINGE_TORSION_SPIKE_THRESHOLD)
+            transition_score_base = int((1 if phase_disagreement == 1 else 0) + hinge_torsion_spike + fan_polarity_inversion)
+
+            outer_prev = _as_float((prev or {}).get("outer_fan_width"))
+            row["outer_fan_width_prev"] = outer_prev
+            outer_shrinking = (outer_fan_width is not None and outer_prev is not None and outer_fan_width < outer_prev)
+            fwv = _as_float(row.get("fan_width_velocity")) or 0.0
+            row["fan_collapse_v2"] = int(fwv < FAN_COLLAPSE_V2_VELOCITY_THRESHOLD and outer_shrinking and phase_disagreement == 1 and abs(hinge_torsion) > 0.6)
+            row["fan_collapse_v2_strict"] = int(fwv < FAN_COLLAPSE_V2_STRICT_VELOCITY_THRESHOLD and outer_shrinking and phase_disagreement == 1 and abs(hinge_torsion) > 0.6)
+            row["compression_trap"] = int(fwv < COMPRESSION_TRAP_VELOCITY_THRESHOLD and outer_shrinking and phase_disagreement == 0 and abs(hinge_torsion) <= 0.6 and (gaussian_wave or 0) == 0)
+            row["compression_trap_strict"] = int(fwv < COMPRESSION_TRAP_STRICT_VELOCITY_THRESHOLD and outer_shrinking and phase_disagreement == 0 and abs(hinge_torsion) <= 0.6 and (gaussian_wave or 0) == 0)
+            row["hinge_torsion_spike"] = hinge_torsion_spike
+            row["transition_score_base"] = transition_score_base
+            row["fan_polarity_inversion"] = fan_polarity_inversion
+            row["fan_polarity_normal"] = fan_polarity_normal
+
+            v2 = velocity_window[-3] if len(velocity_window) >= 3 else None
+            v1 = velocity_window[-2] if len(velocity_window) >= 2 else None
+            v0 = velocity_window[-1] if len(velocity_window) >= 1 else None
+            row["fan_velocity_sign_t2"] = _sign(v2)
+            row["fan_velocity_sign_t1"] = _sign(v1)
+            row["fan_velocity_sign_t0"] = _sign(v0)
+            row["fan_velocity_pattern_3"] = f"{_sign_to_char(v2)}{_sign_to_char(v1)}{_sign_to_char(v0)}"
+            row["fan_velocity_oscillation"] = int(row["fan_velocity_pattern_3"] in {"+-+", "-+-"})
+            row["fan_velocity_oscillation_strength"] = abs(v2 or 0.0) + abs(v1 or 0.0) + abs(v0 or 0.0)
+
+            row["epoch_start_price"] = _as_float(row.get("start_price"))
+            row["epoch_end_price"] = _as_float(row.get("end_price"))
+            row["epoch_price_diff"] = _as_float(row.get("price_difference"))
+            sp = row["epoch_start_price"] or 0.0
+            pdiff = row["epoch_price_diff"] or 0.0
+            row["epoch_return"] = pdiff / max(abs(sp), EPSILON)
+            row["epoch_volatility"] = abs(pdiff)
+            p2 = price_diff_history[-3] if len(price_diff_history) >= 3 else None
+            p1 = price_diff_history[-2] if len(price_diff_history) >= 2 else None
+            p0 = price_diff_history[-1] if len(price_diff_history) >= 1 else None
+            row["price_diff_t2"] = p2
+            row["price_diff_t1"] = p1
+            row["price_diff_t0"] = p0
+            row["momentum_3epoch"] = (p2 or 0.0) + (p1 or 0.0) + (p0 or 0.0)
+            row["price_diff_3epoch_abs_sum"] = abs(p2 or 0.0) + abs(p1 or 0.0) + abs(p0 or 0.0)
+            row["price_diff_sign_pattern"] = f"{_sign_to_char(p2)}{_sign_to_char(p1)}{_sign_to_char(p0)}"
+            row["direction_flip"] = int(_sign(p0) != _sign(p1))
+            row["price_diff_decay_ratio"] = abs(p0 or 0.0) / max(abs(p2 or 0.0), EPSILON)
+            row["price_diff_vol_squeeze"] = int(abs(p2 or 0.0) > abs(p1 or 0.0) > abs(p0 or 0.0))
+
+            e0 = fan_energy_history[-1] if len(fan_energy_history) >= 1 else None
+            e1 = fan_energy_history[-2] if len(fan_energy_history) >= 2 else None
+            e2 = fan_energy_history[-3] if len(fan_energy_history) >= 3 else None
+            e3 = fan_energy_history[-4] if len(fan_energy_history) >= 4 else None
+            row["fan_energy_t0"] = e0
+            row["fan_energy_t1"] = e1
+            row["fan_energy_t2"] = e2
+            row["fan_energy_t3"] = e3
+            row["fan_energy_release_signal"] = int((e3 is not None and e2 is not None and e1 is not None and e0 is not None) and (e3 > e2 > e1 and e0 > e1))
+            if e2 is not None and e1 is not None and e0 is not None and e2 > e1 > e0:
+                row["fan_energy_cycle_stage"] = "decay"
+            elif e2 is not None and e1 is not None and e0 is not None and e2 < e1 < e0:
+                row["fan_energy_cycle_stage"] = "build"
+            elif row["fan_energy_release_signal"] == 1:
+                row["fan_energy_cycle_stage"] = "release"
+            else:
+                row["fan_energy_cycle_stage"] = "other"
             fan_width_acc = _as_float(row.get("fan_width_acceleration"))
             hinge_velocity = _as_float(row.get("hinge_velocity"))
             snap_velocity = _as_float(row.get("snap_velocity"))
@@ -1215,38 +1329,37 @@ def add_derived_columns(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
             elif pred == "Neutral" and truth == "Neutral":
                 directional_error_type = "correct_neutral"
 
-            row.update(
-                {
-                    "slope_sign_s23": slope_sign_s23,
-                    "slope_sign_s53": slope_sign_s53,
-                    "slope_disagreement": slope_disagreement,
-                    "slope_gap": slope_gap,
-                    "abs_slope_sum": abs_slope_sum,
-                    "abs_compression_velocity": abs_compression_velocity,
-                    "abs_flip_score": abs_flip_score,
-                    "fan_to_slope_ratio": fan_to_slope_ratio,
-                    "collapse_flag": collapse_flag,
-                    "weak_bull_exhaustion_flag": weak_bull_exhaustion_flag,
-                    "weak_bear_exhaustion_flag": weak_bear_exhaustion_flag,
-                    "possible_flip_zone": possible_flip_zone,
-                    "possible_run_zone": possible_run_zone,
-                    "possible_transition_zone": possible_transition_zone,
-                    "phase_alignment": phase["phase_alignment"],
-                    "phase_strength": phase["phase_strength"],
-                    "phase_velocity": phase["phase_velocity"],
-                    "fan_phase_score": phase["fan_phase_score"],
-                    "reversal_pressure": reversal_pressure,
-                    "truth_direction_group": truth,
-                    "prediction_direction_group": pred,
-                    "directional_error_type": directional_error_type,
-                }
-            )
+            row.update({
+                "slope_sign_s23": slope_sign_s23,
+                "slope_sign_s53": slope_sign_s53,
+                "slope_disagreement": slope_disagreement,
+                "slope_gap": slope_gap,
+                "abs_slope_sum": abs_slope_sum,
+                "abs_compression_velocity": abs_compression_velocity,
+                "abs_flip_score": abs_flip_score,
+                "fan_to_slope_ratio": fan_to_slope_ratio,
+                "collapse_flag": collapse_flag,
+                "weak_bull_exhaustion_flag": weak_bull_exhaustion_flag,
+                "weak_bear_exhaustion_flag": weak_bear_exhaustion_flag,
+                "possible_flip_zone": possible_flip_zone,
+                "possible_run_zone": possible_run_zone,
+                "possible_transition_zone": possible_transition_zone,
+                "phase_alignment": phase["phase_alignment"],
+                "phase_strength": phase["phase_strength"],
+                "phase_velocity": phase["phase_velocity"],
+                "fan_phase_score": phase["fan_phase_score"],
+                "reversal_pressure": reversal_pressure,
+                "truth_direction_group": truth,
+                "prediction_direction_group": pred,
+                "directional_error_type": directional_error_type,
+            })
             row["prev_g83"] = _as_float((prev or {}).get("g83"))
             row["phase_input_count"] = phase["phase_input_count"]
             prev = row
             derived_rows.append(row)
 
     return sorted(derived_rows, key=lambda r: (str(r.get("model_id") or MODEL_DEFAULT),) + _resolve_sort_key(r))
+
 
 def build_feature_population_audit(rows: Sequence[Dict[str, Any]]) -> Tuple[
     List[Dict[str, Any]], Dict[str, Any], List[str]]:
@@ -1889,6 +2002,133 @@ def print_v2_1_scan_summary(
     _print_candidates("Top 5 Bull -> Neutral candidates", top_neutral)
     _print_candidates("Top 3 Bull -> Bear candidates", top_bear)
 
+def _metric_row(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    directional = [r for r in rows if r.get("prediction") in {"Bull", "Bear"}]
+    correct = [r for r in directional if r.get("prediction") == r.get("truth")]
+    bull_rows = [r for r in directional if r.get("prediction") == "Bull"]
+    bear_rows = [r for r in directional if r.get("prediction") == "Bear"]
+    return {
+        "rows": len(rows),
+        "reversal_rate": _safe_ratio(sum(1 for r in rows if _is_transition_reversal(r)), len(rows)),
+        "continuation_rate": _safe_ratio(sum(1 for r in rows if not _is_transition_reversal(r)), len(rows)),
+        "directional_call_rate": _safe_ratio(len(directional), len(rows)),
+        "directional_accuracy": _safe_ratio(len(correct), len(directional)),
+        "bull_precision": _safe_ratio(sum(1 for r in bull_rows if r.get("truth") == "Bull"), len(bull_rows)),
+        "bear_precision": _safe_ratio(sum(1 for r in bear_rows if r.get("truth") == "Bear"), len(bear_rows)),
+    }
+
+
+def build_transition_signal_report(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    signals = [
+        "hinge_torsion_spike", "phase_disagreement", "fan_polarity_inversion", "fan_velocity_oscillation",
+        "fan_collapse_v2", "fan_collapse_v2_strict", "compression_trap", "compression_trap_strict",
+        "fan_energy_release_signal", "price_diff_vol_squeeze",
+    ]
+    out=[]
+    for sig in signals:
+        subset=[r for r in rows if (_as_int(r.get(sig)) or 0)==1]
+        m=_metric_row(subset)
+        out.append({"signal":sig,"row_count":m["rows"],"reversal_rate":m["reversal_rate"],"continuation_rate":m["continuation_rate"],"directional_call_rate":m["directional_call_rate"],"directional_accuracy_within_signal":m["directional_accuracy"]})
+    return out
+
+
+def build_transition_score_report(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    out=[]
+    for thr in [1,2,3,4]:
+        subset=[]
+        for r in rows:
+            score = (_as_int(r.get("phase_disagreement")) or 0) + (_as_int(r.get("hinge_torsion_spike")) or 0) + (_as_int(r.get("fan_polarity_inversion")) or 0) + (_as_int(r.get("fan_collapse_v2")) or 0)
+            if score >= thr:
+                subset.append(r)
+        m=_metric_row(subset)
+        out.append({"threshold":f"score>={thr}","rows":m["rows"],"reversal_rate":m["reversal_rate"],"continuation_rate":m["continuation_rate"],"directional_accuracy":m["directional_accuracy"],"bull_precision":m["bull_precision"],"bear_precision":m["bear_precision"],"coverage_if_used_as_transition_gate":_safe_ratio(len(subset),len(rows))})
+    return out
+
+
+def build_trend_strength_report(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    bins=[("0_to_6",0,6),("6_to_15",6,15),("15_to_25",15,25),("25_plus",25,10**9)]
+    out=[]
+    for name,lo,hi in bins:
+        subset=[r for r in rows if (_as_float(r.get("outer_fan_width")) is not None and _as_float(r.get("outer_fan_width"))>=lo and _as_float(r.get("outer_fan_width"))<hi)]
+        m=_metric_row(subset)
+        out.append({"outer_fan_width_bin":name,"rows":len(subset),"bull_count":sum(1 for r in subset if r.get("prediction")=="Bull"),"bear_count":sum(1 for r in subset if r.get("prediction")=="Bear"),"neutral_count":sum(1 for r in subset if r.get("prediction")=="Neutral"),"directional_accuracy":m["directional_accuracy"],"reversal_rate":m["reversal_rate"],"continuation_rate":m["continuation_rate"]})
+    return out
+
+
+def build_oscillation_report(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    patterns=["+-+","-+-","++-","+--","-++","--+","+++","---"]
+    observed={str(r.get("fan_velocity_pattern_3") or "000") for r in rows}
+    all_patterns=sorted(observed.union(patterns))
+    out=[]
+    for pat in all_patterns:
+        subset=[r for r in rows if str(r.get("fan_velocity_pattern_3") or "000")==pat]
+        m=_metric_row(subset)
+        out.append({"pattern":pat,"rows":len(subset),"reversal_rate":m["reversal_rate"],"continuation_rate":m["continuation_rate"],"directional_accuracy":m["directional_accuracy"],"mean_fan_velocity_oscillation_strength":_safe_mean(subset,"fan_velocity_oscillation_strength")})
+    return out
+
+
+def build_price_structure_report(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    out=[]
+    for pat in sorted({str(r.get("price_diff_sign_pattern") or "000") for r in rows}):
+        subset=[r for r in rows if str(r.get("price_diff_sign_pattern") or "000")==pat]
+        m=_metric_row(subset)
+        out.append({"group":"price_diff_sign_pattern","value":pat,**m})
+    for key in ["price_diff_vol_squeeze","direction_flip"]:
+        for val in [0,1]:
+            subset=[r for r in rows if (_as_int(r.get(key)) or 0)==val]
+            m=_metric_row(subset)
+            out.append({"group":key,"value":str(val),**m})
+    for name,key,bins in [("epoch_volatility","epoch_volatility",[(0,0.5),(0.5,1.0),(1.0,2.0),(2.0,10**9)]),("abs_momentum_3epoch","momentum_3epoch",[(0,0.5),(0.5,1.0),(1.0,2.0),(2.0,10**9)])]:
+        for lo,hi in bins:
+            subset=[]
+            for r in rows:
+                v=_as_float(r.get(key))
+                if v is None:
+                    continue
+                if name.startswith("abs"):
+                    v=abs(v)
+                if lo<=v<hi:
+                    subset.append(r)
+            m=_metric_row(subset)
+            out.append({"group":name,"value":f"{lo}-{hi if hi<10**8 else 'plus'}",**m})
+    return out
+
+
+def simulate_proto_v2_3_offline(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    simulated=[]
+    counts={"transition_score_triggers":0,"fan_collapse_v2_triggers":0,"compression_trap_blocks":0,"inertia_wall_neutralizations":0,"oscillation_based_reversals":0}
+    for r in rows:
+        clone=dict(r)
+        pred=_resolve_directional_prediction(r,"prediction")
+        base_pred=pred
+        fwv=_as_float(r.get("fan_width_velocity")) or 0.0
+        transition_score=(_as_int(r.get("transition_score_base")) or 0)+(_as_int(r.get("fan_collapse_v2")) or 0)
+        inertia=_as_float(r.get("inertia_wall_score")) or 0.0
+        if (_as_int(r.get("compression_trap")) or 0)==1:
+            counts["compression_trap_blocks"]+=1
+            proto=base_pred if base_pred in {"Bull","Bear"} else "Neutral"
+        elif transition_score >= 2 and abs(fwv) >= 20:
+            counts["transition_score_triggers"]+=1
+            proto="Bull" if fwv>0 else "Bear"
+            if (_as_int(r.get("fan_velocity_oscillation")) or 0)==1:
+                counts["oscillation_based_reversals"]+=1
+        elif (_as_int(r.get("fan_collapse_v2")) or 0)==1:
+            counts["fan_collapse_v2_triggers"]+=1
+            proto="Bear" if fwv<0 else "Bull"
+        else:
+            proto=base_pred
+        if inertia >= INERTIA_WALL_HIGH_THRESHOLD and proto in {"Bull","Bear"} and proto != base_pred:
+            counts["inertia_wall_neutralizations"] += 1
+            proto = "Neutral"
+        clone["proto_v2_3_prediction"]=proto
+        clone["prediction"]=proto
+        clone["directional_called"]=proto in {"Bull","Bear"}
+        clone["directional_correct"]=bool(clone["directional_called"] and proto==clone.get("truth"))
+        simulated.append(clone)
+    s=build_main_summary(simulated)
+    report={"total_rows":len(simulated),"directional_called":s.get("directional_called",0),"neutral_called":s.get("neutral_called",0),"directional_accuracy":s.get("directional_accuracy",0.0),"coverage":s.get("directional_coverage",0.0),"bull_precision":s.get("bull_precision",0.0),"bear_precision":s.get("bear_precision",0.0),"bull_pred_bull_truth":s.get("bull_pred_bull_truth",0),"bull_pred_bear_truth":s.get("bull_pred_bear_truth",0),"bear_pred_bull_truth":s.get("bear_pred_bull_truth",0),"bear_pred_bear_truth":s.get("bear_pred_bear_truth",0),**counts}
+    return {"rows":simulated,"report":report}
+
 def _write_csv(path: Path, rows: Sequence[Dict[str, Any]], fieldnames: Sequence[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as handle:
@@ -1910,6 +2150,12 @@ def write_outputs(
     fan_feature_diagnostics: Sequence[Dict[str, Any]],
     v2_2_feature_candidates: Sequence[Dict[str, Any]],
     feature_population_audit: Sequence[Dict[str, Any]],
+    transition_signal_report: Sequence[Dict[str, Any]],
+    transition_score_report: Sequence[Dict[str, Any]],
+    trend_strength_report: Sequence[Dict[str, Any]],
+    oscillation_report: Sequence[Dict[str, Any]],
+    price_structure_report: Sequence[Dict[str, Any]],
+    proto_v2_3_offline_report: Sequence[Dict[str, Any]],
     model_suffix: str,
 ) -> Dict[str, Path]:
     """Write all required datasets and summary files."""
@@ -1928,6 +2174,12 @@ def write_outputs(
         "feature_population_audit": output_dir / f"gaussian_fan_feature_population_audit_{model_suffix}.csv",
         "wave_inertia_profile": output_dir / f"gaussian_fan_wave_inertia_profile_{model_suffix}.csv",
         "feature_source_map": output_dir / "gaussian_fan_feature_source_map.txt",
+        "transition_signal_report": output_dir / f"gaussian_fan_transition_signal_report_{model_suffix}.csv",
+        "transition_score_report": output_dir / f"gaussian_fan_transition_score_report_{model_suffix}.csv",
+        "trend_strength_report": output_dir / f"gaussian_fan_trend_strength_report_{model_suffix}.csv",
+        "oscillation_report": output_dir / f"gaussian_fan_oscillation_report_{model_suffix}.csv",
+        "price_structure_report": output_dir / f"gaussian_fan_price_structure_report_{model_suffix}.csv",
+        "proto_v2_3_offline_report": output_dir / f"gaussian_fan_proto_v2_3_offline_report_{model_suffix}.csv",
     }
     if model_suffix == "v2_1":
         paths["v2_2_feature_candidates"] = output_dir / "gaussian_fan_v2_2_feature_candidates_v2_1.csv"
@@ -1967,6 +2219,12 @@ def write_outputs(
         wave_inertia_profile,
         list(wave_inertia_profile[0].keys()) if wave_inertia_profile else ["directional_error_type", "row_count"],
     )
+    _write_csv(paths["transition_signal_report"], transition_signal_report, list(transition_signal_report[0].keys()) if transition_signal_report else ["signal", "row_count"])
+    _write_csv(paths["transition_score_report"], transition_score_report, list(transition_score_report[0].keys()) if transition_score_report else ["threshold", "rows"])
+    _write_csv(paths["trend_strength_report"], trend_strength_report, list(trend_strength_report[0].keys()) if trend_strength_report else ["outer_fan_width_bin", "rows"])
+    _write_csv(paths["oscillation_report"], oscillation_report, list(oscillation_report[0].keys()) if oscillation_report else ["pattern", "rows"])
+    _write_csv(paths["price_structure_report"], price_structure_report, list(price_structure_report[0].keys()) if price_structure_report else ["group", "value", "rows"])
+    _write_csv(paths["proto_v2_3_offline_report"], proto_v2_3_offline_report, list(proto_v2_3_offline_report[0].keys()) if proto_v2_3_offline_report else ["total_rows"])
 
     return paths
 
@@ -2074,6 +2332,27 @@ def print_terminal_summary(
     print(f"phase_disagreement_rate: {_pct(wave_inertia.get('phase_disagreement_rate', 0.0) or 0.0)}")
     print(f"mean inertia_wall_score: {wave_inertia.get('mean_inertia_wall_score', 0.0):.5f}")
 
+    print("\n=== v2_3 Transition / Collapse Preview ===")
+    print(f"hinge_torsion_spike rate: {_pct(_safe_mean(rows, 'hinge_torsion_spike'))}")
+    print(f"fan_polarity_inversion rate: {_pct(_safe_mean(rows, 'fan_polarity_inversion'))}")
+    print(f"fan_velocity_oscillation rate: {_pct(_safe_mean(rows, 'fan_velocity_oscillation'))}")
+    print(f"fan_collapse_v2 rate: {_pct(_safe_mean(rows, 'fan_collapse_v2'))}")
+    print(f"compression_trap rate: {_pct(_safe_mean(rows, 'compression_trap'))}")
+    print(f"price_diff_vol_squeeze rate: {_pct(_safe_mean(rows, 'price_diff_vol_squeeze'))}")
+    print(f"fan_energy_release_signal rate: {_pct(_safe_mean(rows, 'fan_energy_release_signal'))}")
+    print(f"transition_score>=2 rate: {_pct(_safe_ratio(sum(1 for r in rows if (_as_int(r.get('transition_score_base')) or 0) >= 2), len(rows)))}")
+
+    proto = summary.get("proto_v2_3_offline", {}) if isinstance(summary.get("proto_v2_3_offline"), dict) else {}
+    print("\n=== proto_v2_3 Offline Preview ===")
+    print(f"directional accuracy: {_pct(proto.get('directional_accuracy', 0.0) or 0.0)}")
+    print(f"coverage: {_pct(proto.get('coverage', 0.0) or 0.0)}")
+    print(f"bull precision: {_pct(proto.get('bull_precision', 0.0) or 0.0)}")
+    print(f"bear precision: {_pct(proto.get('bear_precision', 0.0) or 0.0)}")
+    print(f"compression_trap blocks: {int(proto.get('compression_trap_blocks', 0) or 0)}")
+    print(f"fan_collapse promotions: {int(proto.get('fan_collapse_v2_triggers', 0) or 0)}")
+    print(f"transition_score triggers: {int(proto.get('transition_score_triggers', 0) or 0)}")
+    print(f"inertia neutralizations: {int(proto.get('inertia_wall_neutralizations', 0) or 0)}")
+
     if model_id == MODEL_V2_1:
         wrong_bull = next((r for r in error_breakdown if r.get("group_value") == "bull_called_bear_truth"), None)
         correct_bull = next((r for r in error_breakdown if r.get("group_value") == "correct_bull"), None)
@@ -2147,6 +2426,12 @@ def print_terminal_summary(
         "v2_2_feature_candidates",
         "feature_population_audit",
         "wave_inertia_profile",
+        "transition_signal_report",
+        "transition_score_report",
+        "trend_strength_report",
+        "oscillation_report",
+        "price_structure_report",
+        "proto_v2_3_offline_report",
     ]:
         print(f"- {paths[key].resolve()}")
 
@@ -2223,6 +2508,28 @@ def build_v2_1_override_impact(
         "change_vs_v2_0": comparison.get("delta_v2_1_minus_v2_0", {}),
     }
 
+def build_feature_diagnostics(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    numeric = [
+        "fan_width_velocity","hinge_torsion","outer_fan_width","epoch_volatility","momentum_3epoch",
+        "fan_velocity_oscillation_strength","fan_energy_total"
+    ]
+    binary = [
+        "hinge_torsion_spike","fan_polarity_inversion","fan_velocity_oscillation","fan_collapse_v2",
+        "compression_trap","price_diff_vol_squeeze","fan_energy_release_signal"
+    ]
+    patterns = ["fan_velocity_pattern_3","price_diff_sign_pattern","fan_energy_cycle_stage"]
+    for key in numeric:
+        vals=[_as_float(r.get(key)) for r in rows]
+        valid=[v for v in vals if v is not None]
+        out.append({"group_name":"numeric_summary","group_value":key,"row_count":len(valid),"mean":float(mean(valid)) if valid else 0.0,"std":0.0 if len(valid)<2 else float((sum((v-(sum(valid)/len(valid)))**2 for v in valid)/len(valid))**0.5),"min":min(valid) if valid else 0.0,"max":max(valid) if valid else 0.0})
+    for key in binary:
+        out.append({"group_name":"binary_rate","group_value":key,"row_count":len(rows),"rate":_safe_ratio(sum(1 for r in rows if (_as_int(r.get(key)) or 0)==1),len(rows))})
+    for key in patterns:
+        vals=[str(r.get(key) or "") for r in rows]
+        for value in sorted(set(vals)):
+            out.append({"group_name":"pattern_frequency","group_value":f"{key}:{value}","row_count":sum(1 for v in vals if v==value),"rate":_safe_ratio(sum(1 for v in vals if v==value),len(vals))})
+    return out
 
 def run_model_export(
     model_id: str,
@@ -2243,9 +2550,17 @@ def run_model_export(
     fan_feature_diagnostics.extend(_group_rows(rows, "truth", ["Bull", "Bear", "Neutral", "Unknown"]))
     fan_feature_diagnostics.extend(build_regime_breakdown(rows))
     fan_feature_diagnostics.extend(build_error_breakdown(rows))
+    fan_feature_diagnostics.extend(build_feature_diagnostics(rows))
     feature_population_audit, feature_population_counts, population_warnings = build_feature_population_audit(rows)
     v2_2_feature_candidates = build_v2_2_feature_candidates_v2_1(rows)
     v2_1_scan_rows, v2_1_scan_baseline, top_bull_to_neutral_candidates, top_bull_to_bear_candidates = run_v2_1_bull_instability_scan(rows)
+    transition_signal_report = build_transition_signal_report(rows)
+    transition_score_report = build_transition_score_report(rows)
+    trend_strength_report = build_trend_strength_report(rows)
+    oscillation_report = build_oscillation_report(rows)
+    price_structure_report = build_price_structure_report(rows)
+    proto_sim = simulate_proto_v2_3_offline(rows)
+    proto_report_row = proto_sim.get("report", {}) if isinstance(proto_sim, dict) else {}
 
     summary["v2_1_bull_instability_scan"] = {
         "baseline": v2_1_scan_baseline,
@@ -2255,6 +2570,7 @@ def run_model_export(
     summary["v2_2_feature_preview"] = build_v2_2_feature_preview(rows)
     summary["advanced_feature_population_audit"] = feature_population_counts
     summary["advanced_feature_population_warnings"] = population_warnings
+    summary["proto_v2_3_offline"] = proto_report_row
 
     paths = write_outputs(
         output_dir=output_dir,
@@ -2268,6 +2584,12 @@ def run_model_export(
         fan_feature_diagnostics=fan_feature_diagnostics,
         v2_2_feature_candidates=v2_2_feature_candidates,
         feature_population_audit=feature_population_audit,
+        transition_signal_report=transition_signal_report,
+        transition_score_report=transition_score_report,
+        trend_strength_report=trend_strength_report,
+        oscillation_report=oscillation_report,
+        price_structure_report=price_structure_report,
+        proto_v2_3_offline_report=[proto_report_row],
         model_suffix="v2_0" if model_id == MODEL_V2_0 else ("v2_1" if model_id == MODEL_V2_1 else "v2_2"),
     )
 
