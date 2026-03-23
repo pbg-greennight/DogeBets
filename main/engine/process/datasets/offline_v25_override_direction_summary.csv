@@ -1,0 +1,7 @@
+model,good_wrong_bull,good_wrong_bear,bad_right_bull,bad_right_bear
+ruleb_raw,1,13,0,14
+ruleb_core_a,0,3,0,0
+ruleb_core_b,0,2,0,0
+ruleb_core_c,0,2,0,0
+ruleb_core_a_bear,0,3,0,0
+ruleb_core_a_bull,0,0,0,0

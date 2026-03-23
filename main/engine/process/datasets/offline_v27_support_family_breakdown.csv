@@ -1,0 +1,5 @@
+signal,fires,dir_fires,dir_base_err,wrong_bear_overlap,right_bear_overlap
+osc_core_a,320,62,0.46774193548387094,11,16
+core_window_pm1,535,150,0.4533333333333333,41,47
+core_window_relaxed,420,98,0.4489795918367347,23,34
+core_window_prevcurr,434,128,0.4453125,33,43

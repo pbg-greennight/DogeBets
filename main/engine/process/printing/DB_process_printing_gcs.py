@@ -15,7 +15,7 @@ from main.engine.process.printing.DB_process_printing_utils import (
     _arrow, _print_cfg
 )
 from main.engine.process.printing.DB_process_SectionLogger import get_section_logger
-from main.engine.process.DB_process_metrics import snapshot_metrics
+from main.engine.process.core.DB_process_metrics import snapshot_metrics
 
 def print_gaussian_channel_snapshot(
     timing: Any = None,
@@ -67,9 +67,9 @@ def print_gaussian_channel_snapshot(
     if snapshot is None and per_sigma_full is not None:
         # legacy fallback
         try:
-            from main.engine.process.DB_process_gauss_channel import build_channel_snapshot
+            from main.engine.process.core.DB_process_gauss_channel import build_channel_snapshot
         except Exception:
-            from main.engine.process.DB_process_gauss_channel import build_channel_snapshot
+            from main.engine.process.core.DB_process_gauss_channel import build_channel_snapshot
         snapshot = build_channel_snapshot(per_sigma_full, k=k)
 
     if not snapshot:

@@ -1,0 +1,134 @@
+{
+  "timestamp": "2026-03-20T14:54:44.099941-04:00",
+  "decision_time": "2026-03-20T14:54:44.000433-04:00",
+  "prev_epoch": 323824,
+  "curr_epoch": 323825,
+  "next_epoch": 323826,
+  "trend": "Neutral",
+  "confidence": 1.0,
+  "model": "trend_method_v2_0",
+  "notes": "model_error",
+  "extras": {
+    "primary": {
+      "model_id": "trend_method_v2_0",
+      "trend": "Neutral",
+      "confidence": 1.0,
+      "score": 0.0,
+      "reason": "model_error",
+      "debug": {
+        "error": "fallback"
+      },
+      "raw_features_used": {}
+    },
+    "all_model_predictions": [
+      {
+        "model_id": "trend_method_v2_0",
+        "trend": "Neutral",
+        "confidence": 1.0,
+        "score": 0.0,
+        "reason": "model_error",
+        "debug": {
+          "error": "fallback"
+        },
+        "raw_features_used": {}
+      }
+    ],
+    "features": {
+      "meta": {
+        "curr_epoch": 323825,
+        "next_epoch": 323826,
+        "timestamp": "2026-03-20 14:54:44.071328",
+        "decision_time": "2026-03-20 14:54:44.071328",
+        "next_epoch_time": "",
+        "full_window_start": "",
+        "full_window_end": ""
+      },
+      "gauss": {
+        "latest": {
+          "s8": 69821.26864377147,
+          "s23": 69827.95537408155,
+          "s38": 69830.02670772735,
+          "s53": 69824.08507541938,
+          "s68": 69817.73144316558,
+          "s83": 69812.96182183469
+        },
+        "slopes": {
+          "s8": 0.4590750674051378,
+          "s23": -0.27533379293345206,
+          "s38": 0.03340189992741216,
+          "s53": 0.17955579504450725,
+          "s68": 0.1729947926087334,
+          "s83": 0.1452049342879036
+        },
+        "tangent": {
+          "s8": 0.5794219517847523,
+          "s23": -0.2646628012880683,
+          "s38": 0.01751774194902585,
+          "s53": 0.16943242277678414,
+          "s68": 0.1694741383738195,
+          "s83": 0.1434466080730393
+        },
+        "curvature": {
+          "s8": 0.992315374000325,
+          "s23": 0.009896625772567613,
+          "s38": -0.060982821068942684,
+          "s53": -0.0326654718348956,
+          "s68": -0.010577925568213686,
+          "s83": -0.0055485333842668905
+        }
+      },
+      "msbc": {
+        "mid_bias": -0.047888998944472405,
+        "edge_bias": 0.3021400008465207
+      },
+      "gcs": {
+        "slope_spread": 0.7344088603385899,
+        "fan_direction": -1
+      },
+      "spacing": {
+        "spacing_8_23": 6.686730310073472,
+        "spacing_23_53": -3.870298662164714,
+        "spacing_53_83": -11.123253584693884,
+        "ratio_8_23_to_23_53": 1.727703955695704,
+        "ratio_53_83_to_23_53": -2.8740039342592967
+      },
+      "fan": {
+        "width": -8.306821936785127,
+        "width_abs": 8.306821936785127,
+        "width_slope": 0.0
+      },
+      "hysteresis": {
+        "vote_raw": 0.0,
+        "flip_score": 0.04256209760746321
+      },
+      "torque": {
+        "alignment": 0.0,
+        "slope_signs": [
+          1,
+          -1,
+          1,
+          1
+        ]
+      },
+      "compression": {
+        "value": 21.68028255693207,
+        "velocity": -8.088643862865865
+      },
+      "context": {
+        "tail_anchor_type": null,
+        "extrema_pair": null,
+        "pv_direction": null
+      }
+    },
+    "model_predictions_payload": {
+      "epoch": 323825,
+      "next_epoch": 323826,
+      "timestamp": "2026-03-20T14:54:44.071628",
+      "models": [],
+      "v2.0_trend": "Neutral",
+      "v2.0_score": 0.0,
+      "v2.0_confidence": 1.0,
+      "v2.0_correct": null
+    }
+  }
+}

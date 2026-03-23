@@ -1,0 +1,195 @@
+{
+  "rows": 19799,
+  "epoch_col": "src_meta_epoch",
+  "trend_counts": {
+    "Neutral": 7922,
+    "Bull": 5960,
+    "Bear": 5917
+  },
+  "reason_counts": {
+    "BULL_CONTINUATION_CLEAN": 5960,
+    "BEAR_CONTINUATION_CLEAN": 5917,
+    "NEU_WEAK_CONTINUATION_BOTH": 4057,
+    "NEU_BULL_INVALIDATED": 1720,
+    "NEU_BEAR_INVALIDATED": 1506,
+    "NEU_CLOSE_CALL": 639
+  },
+  "confidence_mean": 0.5169916675167634,
+  "coverage_non_neutral": 0.5998787817566543,
+  "actual_col_requested": null,
+  "actual_col_used": "actual_trend",
+  "accuracy": {
+    "total": {
+      "rows": 19799,
+      "correct": 7972,
+      "wrong": 11827,
+      "accuracy": 0.4026465983130461
+    },
+    "by_predicted_trend": {
+      "Bull": {
+        "rows": 5960,
+        "correct": 3955,
+        "wrong": 2005,
+        "accuracy": 0.6635906040268457
+      },
+      "Bear": {
+        "rows": 5917,
+        "correct": 3978,
+        "wrong": 1939,
+        "accuracy": 0.6723001521041068
+      },
+      "Neutral": {
+        "rows": 7922,
+        "correct": 39,
+        "wrong": 7883,
+        "accuracy": 0.004922999242615501
+      }
+    },
+    "called_only": {
+      "rows": 11877,
+      "correct": 7933,
+      "wrong": 3944,
+      "accuracy": 0.6679296118548455
+    }
+  },
+  "wager": {
+    "stake_bnb": 0.015,
+    "bnb_usd": 685.0,
+    "stake_usd": 10.275,
+    "win_fee_rate": 0.05,
+    "gas_usd_roundtrip": 0.085,
+    "gas_bnb_roundtrip": 0.0001240875912408759,
+    "win_net_bnb": 0.014125912408759123,
+    "lose_net_bnb": -0.015124087591240875,
+    "bet_on_neutral": false,
+    "bets": 11877,
+    "wins": 7933,
+    "losses": 3944,
+    "win_rate": 0.6679296118548455,
+    "net_bnb": 52.41146167883211,
+    "net_usd": 35901.85124999999,
+    "by_predicted_trend": {
+      "Bear": {
+        "bets": 5917,
+        "wins": 3978,
+        "losses": 1939,
+        "win_rate": 0.6723001521041068,
+        "net_bnb": 26.867273722627736,
+        "net_usd": 18404.082499999997
+      },
+      "Bull": {
+        "bets": 5960,
+        "wins": 3955,
+        "losses": 2005,
+        "win_rate": 0.6635906040268457,
+        "net_bnb": 25.54418795620438,
+        "net_usd": 17497.768749999996
+      }
+    }
+  },
+  "false_neutral": {
+    "rows": 7883,
+    "reason_counts": {
+      "NEU_WEAK_CONTINUATION_BOTH": 4023,
+      "NEU_BULL_INVALIDATED": 1719,
+      "NEU_BEAR_INVALIDATED": 1503,
+      "NEU_CLOSE_CALL": 638
+    },
+    "actual_counts": {
+      "Bull": 3982,
+      "Bear": 3901
+    },
+    "forced_side": {
+      "rows": 7883,
+      "wins": 4265,
+      "losses": 3618,
+      "win_rate": 0.5410376760116706,
+      "net_bnb": 5.528067518248172,
+      "net_usd": 3786.7262499999974,
+      "forced_side_counts": {
+        "Bull": 5154,
+        "Bear": 2729
+      }
+    },
+    "by_reason": [
+      {
+        "reason": "NEU_WEAK_CONTINUATION_BOTH",
+        "rows": 4023,
+        "forced_side_rows": 4023,
+        "forced_side_wins": 2191,
+        "forced_side_losses": 1832,
+        "forced_side_win_rate": 0.544618443947303,
+        "forced_side_net_bnb": 3.242545620437955,
+        "forced_side_net_usd": 2221.1437499999984,
+        "avg_confidence": 0.5999639670229512,
+        "avg_sep": 0.02224881928908776,
+        "avg_abs_price_diff": 50.08048222719375
+      },
+      {
+        "reason": "NEU_CLOSE_CALL",
+        "rows": 638,
+        "forced_side_rows": 638,
+        "forced_side_wins": 395,
+        "forced_side_losses": 243,
+        "forced_side_win_rate": 0.6191222570532915,
+        "forced_side_net_bnb": 1.9045821167883208,
+        "forced_side_net_usd": 1304.6387499999996,
+        "avg_confidence": 0.5957698361263976,
+        "avg_sep": 0.03796965778474399,
+        "avg_abs_price_diff": 89.2386520376178
+      },
+      {
+        "reason": "NEU_BULL_INVALIDATED",
+        "rows": 1719,
+        "forced_side_rows": 1719,
+        "forced_side_wins": 907,
+        "forced_side_losses": 812,
+        "forced_side_win_rate": 0.527632344386271,
+        "forced_side_net_bnb": 0.5314434306569337,
+        "forced_side_net_usd": 364.0387499999996,
+        "avg_confidence": 0.5185287706432051,
+        "avg_sep": 0.07851007465580762,
+        "avg_abs_price_diff": 79.61972076788834
+      },
+      {
+        "reason": "NEU_BEAR_INVALIDATED",
+        "rows": 1503,
+        "forced_side_rows": 1503,
+        "forced_side_wins": 772,
+        "forced_side_losses": 731,
+        "forced_side_win_rate": 0.5136393878908849,
+        "forced_side_net_bnb": -0.15050364963503704,
+        "forced_side_net_usd": -103.09500000000025,
+        "avg_confidence": 0.520185380325825,
+        "avg_sep": 0.07729251497005986,
+        "avg_abs_price_diff": 84.92594810379232
+      }
+    ]
+  },
+  "input": "E:\\Trading_Bot_V1.0\\DogeBets\\main\\data\\epoch_model_table_v6\\epoch_model_table_v21_src.parquet",
+  "predictions": "E:\\Trading_Bot_V1.0\\DogeBets\\main\\research\\epoch_tournament\\method_v21\\outputs\\predictions_v21.csv",
+  "leaderboard_row": {
+    "run_ts_utc": "2026-03-20T00:49:18.120890+00:00",
+    "model_label": "method_v21",
+    "input": "E:\\Trading_Bot_V1.0\\DogeBets\\main\\data\\epoch_model_table_v6\\epoch_model_table_v21_src.parquet",
+    "predictions": "E:\\Trading_Bot_V1.0\\DogeBets\\main\\research\\epoch_tournament\\method_v21\\outputs\\predictions_v21.csv",
+    "rows": 19799,
+    "coverage_non_neutral": 0.5998787817566543,
+    "called_rows": 11877,
+    "called_only_accuracy": 0.6679296118548455,
+    "net_bnb": 52.41146167883211,
+    "net_usd": 35901.85124999999,
+    "bets": 11877,
+    "wins": 7933,
+    "losses": 3944,
+    "bull_accuracy": 0.6635906040268457,
+    "bear_accuracy": 0.6723001521041068,
+    "false_neutral_rows": 7883,
+    "leak_neu_weak_continuation_both": 4023,
+    "leak_neu_bull_invalidated": 1719,
+    "leak_neu_bear_invalidated": 1503,
+    "leak_neu_close_call": 638,
+    "forced_false_neutral_win_rate": 0.5410376760116706,
+    "forced_false_neutral_net_bnb": 5.528067518248172
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "mode": "live_monitor",
+  "data": {
+    "parquet_path": "E:/Trading_Bot_V1.0/DogeBets/main/data/epoch_model_table_v6/canonical_bars.parquet",
+    "timestamp_col": "ts_utc_parsed",
+    "epoch_col": "epoch",
+    "next_epoch_time_col": "next_round_time_utc",
+    "open_col": "open",
+    "high_col": "high",
+    "low_col": "low",
+    "close_col": "close",
+    "volume_col": "volume"
+  },
+  "backtest": {
+    "decision_offset_sec": 12,
+    "warmup_epochs": 300,
+    "refit_every_n_epochs": 50,
+    "min_train_epochs": 250
+  },
+  "feature_engineering": {
+    "trend_windows": [3, 5, 8, 13, 21],
+    "vol_windows": [5, 10, 20],
+    "pressure_windows": [3, 5, 10],
+    "regime_windows": [10, 20, 40]
+  },
+  "fan_geometry": {
+    "enabled": true
+  },
+  "wager": {
+    "stake_bnb": 0.015,
+    "bnb_usd_price": 685.0,
+    "payout_win_multiple": 0.95,
+    "site_fee_on_win_rate": 0.05,
+    "gas_bet_usd": 0.85,
+    "gas_claim_usd": 0.85
+  },
+  "live": {
+    "poll_seconds": 30
+  }
+}

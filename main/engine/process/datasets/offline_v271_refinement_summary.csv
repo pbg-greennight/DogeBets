@@ -1,0 +1,7 @@
+model,triggers,good_wrong_bear,bad_right_bear,capture_of_ruleb_wrong_bear
+bear_core_a,3,3,0,0.23076923076923078
+bear_win_pm1,9,6,3,0.46153846153846156
+bear_win_pm1_centered,9,6,3,0.46153846153846156
+bear_win_pm1_centered_hinge,8,6,2,0.46153846153846156
+bear_win_pm1_centered_strict,5,4,1,0.3076923076923077
+bear_win_pm1_centered_soft,6,5,1,0.38461538461538464

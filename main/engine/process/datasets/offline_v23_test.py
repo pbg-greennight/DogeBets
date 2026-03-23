@@ -22,10 +22,10 @@ def compute_stats(df: pd.DataFrame, pred_col: str, truth_col: str) -> dict:
     directional = df[directional_mask]
 
     directional_called = len(directional)
-    neutral_called = (df[pred_col] == "Neutral").sum()
+    neutral_called = int((df[pred_col] == "Neutral").sum())
 
     directional_accuracy = (
-        (directional[pred_col] == directional[truth_col]).mean()
+        float((directional[pred_col] == directional[truth_col]).mean())
         if directional_called > 0 else 0.0
     )
     coverage = directional_called / total_rows if total_rows else 0.0
@@ -35,11 +35,11 @@ def compute_stats(df: pd.DataFrame, pred_col: str, truth_col: str) -> dict:
     bear_pred = directional[directional[pred_col] == "Bear"]
 
     bull_precision = (
-        (bull_pred[truth_col] == "Bull").mean()
+        float((bull_pred[truth_col] == "Bull").mean())
         if len(bull_pred) > 0 else 0.0
     )
     bear_precision = (
-        (bear_pred[truth_col] == "Bear").mean()
+        float((bear_pred[truth_col] == "Bear").mean())
         if len(bear_pred) > 0 else 0.0
     )
 
@@ -67,28 +67,12 @@ def print_stats_block(title: str, stats: dict) -> None:
     print(f"Bear Precision: {stats['bear_precision'] * 100:.2f}%")
 
 
-def flip_direction(pred: str) -> str:
-    if pred == "Bull":
-        return "Bear"
-    if pred == "Bear":
-        return "Bull"
-    return pred
+def safe_mean(series: pd.Series) -> float:
+    return float(series.mean()) if len(series) else 0.0
 
 
-def main() -> None:
-    df = pd.read_csv(CSV_PATH)
-
-    truth_col = pick_column(
-        df,
-        ["truth", "true_direction", "actual", "label", "target"],
-        "truth",
-    )
-
-    base_pred_col = pick_column(
-        df,
-        ["prediction", "pred", "trend", "model_prediction", "predicted_trend"],
-        "prediction",
-    )
+def build_features(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
 
     required = [
         "g8", "g23", "g38", "g53", "g68", "g83",
@@ -112,14 +96,6 @@ def main() -> None:
             df["outer_fan_width"].abs() * (1.0 + df["hinge_torsion"].abs())
         )
 
-    # -------------------------------------------------
-    # Base model preserved for comparison
-    # -------------------------------------------------
-    df["pred_v22_base"] = df[base_pred_col].copy()
-
-    # -------------------------------------------------
-    # Derived geometry / feature stack
-    # -------------------------------------------------
     df["outer_fan_width_prev"] = df["outer_fan_width"].shift(1)
     df["hinge_torsion_spike"] = (df["hinge_torsion"].abs() > 0.5).astype(int)
 
@@ -130,7 +106,6 @@ def main() -> None:
     )
     df["transition_gate_v23"] = (df["transition_score_v23"] >= 2).astype(int)
 
-    # Collapse swept winner
     df["fan_collapse_v23_swept"] = (
         (df["fan_width_velocity"] < -15.0)
         & (df["hinge_torsion"].abs() > 0.40)
@@ -138,14 +113,12 @@ def main() -> None:
         & (df["outer_fan_width"] < df["outer_fan_width_prev"])
     ).astype(int)
 
-    # Inertia swept winner
     df["inertia_wall_active_swept"] = (
         (df["slow_retention"] > 0.75)
         & (df["hinge_torsion"].abs() > 0.25)
         & (df["phase_disagreement"] == 1)
     ).astype(int)
 
-    # Torsion spring
     df["ts_d1"] = df["slope_g8"] - df["slope_g23"]
     df["ts_d2"] = df["slope_g23"] - df["slope_g38"]
     df["ts_d3"] = df["slope_g38"] - df["slope_g53"]
@@ -165,7 +138,6 @@ def main() -> None:
         & (df["phase_disagreement"] == 1)
     ).astype(int)
 
-    # Fan energy breathing cycle
     df["fan_energy_t3"] = df["fan_energy_total"].shift(3)
     df["fan_energy_t2"] = df["fan_energy_total"].shift(2)
     df["fan_energy_t1"] = df["fan_energy_total"].shift(1)
@@ -177,7 +149,6 @@ def main() -> None:
         & (df["fan_energy_t0"] < df["fan_energy_t1"])
     ).astype(int)
 
-    # Torque imbalance
     df["torque_fast_motion"] = df["slope_g8"].abs() + df["slope_g23"].abs()
     df["torque_slow_motion"] = df["slope_g68"].abs() + df["slope_g83"].abs()
     df["torque_imbalance_score"] = df["torque_fast_motion"] - df["torque_slow_motion"]
@@ -196,251 +167,88 @@ def main() -> None:
         & (df["torque_opposition"] == 1)
     ).astype(int)
 
-    # -------------------------------------------------
-    # High-value combo features
-    # -------------------------------------------------
-    df["collapse_plus_inertia_swept"] = (
-        (df["fan_collapse_v23_swept"] == 1)
-        & (df["inertia_wall_active_swept"] == 1)
+    # warning features
+    df["collapse_warning_plus_inertia_v23"] = (
+        (df["fan_width_velocity"] < -8.0)
+        & (df["hinge_torsion"].abs() > 0.35)
+        & (df["slow_retention"] > 0.90)
+        & (df["transition_score_v23"] >= 1)
     ).astype(int)
 
-    df["collapse_plus_torsion_swept"] = (
-        (df["fan_collapse_v23_swept"] == 1)
-        & (df["torsion_spring_strong_swept"] == 1)
+    df["torsion_transition_warning_v23"] = (
+        (df["torsion_spring_score_v23"] > 0.18)
+        & (df["hinge_torsion"].abs() > 0.30)
+        & (df["transition_score_v23"] >= 1)
     ).astype(int)
 
-    df["torsion_plus_transition_swept"] = (
-        (df["torsion_spring_strong_swept"] == 1)
-        & (df["transition_gate_v23"] == 1)
+    df["inertia_warning_v23"] = (
+        (df["slow_retention"] > 0.90)
+        & (df["hinge_torsion"].abs() > 0.20)
+        & (df["transition_score_v23"] >= 1)
     ).astype(int)
 
-    df["torsion_plus_inertia_swept"] = (
-        (df["torsion_spring_strong_swept"] == 1)
-        & (df["inertia_wall_active_swept"] == 1)
+    df["energy_cycle_warning_v23"] = (
+        (df["fan_energy_t3"] > df["fan_energy_t2"])
+        & (df["fan_energy_t1"] >= df["fan_energy_t2"])
     ).astype(int)
 
-    df["torque_plus_inertia_swept"] = (
-        (df["torque_imbalance_ratio"] > 1.75)
-        & (df["torque_imbalance_score"] > 0.00)
-        & (df["slow_retention"] > 0.75)
-        & (df["hinge_torsion"].abs() > 0.60)
-        & (df["phase_disagreement"] == 1)
-        & (df["torque_opposition"] == 1)
-    ).astype(int)
+    return df
 
-    df["torque_plus_transition_swept"] = (
-        (df["torque_imbalance_active_swept"] == 1)
-        & (df["transition_gate_v23"] == 1)
-    ).astype(int)
 
-    df["collapse_plus_torque_swept"] = (
-        (df["torque_imbalance_ratio"] > 1.25)
-        & (df["torque_imbalance_score"] > 0.20)
-        & (df["fan_width_velocity"] < -15.0)
-        & (df["hinge_torsion"].abs() > 0.60)
-        & (df["phase_disagreement"] == 1)
-        & (df["outer_fan_width"] < df["outer_fan_width_prev"])
-        & (df["torque_opposition"] == 1)
-    ).astype(int)
+def apply_rule_b_custom(
+    df: pd.DataFrame,
+    base_col: str,
+    slow_retention_threshold: float,
+    hinge_threshold: float,
+    transition_min: int,
+    bear_only: bool,
+):
+    pred = df[base_col].copy()
+    actions = []
 
-    # -------------------------------------------------
-    # Current epoch value snapshot for quick comparison
-    # -------------------------------------------------
-    latest = df.iloc[-1]
-    print("\n=== CURRENT EPOCH FEATURE SNAPSHOT (LAST ROW) ===")
-    print(f"Base v2_2 prediction: {latest['pred_v22_base']}")
-    print(f"fan_collapse_v23_swept: {int(latest['fan_collapse_v23_swept'])}")
-    print(f"inertia_wall_active_swept: {int(latest['inertia_wall_active_swept'])}")
-    print(f"torsion_spring_strong_swept: {int(latest['torsion_spring_strong_swept'])}")
-    print(f"fan_energy_cycle_v23: {int(latest['fan_energy_cycle_v23'])}")
-    print(f"torque_imbalance_active_swept: {int(latest['torque_imbalance_active_swept'])}")
-    print(f"collapse_plus_inertia_swept: {int(latest['collapse_plus_inertia_swept'])}")
-    print(f"collapse_plus_torsion_swept: {int(latest['collapse_plus_torsion_swept'])}")
-    print(f"torsion_plus_transition_swept: {int(latest['torsion_plus_transition_swept'])}")
-    print(f"torsion_plus_inertia_swept: {int(latest['torsion_plus_inertia_swept'])}")
-    print(f"torque_plus_transition_swept: {int(latest['torque_plus_transition_swept'])}")
-    print(f"torque_plus_inertia_swept: {int(latest['torque_plus_inertia_swept'])}")
-    print(f"collapse_plus_torque_swept: {int(latest['collapse_plus_torque_swept'])}")
-
-    # -------------------------------------------------
-    # Keep earlier replays for leaderboard comparison
-    # -------------------------------------------------
-    # Proto v2.3 original replay
-    pred_original = df["pred_v22_base"].copy()
-    for i, row in df.iterrows():
-        current_pred = pred_original.iloc[i]
-        if row["inertia_wall_active_swept"] == 1 and row["fan_collapse_v23_swept"] == 0:
-            if current_pred in ("Bull", "Bear"):
-                pred_original.iloc[i] = "Neutral"
-                continue
-        if row["fan_collapse_v23_swept"] == 1:
-            pred_original.iloc[i] = flip_direction(current_pred)
-    df["pred_proto_v23_original_replay"] = pred_original
-
-    # Lean proto replay
-    pred_lean = df["pred_v22_base"].copy()
-    for i, row in df.iterrows():
-        current_pred = pred_lean.iloc[i]
-        if row["torsion_plus_transition_swept"] == 1 and row["fan_collapse_v23_swept"] == 0:
-            if current_pred in ("Bull", "Bear"):
-                pred_lean.iloc[i] = "Neutral"
-                continue
-        if row["fan_collapse_v23_swept"] == 1:
-            pred_lean.iloc[i] = flip_direction(current_pred)
-    df["pred_proto_v23_lean_replay"] = pred_lean
-
-    # Swept proto replay
-    pred_swept = df["pred_v22_base"].copy()
-    for i, row in df.iterrows():
-        current_pred = pred_swept.iloc[i]
-        if row["torque_plus_transition_swept"] == 1 and row["fan_collapse_v23_swept"] == 0:
-            if current_pred in ("Bull", "Bear"):
-                pred_swept.iloc[i] = "Neutral"
-                continue
-        if row["torsion_plus_transition_swept"] == 1 and row["fan_collapse_v23_swept"] == 0:
-            if current_pred in ("Bull", "Bear"):
-                pred_swept.iloc[i] = "Neutral"
-                continue
-        if row["fan_collapse_v23_swept"] == 1:
-            pred_swept.iloc[i] = flip_direction(current_pred)
-    df["pred_proto_v23_swept"] = pred_swept
-
-    # -------------------------------------------------
-    # NEW: Hybrid overlay model
-    # -------------------------------------------------
-    pred_hybrid = df["pred_v22_base"].copy()
-    hybrid_action = []
-
-    high_conf_flip_count = 0
-    medium_conf_flip_count = 0
-    pressure_neutral_count = 0
-    watch_neutral_count = 0
-    continuation_block_count = 0
-    no_change_count = 0
+    count = 0
+    no_change = 0
 
     for i, row in df.iterrows():
-        current_pred = pred_hybrid.iloc[i]
+        current_pred = pred.iloc[i]
         action = "KEEP"
 
-        continuation_protection = (row["fan_energy_cycle_v23"] == 1)
-
-        high_conf_release = (
-            row["collapse_plus_torque_swept"] == 1
-            or row["collapse_plus_inertia_swept"] == 1
-        )
-
-        medium_conf_release = (
-            row["collapse_plus_torsion_swept"] == 1
-        )
-
-        pressure_state = (
-            row["torque_plus_inertia_swept"] == 1
-            or row["torsion_plus_inertia_swept"] == 1
-        )
-
-        watch_state = (
-            row["torque_plus_transition_swept"] == 1
-            or row["torsion_plus_transition_swept"] == 1
-        )
-
-        # 1) Highest-confidence flips override continuation protection
-        if high_conf_release:
-            new_pred = flip_direction(current_pred)
-            if new_pred != current_pred:
-                pred_hybrid.iloc[i] = new_pred
-                high_conf_flip_count += 1
-                action = "HIGH_CONF_FLIP"
-            hybrid_action.append(action)
+        if current_pred not in ("Bull", "Bear"):
+            no_change += 1
+            actions.append(action)
             continue
 
-        # 2) Medium-confidence flip only if not protected by breathing cycle
-        if medium_conf_release:
-            if not continuation_protection:
-                new_pred = flip_direction(current_pred)
-                if new_pred != current_pred:
-                    pred_hybrid.iloc[i] = new_pred
-                    medium_conf_flip_count += 1
-                    action = "MEDIUM_CONF_FLIP"
-                hybrid_action.append(action)
-                continue
-            else:
-                continuation_block_count += 1
-                action = "BLOCK_MEDIUM_FLIP"
-                hybrid_action.append(action)
-                continue
+        side_ok = (current_pred == "Bear") if bear_only else (current_pred in ("Bull", "Bear"))
 
-        # 3) Pressure states: neutralize risky calls, do not flip
-        if pressure_state:
-            if continuation_protection:
-                continuation_block_count += 1
-                action = "BLOCK_PRESSURE_NEUTRAL"
-            else:
-                if current_pred in ("Bull", "Bear"):
-                    pred_hybrid.iloc[i] = "Neutral"
-                    pressure_neutral_count += 1
-                    action = "PRESSURE_NEUTRAL"
-            hybrid_action.append(action)
-            continue
+        rule_b = (
+            side_ok
+            and (row["slow_retention"] > slow_retention_threshold)
+            and (abs(row["hinge_torsion"]) > hinge_threshold)
+            and (row["transition_score_v23"] >= transition_min)
+        )
 
-        # 4) Watch states: neutralize weak directional calls only if not protected
-        if watch_state:
-            if continuation_protection:
-                continuation_block_count += 1
-                action = "BLOCK_WATCH_NEUTRAL"
-            else:
-                if current_pred in ("Bull", "Bear"):
-                    pred_hybrid.iloc[i] = "Neutral"
-                    watch_neutral_count += 1
-                    action = "WATCH_NEUTRAL"
-            hybrid_action.append(action)
-            continue
+        if rule_b:
+            pred.iloc[i] = "Neutral"
+            count += 1
+            action = "RULE_B_CUSTOM_NEUTRAL"
+        else:
+            no_change += 1
 
-        no_change_count += 1
-        hybrid_action.append(action)
+        actions.append(action)
 
-    df["pred_proto_v23_hybrid_overlay"] = pred_hybrid
-    df["hybrid_overlay_action"] = hybrid_action
+    return pred, pd.Series(actions, index=df.index), {
+        "count": count,
+        "no_change": no_change,
+    }
 
-    # -------------------------------------------------
-    # Stats / comparison
-    # -------------------------------------------------
-    stats_v22 = compute_stats(df, "pred_v22_base", truth_col)
-    stats_original = compute_stats(df, "pred_proto_v23_original_replay", truth_col)
-    stats_lean = compute_stats(df, "pred_proto_v23_lean_replay", truth_col)
-    stats_swept = compute_stats(df, "pred_proto_v23_swept", truth_col)
-    stats_hybrid = compute_stats(df, "pred_proto_v23_hybrid_overlay", truth_col)
 
-    print_stats_block("v2_2 (base)", stats_v22)
-    print_stats_block("Proto v2.3 (original replay)", stats_original)
-    print_stats_block("Lean Proto v2.3 (replay)", stats_lean)
-    print_stats_block("Swept Proto v2.3", stats_swept)
-    print_stats_block("Hybrid Overlay Proto v2.3", stats_hybrid)
-
-    print("\n=== HYBRID ACTION COUNTS ===")
-    print(f"high_conf_flip_count: {high_conf_flip_count}")
-    print(f"medium_conf_flip_count: {medium_conf_flip_count}")
-    print(f"pressure_neutral_count: {pressure_neutral_count}")
-    print(f"watch_neutral_count: {watch_neutral_count}")
-    print(f"continuation_block_count: {continuation_block_count}")
-    print(f"no_change_count: {no_change_count}")
-
-    print("\n=== HYBRID ACTION DISTRIBUTION ===")
-    print(df["hybrid_overlay_action"].value_counts().to_string())
-
-    leaderboard = pd.DataFrame([
-        {"model": "v2_2 (base)", **stats_v22},
-        {"model": "Proto v2.3 (original replay)", **stats_original},
-        {"model": "Lean Proto v2.3 (replay)", **stats_lean},
-        {"model": "Swept Proto v2.3", **stats_swept},
-        {"model": "Hybrid Overlay Proto v2.3", **stats_hybrid},
-    ])
-
-    leaderboard = leaderboard.sort_values(
+def print_leaderboard(rows: list[dict], title: str = "=== LEADERBOARD ===") -> pd.DataFrame:
+    leaderboard = pd.DataFrame(rows).sort_values(
         by=["directional_accuracy", "bear_precision", "bull_precision", "directional_coverage"],
         ascending=[False, False, False, False],
     ).reset_index(drop=True)
 
-    print("\n=== LEADERBOARD ===")
+    print(f"\n{title}")
     for i, row in leaderboard.iterrows():
         print(
             f"{i + 1}. {row['model']} | "
@@ -450,15 +258,155 @@ def main() -> None:
             f"bull={row['bull_precision'] * 100:.2f}% | "
             f"bear={row['bear_precision'] * 100:.2f}%"
         )
+    return leaderboard
 
-    out_df = CSV_PATH.with_name("gaussian_fan_dataset_v2_2_with_proto_v23_hybrid_overlay.csv")
-    out_lb = CSV_PATH.with_name("offline_proto_v23_hybrid_overlay_leaderboard.csv")
 
-    df.to_csv(out_df, index=False)
-    leaderboard.to_csv(out_lb, index=False)
+def main() -> None:
+    df = pd.read_csv(CSV_PATH)
 
-    print(f"\nSaved dataset: {out_df}")
-    print(f"Saved leaderboard: {out_lb}")
+    truth_col = pick_column(
+        df,
+        ["truth", "true_direction", "actual", "label", "target"],
+        "truth",
+    )
+    base_pred_col = pick_column(
+        df,
+        ["prediction", "pred", "trend", "model_prediction", "predicted_trend"],
+        "prediction",
+    )
+
+    df = build_features(df)
+    df["pred_v22_base"] = df[base_pred_col].copy()
+
+    latest = df.iloc[-1]
+    print("\n=== CURRENT EPOCH FEATURE SNAPSHOT (LAST ROW) ===")
+    print(f"Base v2_2 prediction: {latest['pred_v22_base']}")
+    print(f"inertia_warning_v23: {int(latest['inertia_warning_v23'])}")
+    print(f"slow_retention: {float(latest['slow_retention']):.4f}")
+    print(f"|hinge_torsion|: {abs(float(latest['hinge_torsion'])):.4f}")
+    print(f"transition_score_v23: {int(latest['transition_score_v23'])}")
+
+    # Baseline
+    stats_v22 = compute_stats(df, "pred_v22_base", truth_col)
+    print_stats_block("v2_2 (base)", stats_v22)
+
+    # Current working RuleB comparison point from previous result
+    pred_ruleb_current, action_ruleb_current, counters_ruleb_current = apply_rule_b_custom(
+        df=df,
+        base_col="pred_v22_base",
+        slow_retention_threshold=0.90,
+        hinge_threshold=0.20,
+        transition_min=1,
+        bear_only=False,
+    )
+    df["pred_ruleb_current"] = pred_ruleb_current
+    stats_ruleb_current = compute_stats(df, "pred_ruleb_current", truth_col)
+    print_stats_block("Current RuleB reference (Bull+Bear, 0.90 / 0.20 / t>=1)", stats_ruleb_current)
+
+    # Sweep
+    slow_grid = [0.85, 0.90, 0.95, 1.00]
+    hinge_grid = [0.15, 0.20, 0.25, 0.30]
+    transition_grid = [1, 2]
+    side_grid = [False, True]  # False = Bull+Bear, True = Bear-only
+
+    sweep_rows = []
+
+    for slow_th in slow_grid:
+        for hinge_th in hinge_grid:
+            for tmin in transition_grid:
+                for bear_only in side_grid:
+                    pred_col_name = (
+                        f"pred_ruleb_s{str(slow_th).replace('.', '_')}"
+                        f"_h{str(hinge_th).replace('.', '_')}"
+                        f"_t{tmin}"
+                        f"_{'bear' if bear_only else 'both'}"
+                    )
+
+                    pred, action, counters = apply_rule_b_custom(
+                        df=df,
+                        base_col="pred_v22_base",
+                        slow_retention_threshold=slow_th,
+                        hinge_threshold=hinge_th,
+                        transition_min=tmin,
+                        bear_only=bear_only,
+                    )
+
+                    df[pred_col_name] = pred
+                    stats = compute_stats(df, pred_col_name, truth_col)
+
+                    sweep_rows.append({
+                        "model": pred_col_name,
+                        "slow_retention_threshold": slow_th,
+                        "hinge_threshold": hinge_th,
+                        "transition_min": tmin,
+                        "bear_only": bear_only,
+                        "trigger_count": counters["count"],
+                        **stats,
+                    })
+
+    sweep_df = pd.DataFrame(sweep_rows).sort_values(
+        by=["directional_accuracy", "bear_precision", "bull_precision", "directional_coverage"],
+        ascending=[False, False, False, False],
+    ).reset_index(drop=True)
+
+    print("\n=== TOP 15 RULEB SWEEP RESULTS ===")
+    for _, row in sweep_df.head(15).iterrows():
+        side = "Bear-only" if row["bear_only"] else "Bull+Bear"
+        print(
+            f"{side} | slow>{row['slow_retention_threshold']:.2f} | "
+            f"|hinge|>{row['hinge_threshold']:.2f} | "
+            f"t>={int(row['transition_min'])} | "
+            f"triggers={int(row['trigger_count'])} | "
+            f"acc={row['directional_accuracy'] * 100:.2f}% | "
+            f"cov={row['directional_coverage'] * 100:.2f}% | "
+            f"neu={row['neutral_rate'] * 100:.2f}% | "
+            f"bull={row['bull_precision'] * 100:.2f}% | "
+            f"bear={row['bear_precision'] * 100:.2f}%"
+        )
+
+    best = sweep_df.iloc[0]
+    best_side = "Bear-only" if best["bear_only"] else "Bull+Bear"
+
+    print("\n=== BEST RULEB SWEEP CONFIG ===")
+    print(f"side: {best_side}")
+    print(f"slow_retention_threshold: {best['slow_retention_threshold']:.2f}")
+    print(f"hinge_threshold: {best['hinge_threshold']:.2f}")
+    print(f"transition_min: {int(best['transition_min'])}")
+    print(f"trigger_count: {int(best['trigger_count'])}")
+    print(f"directional_accuracy: {best['directional_accuracy'] * 100:.2f}%")
+    print(f"directional_coverage: {best['directional_coverage'] * 100:.2f}%")
+    print(f"neutral_rate: {best['neutral_rate'] * 100:.2f}%")
+    print(f"bull_precision: {best['bull_precision'] * 100:.2f}%")
+    print(f"bear_precision: {best['bear_precision'] * 100:.2f}%")
+
+    leaderboard = print_leaderboard([
+        {"model": "v2_2 (base)", **stats_v22},
+        {"model": "Current RuleB reference", **stats_ruleb_current},
+        {
+            "model": f"Best RuleB sweep ({best_side}, s>{best['slow_retention_threshold']:.2f}, "
+                     f"h>{best['hinge_threshold']:.2f}, t>={int(best['transition_min'])})",
+            "rows": int(best["rows"]),
+            "directional_called": int(best["directional_called"]),
+            "neutral_called": int(best["neutral_called"]),
+            "directional_accuracy": float(best["directional_accuracy"]),
+            "directional_coverage": float(best["directional_coverage"]),
+            "neutral_rate": float(best["neutral_rate"]),
+            "bull_precision": float(best["bull_precision"]),
+            "bear_precision": float(best["bear_precision"]),
+        },
+    ])
+
+    out_dataset = CSV_PATH.with_name("gaussian_fan_dataset_v2_2_with_ruleb_sweep.csv")
+    out_sweep = CSV_PATH.with_name("offline_ruleb_threshold_sweep.csv")
+    out_leaderboard = CSV_PATH.with_name("offline_ruleb_threshold_sweep_leaderboard.csv")
+
+    df.to_csv(out_dataset, index=False)
+    sweep_df.to_csv(out_sweep, index=False)
+    leaderboard.to_csv(out_leaderboard, index=False)
+
+    print(f"\nSaved dataset: {out_dataset}")
+    print(f"Saved sweep table: {out_sweep}")
+    print(f"Saved leaderboard: {out_leaderboard}")
 
 
 if __name__ == "__main__":

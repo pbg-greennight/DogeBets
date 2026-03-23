@@ -1,0 +1,102 @@
+{
+  "data": {
+    "parquet_path": "E:/Trading_Bot_V1.0/DogeBets/main/data/epoch_model_table_v6/canonical_bars.parquet",
+    "timestamp_col": "ts_utc_parsed",
+    "epoch_col": "epoch",
+    "next_epoch_time_col": "next_round_time_utc",
+    "open_col": "open",
+    "high_col": "high",
+    "low_col": "low",
+    "close_col": "close",
+    "volume_col": "volume"
+  },
+  "backtest": {
+    "decision_offset_sec": 12,
+    "warmup_epochs": 300,
+    "refit_every_n_epochs": 50,
+    "min_train_epochs": 250,
+    "target_mode": "next_epoch_direction"
+  },
+  "feature_engineering": {
+    "trend_windows": [3, 5, 8, 13, 21],
+    "vol_windows": [5, 10, 20],
+    "pressure_windows": [3, 5, 10],
+    "regime_windows": [10, 20, 40]
+  },
+  "wager": {
+    "stake_bnb": 0.015,
+    "bnb_usd_price": 685.0,
+    "payout_win_multiple": 0.95,
+    "site_fee_on_win_rate": 0.05,
+    "gas_bet_usd": 0.85,
+    "gas_claim_usd": 1.05
+  },
+  "models": [
+    {
+      "model_id": "regime_trend_pressure_logreg_v1",
+      "enabled": true,
+      "family": "regime+trend+pressure",
+      "feature_blocks": ["trend", "pressure", "regime", "volatility", "time"],
+      "classifier": "logreg",
+      "gate": {
+        "min_confidence": 0.56,
+        "allow_neutral": false
+      }
+    },
+    {
+      "model_id": "trend_pressure_logreg_v1",
+      "enabled": true,
+      "family": "trend+pressure",
+      "feature_blocks": ["trend", "pressure", "volatility", "time"],
+      "classifier": "logreg",
+      "gate": {
+        "min_confidence": 0.55,
+        "allow_neutral": false
+      }
+    },
+    {
+      "model_id": "regime_trend_pressure_rf_v1",
+      "enabled": true,
+      "family": "regime+trend+pressure",
+      "feature_blocks": ["trend", "pressure", "regime", "volatility", "time"],
+      "classifier": "rf",
+      "gate": {
+        "min_confidence": 0.58,
+        "allow_neutral": false
+      }
+    },
+    {
+      "model_id": "trend_pressure_rf_v1",
+      "enabled": true,
+      "family": "trend+pressure",
+      "feature_blocks": ["trend", "pressure", "volatility", "time"],
+      "classifier": "rf",
+      "gate": {
+        "min_confidence": 0.58,
+        "allow_neutral": false
+      }
+    },
+    {
+      "model_id": "regime_trend_pressure_xgbfb_v1",
+      "enabled": false,
+      "family": "regime+trend+pressure",
+      "feature_blocks": ["trend", "pressure", "regime", "volatility", "time"],
+      "classifier": "xgb_fallback",
+      "gate": {
+        "min_confidence": 0.58,
+        "allow_neutral": false
+      }
+    },
+    {
+      "model_id": "trend_pressure_xgbfb_v1",
+      "enabled": false,
+      "family": "trend+pressure",
+      "feature_blocks": ["trend", "pressure", "volatility", "time"],
+      "classifier": "xgb_fallback",
+      "gate": {
+        "min_confidence": 0.57,
+        "allow_neutral": false
+      }
+    }
+  ]
+}

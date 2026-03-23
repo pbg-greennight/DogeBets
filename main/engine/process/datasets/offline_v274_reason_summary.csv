@@ -1,0 +1,7 @@
+reason,rows,adaptive_triggers,good,bad,mean_wrong_bear_rate,mean_disagreement_density
+current_h018_and_not_soft_bias,8,8,6,2,0.43303571428571425,0.8625
+base_pred=Neutral,565,0,0,0,0.0,0.0
+ruleb_off,162,0,0,0,0.0,0.0
+base_pred=Bull,153,0,0,0,0.0,0.0
+warmup_lt_30,30,0,0,0,0.0,0.0
+no_adaptive_edge,18,0,0,0,0.48020282186948865,0.8648148148148149

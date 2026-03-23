@@ -1,0 +1,40 @@
+trend_method_v2_1 research summary
+========================================
+rows: 19799
+epoch_col: src_meta_epoch
+trend_counts: {'Neutral': 7922, 'Bull': 5960, 'Bear': 5917}
+reason_counts: {'BULL_CONTINUATION_CLEAN': 5960, 'BEAR_CONTINUATION_CLEAN': 5917, 'NEU_WEAK_CONTINUATION_BOTH': 4057, 'NEU_BULL_INVALIDATED': 1720, 'NEU_BEAR_INVALIDATED': 1506, 'NEU_CLOSE_CALL': 639}
+confidence_mean: 0.5169916675167634
+coverage_non_neutral: 0.5998787817566543
+actual_col_requested: None
+actual_col_used: actual_trend
+input: E:\Trading_Bot_V1.0\DogeBets\main\data\epoch_model_table_v6\epoch_model_table_v21_src.parquet
+predictions: E:\Trading_Bot_V1.0\DogeBets\main\research\epoch_tournament\method_v21\outputs\predictions_v21.csv
+
+accuracy_stats
+----------------------------------------
+total: rows=19799 | correct=7972 | wrong=11827 | accuracy=0.4026465983130461
+called_only: rows=11877 | correct=7933 | wrong=3944 | accuracy=0.6679296118548455
+pred_bull: rows=5960 | correct=3955 | wrong=2005 | accuracy=0.6635906040268457
+pred_bear: rows=5917 | correct=3978 | wrong=1939 | accuracy=0.6723001521041068
+pred_neutral: rows=7922 | correct=39 | wrong=7883 | accuracy=0.004922999242615501
+
+wager_stats
+----------------------------------------
+stake: 0.015 BNB @ $685.0 = $10.275 per bet | fee_on_wins=0.05 | gas_usd_roundtrip=0.085
+net_per_win_bnb=0.014125912408759123 | net_per_loss_bnb=-0.015124087591240875
+overall: bets=11877 | wins=7933 | losses=3944 | win_rate=0.6679296118548455 | net_bnb=52.41146167883211 | net_usd=35901.85124999999
+wager_bull: bets=5960 | wins=3955 | losses=2005 | win_rate=0.6635906040268457 | net_bnb=25.54418795620438 | net_usd=17497.768749999996
+wager_bear: bets=5917 | wins=3978 | losses=1939 | win_rate=0.6723001521041068 | net_bnb=26.867273722627736 | net_usd=18404.082499999997
+
+false_neutral_stats
+----------------------------------------
+rows=7883
+actual_counts={'Bull': 3982, 'Bear': 3901}
+reason_counts={'NEU_WEAK_CONTINUATION_BOTH': 4023, 'NEU_BULL_INVALIDATED': 1719, 'NEU_BEAR_INVALIDATED': 1503, 'NEU_CLOSE_CALL': 638}
+forced_side: rows=7883 | wins=4265 | losses=3618 | win_rate=0.5410376760116706 | net_bnb=5.528067518248172 | net_usd=3786.7262499999974 | side_counts={'Bull': 5154, 'Bear': 2729}
+top_reason_leakage:
+  NEU_WEAK_CONTINUATION_BOTH: rows=4023 | forced_win_rate=0.544618443947303 | forced_net_bnb=3.242545620437955 | avg_sep=0.02224881928908776 | avg_conf=0.5999639670229512
+  NEU_CLOSE_CALL: rows=638 | forced_win_rate=0.6191222570532915 | forced_net_bnb=1.9045821167883208 | avg_sep=0.03796965778474399 | avg_conf=0.5957698361263976
+  NEU_BULL_INVALIDATED: rows=1719 | forced_win_rate=0.527632344386271 | forced_net_bnb=0.5314434306569337 | avg_sep=0.07851007465580762 | avg_conf=0.5185287706432051
+  NEU_BEAR_INVALIDATED: rows=1503 | forced_win_rate=0.5136393878908849 | forced_net_bnb=-0.15050364963503704 | avg_sep=0.07729251497005986 | avg_conf=0.520185380325825

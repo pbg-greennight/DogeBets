@@ -1,0 +1,6 @@
+rank_label,model_key,directional_accuracy,directional_coverage,bear_precision,triggers,good,bad,capture_of_ruleb_wrong_bear
+Adaptive v275: Regime-mode 30-epoch controller,adaptive_v2,0.5626822157434402,0.36645299145299143,0.553763440860215,8,6,2,0.46153846153846156
+Winner: Bear-only RuleB + Window +/-1 + |hinge|>=0.18,bear_pm1_h018,0.5626822157434402,0.36645299145299143,0.553763440860215,8,6,2,0.46153846153846156
+Fallback: Bear-only RuleB + Center Soft,bear_pm1_soft,0.5623188405797102,0.3685897435897436,0.5531914893617021,6,5,1,0.38461538461538464
+Safe reference: Bear-only RuleB + Core A,bear_core_a,0.5603448275862069,0.3717948717948718,0.5497382198952879,3,3,0,0.23076923076923078
+v2_2 (base),pred_v22_base,0.5555555555555556,0.375,0.5412371134020618,0,0,0,0.0

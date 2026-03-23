@@ -1,2 +1,2 @@
 total_rows,directional_called,neutral_called,directional_accuracy,coverage,bull_precision,bear_precision,bull_pred_bull_truth,bull_pred_bear_truth,bear_pred_bull_truth,bear_pred_bear_truth,transition_score_triggers,fan_collapse_v2_triggers,compression_trap_blocks,inertia_wall_neutralizations,oscillation_based_reversals
-486,197,291,0.5685279187817259,0.4053497942386831,0.5851063829787234,0.5533980582524272,55,39,46,57,54,0,48,51,29
+936,357,585,0.5546218487394958,0.3814102564102564,0.5645161290322581,0.543859649122807,105,81,78,93,103,0,85,96,48

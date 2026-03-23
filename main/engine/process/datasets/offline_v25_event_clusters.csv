@@ -1,0 +1,27 @@
+cluster_id,start_row,end_row,length,start_epoch,end_epoch,trigger_types,truth_sequence,base_sequence,raw_sequence,core_a_sequence,core_b_sequence,core_c_sequence,bearonly_sequence,bullonly_sequence,good_core_a,bad_core_a
+1,6,6,1,320766,320766,ruleb_raw,Bear,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0
+2,41,41,1,320801,320801,ruleb_raw|ruleb_core_a|ruleb_core_b|ruleb_core_a_bear,Bull,Bear,Neutral,Neutral,Neutral,Bear,Neutral,Bear,1,0
+3,106,106,1,320865,320865,ruleb_raw,Bear,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0
+4,135,135,1,320898,320898,ruleb_raw,Bear,Bull,Neutral,Bull,Bull,Bull,Bull,Bull,0,0
+5,138,138,1,320902,320902,ruleb_raw,Bear,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0
+6,152,152,1,320920,320920,ruleb_raw,Bull,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0
+7,184,185,2,320951,320952,ruleb_raw,Bear -> Bear,Bear -> Bear,Neutral -> Neutral,Bear -> Bear,Bear -> Bear,Bear -> Bear,Bear -> Bear,Bear -> Bear,0,0
+8,189,189,1,320956,320956,ruleb_raw|ruleb_core_a|ruleb_core_b|ruleb_core_c|ruleb_core_a_bear,Bull,Bear,Neutral,Neutral,Neutral,Neutral,Neutral,Bear,1,0
+9,211,211,1,320992,320992,ruleb_raw,Bull,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0
+10,219,219,1,320997,320997,ruleb_raw,Bull,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0
+11,322,322,1,321088,321088,ruleb_raw,Bear,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0
+12,397,397,1,321170,321170,ruleb_raw,Bull,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0
+13,409,409,1,321186,321186,ruleb_raw,Bear,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0
+14,411,411,1,321189,321189,ruleb_raw,Bull,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0
+15,451,451,1,321230,321230,ruleb_raw,Bear,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0
+16,457,457,1,321234,321234,ruleb_raw|ruleb_core_a|ruleb_core_c|ruleb_core_a_bear,Bull,Bear,Neutral,Neutral,Bear,Neutral,Neutral,Bear,1,0
+17,470,470,1,321247,321247,ruleb_raw,Bear,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0
+18,514,514,1,321304,321304,ruleb_raw,Bull,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0
+19,546,546,1,321341,321341,ruleb_raw,Bull,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0
+20,572,572,1,321371,321371,ruleb_raw,Bull,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0
+21,651,652,2,321465,321466,ruleb_raw,Bear -> Bear,Bear -> Bear,Neutral -> Neutral,Bear -> Bear,Bear -> Bear,Bear -> Bear,Bear -> Bear,Bear -> Bear,0,0
+22,665,665,1,321480,321480,ruleb_raw,Bear,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0
+23,685,685,1,321499,321499,ruleb_raw,Bull,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0
+24,782,782,1,321603,321603,ruleb_raw,Bear,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0
+25,788,788,1,321610,321610,ruleb_raw,Bull,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0
+26,908,908,1,321704,321704,ruleb_raw,Bear,Bear,Neutral,Bear,Bear,Bear,Bear,Bear,0,0

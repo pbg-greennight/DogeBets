@@ -1,0 +1,8 @@
+{
+  "artifact_name": "best_model_v1",
+  "model_path": "E:\\Trading_Bot_V1.0\\DogeBets\\main\\research\\epoch_tournament\\artifacts\\best_model_v1.pkl",
+  "config_path": "E:\\Trading_Bot_V1.0\\DogeBets\\main\\research\\epoch_tournament\\artifacts\\best_model_v1_config.json",
+  "feature_count": 230,
+  "model_id": "segment_structure_rules_v1",
+  "family": "rule_based_segment_structure"
+}

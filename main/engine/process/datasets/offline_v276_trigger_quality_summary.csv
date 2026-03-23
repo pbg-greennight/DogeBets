@@ -1,0 +1,5 @@
+model,triggers,good,bad,good_rate
+bear_corea,27,11,16,0.4074074074074074
+bear_pm1_soft,43,18,25,0.4186046511627907
+bear_pm1_h018,48,20,28,0.4166666666666667
+adaptive_meta,0,0,0,0.0

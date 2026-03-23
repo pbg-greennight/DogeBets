@@ -1,0 +1,11 @@
+row_index,epoch,truth,base,slow_retention,abs_hinge,transition_score_v23,phase3,fs3,fast_alt,osc_core_count,ruleb_raw_warning,osc_core_a,osc_core_b,osc_core_c,reason
+546,321341,Bull,Bear,1.97990277538338,0.2125949170883987,1,2,1,0,1,1,0,0,0,core_a_false_negative|base=Bear|truth=Bull|slow=1.9799|abs_hinge=0.2126|transition=1|phase3=2|fs3=1|fast_alt=0|core_count=1
+211,320992,Bull,Bear,1.9226985563527703,0.4853152036239559,1,1,1,0,0,1,0,0,0,core_a_false_negative|base=Bear|truth=Bull|slow=1.9227|abs_hinge=0.4853|transition=1|phase3=1|fs3=1|fast_alt=0|core_count=0
+397,321170,Bull,Bear,1.9026312620244423,0.1617608164018711,1,0,0,0,0,1,0,0,0,core_a_false_negative|base=Bear|truth=Bull|slow=1.9026|abs_hinge=0.1618|transition=1|phase3=0|fs3=0|fast_alt=0|core_count=0
+411,321189,Bull,Bear,1.745798753163399,0.1896690382169991,1,1,1,0,0,1,0,0,0,core_a_false_negative|base=Bear|truth=Bull|slow=1.7458|abs_hinge=0.1897|transition=1|phase3=1|fs3=1|fast_alt=0|core_count=0
+685,321499,Bull,Bear,1.7431309231815248,0.2227466203609453,1,1,1,0,0,1,0,0,0,core_a_false_negative|base=Bear|truth=Bull|slow=1.7431|abs_hinge=0.2227|transition=1|phase3=1|fs3=1|fast_alt=0|core_count=0
+152,320920,Bull,Bear,1.6361203413198382,0.3619156339245184,1,0,0,0,0,1,0,0,0,core_a_false_negative|base=Bear|truth=Bull|slow=1.6361|abs_hinge=0.3619|transition=1|phase3=0|fs3=0|fast_alt=0|core_count=0
+514,321304,Bull,Bear,1.4339076306314382,0.2391922753233023,1,0,1,1,1,1,0,0,0,core_a_false_negative|base=Bear|truth=Bull|slow=1.4339|abs_hinge=0.2392|transition=1|phase3=0|fs3=1|fast_alt=1|core_count=1
+788,321610,Bull,Bear,1.2980760016143904,0.3325768538410291,1,0,1,0,0,1,0,0,0,core_a_false_negative|base=Bear|truth=Bull|slow=1.2981|abs_hinge=0.3326|transition=1|phase3=0|fs3=1|fast_alt=0|core_count=0
+572,321371,Bull,Bear,1.2457472309597506,0.2597700865159475,1,1,1,1,1,1,0,0,0,core_a_false_negative|base=Bear|truth=Bull|slow=1.2457|abs_hinge=0.2598|transition=1|phase3=1|fs3=1|fast_alt=1|core_count=1
+219,320997,Bull,Bear,1.1129530002544925,0.2932370400084516,1,0,0,0,0,1,0,0,0,core_a_false_negative|base=Bear|truth=Bull|slow=1.1130|abs_hinge=0.2932|transition=1|phase3=0|fs3=0|fast_alt=0|core_count=0

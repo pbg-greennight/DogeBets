@@ -1,0 +1,3 @@
+group,row_index,epoch,base,truth,winner_trigger,fallback_trigger,slow_retention,abs_hinge,transition_score_v23,phase3,fs3,fast_alt
+winner_only,41,320801,Bear,Bull,1,0,1.1462925282048673,0.182722298996748,1,2,2,0
+winner_only,106,320865,Bear,Bear,1,0,1.1927106035764157,0.1832001797052062,1,1,1,0

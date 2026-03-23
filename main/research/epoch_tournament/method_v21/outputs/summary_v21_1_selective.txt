@@ -1,0 +1,21 @@
+summary_v21_1_selective
+============================================================
+run_label: v21.1_selective_neutral_rollback
+rows: 19799
+epoch_col: src_meta_epoch
+trend_counts: {'Neutral': 7538, 'Bear': 6136, 'Bull': 6125}
+reason_counts: {'BULL_CONTINUATION_CLEAN': 5960, 'BEAR_CONTINUATION_CLEAN': 5917, 'NEU_WEAK_CONTINUATION_BOTH': 4057, 'NEU_BULL_INVALIDATED': 1720, 'NEU_BEAR_INVALIDATED': 1506, 'NEU_CLOSE_CALL__ROLLBACK_FORCED': 384, 'NEU_CLOSE_CALL': 255}
+confidence_mean: 0.5169916675167634
+coverage_non_neutral: 0.6192737006919541
+actual_col_requested: None
+actual_col_used: actual_trend
+rollback: {'rollback_close_call_sep_min': 0.03, 'rollback_close_call_conf_min': 0.58, 'rollback_rows': 384, 'rollback_side_counts': {'Bear': 219, 'Bull': 165}}
+accuracy: {'total': {'rows': 19799, 'correct': 8156, 'wrong': 11643, 'accuracy': 0.4119399969695439}, 'by_predicted_trend': {'Bull': {'rows': 6125, 'correct': 4040, 'wrong': 2085, 'accuracy': 0.6595918367346939}, 'Bear': {'rows': 6136, 'correct': 4078, 'wrong': 2058, 'accuracy': 0.6646023468057366}, 'Neutral': {'rows': 7538, 'correct': 38, 'wrong': 7500, 'accuracy': 0.0050411249668347044}}, 'called_only': {'rows': 12261, 'correct': 8118, 'wrong': 4143, 'accuracy': 0.6620993393687301}}
+wager: {'stake_bnb': 0.015, 'bnb_usd': 685.0, 'stake_usd': 10.275, 'win_fee_rate': 0.05, 'gas_usd_roundtrip': 0.085, 'gas_bnb_roundtrip': 0.0001240875912408759, 'win_net_bnb': 0.014125912408759123, 'lose_net_bnb': -0.015124087591240875, 'bet_on_neutral': False, 'bets': 12261, 'wins': 8118, 'losses': 4143, 'win_rate': 0.6620993393687301, 'net_bnb': 52.015062043795616, 'net_usd': 35630.31749999999, 'by_predicted_trend': {'Bear': {'bets': 6136, 'wins': 4078, 'losses': 2058, 'win_rate': 0.6646023468057366, 'net_bnb': 26.480098540145985, 'net_usd': 18138.867499999997}, 'Bull': {'bets': 6125, 'wins': 4040, 'losses': 2085, 'win_rate': 0.6595918367346939, 'net_bnb': 25.534963503649635, 'net_usd': 17491.449999999997}}}
+false_neutral: {'rows': 7500, 'actual_counts': {'Bull': 3778, 'Bear': 3722}, 'reason_counts': {'NEU_WEAK_CONTINUATION_BOTH': 4023, 'NEU_BULL_INVALIDATED': 1719, 'NEU_BEAR_INVALIDATED': 1503, 'NEU_CLOSE_CALL': 255}}
+forced_neutral: {'rows': 7500, 'wins': 3888, 'losses': 3612, 'win_rate': 0.5184, 'net_bnb': 0.29334306569342783, 'net_usd': 200.93999999999812, 'side_counts': {'Bull': 5076, 'Bear': 2424}}
+input: E:\Trading_Bot_V1.0\DogeBets\main\data\epoch_model_table_v6\epoch_model_table_v21_src.parquet
+predictions: E:\Trading_Bot_V1.0\DogeBets\main\research\epoch_tournament\method_v21\outputs\predictions_v21_1_selective.csv
+false_neutral_path: E:\Trading_Bot_V1.0\DogeBets\main\research\epoch_tournament\method_v21\outputs\false_neutral_v21_1.csv
+false_neutral_reason_leaderboard_path: E:\Trading_Bot_V1.0\DogeBets\main\research\epoch_tournament\method_v21\outputs\false_neutral_reason_leaderboard_v21_1.csv
+weak_cont_bands_path: E:\Trading_Bot_V1.0\DogeBets\main\research\epoch_tournament\method_v21\outputs\weak_cont_bands_v21_1.csv

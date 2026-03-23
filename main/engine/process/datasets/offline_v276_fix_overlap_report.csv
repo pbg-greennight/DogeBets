@@ -1,0 +1,7 @@
+bucket,rows,wrong_bear,right_bear,mean_slow,mean_abs_hinge
+winner_only,2,1,1,1.1695015658906414,0.18296123935097708
+fallback_only,0,0,0,0.0,0.0
+adaptive_only,0,0,0,0.0,0.0
+adaptive_and_winner,0,0,0,0.0,0.0
+adaptive_and_fallback,0,0,0,0.0,0.0
+adaptive_any,0,0,0,0.0,0.0

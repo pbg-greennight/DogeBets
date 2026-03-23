@@ -1,0 +1,3954 @@
+[
+  {
+    "timestamp": "03/18/2026 04:45:50 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323275,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 04:50:50 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323276,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 05:56:07 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323289,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 06:01:08 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323290,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 06:06:09 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323291,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 06:11:10 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323292,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 06:16:12 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323293,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 06:21:14 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323294,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 06:31:17 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323296,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 06:36:18 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323297,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 06:41:20 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323298,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 06:46:21 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323299,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 06:51:23 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323300,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 06:56:24 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323301,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 07:01:26 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323302,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 07:06:27 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323303,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 07:11:29 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323304,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 07:16:30 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323305,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 07:21:32 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323306,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 07:22:32 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323306,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 07:26:33 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323307,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 07:31:35 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323308,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 07:36:37 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323309,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 07:41:38 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323310,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 07:46:40 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323311,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 07:51:41 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323312,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 07:56:41 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323313,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 08:01:42 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323314,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 08:06:44 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323315,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 08:11:44 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323316,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 08:16:45 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323317,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 08:21:46 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323318,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 08:26:47 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323319,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 08:31:48 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323320,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 08:36:50 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323321,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 08:41:52 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323322,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 08:46:53 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323323,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 08:47:55 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323323,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 08:56:56 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323325,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 09:01:58 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323326,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 09:07:00 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323327,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 09:12:01 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323328,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 09:17:06 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323329,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 09:27:06 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323331,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 09:32:08 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323332,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 09:37:09 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323333,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 09:42:10 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323334,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 09:47:11 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323335,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 09:52:13 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323336,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 09:57:14 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323337,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 10:02:16 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323338,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 10:07:18 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323339,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 10:12:19 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323340,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 10:27:23 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323343,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 10:32:24 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323344,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 10:37:26 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323345,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 10:42:28 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323346,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 10:47:29 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323347,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 10:52:30 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323348,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 10:57:32 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323349,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 11:02:34 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323350,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 11:07:35 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323351,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 11:12:36 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323352,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 11:17:38 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323353,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 11:22:39 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323354,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 11:23:39 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323354,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 11:27:41 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323355,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 11:32:43 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323356,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 11:37:44 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323357,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 11:42:46 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323358,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 11:47:47 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323359,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 11:52:48 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323360,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 11:53:48 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323360,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/18/2026 11:57:50 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323361,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:02:51 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323362,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:07:53 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323363,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:08:53 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323363,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:17:56 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323365,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:22:58 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323366,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:27:59 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323367,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:33:01 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323368,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:43:04 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323370,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:48:05 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323371,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:53:07 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323372,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:58:09 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323373,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 01:08:11 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323375,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 01:13:13 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323376,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 01:18:14 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323377,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 01:38:20 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323381,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 01:43:22 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323382,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 01:53:25 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323384,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:03:28 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323386,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:08:30 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323387,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:13:31 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323388,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:18:33 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323389,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:23:35 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323390,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:28:36 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323391,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:33:38 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323392,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:38:39 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323393,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:43:40 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323394,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:48:42 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323395,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:49:42 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323395,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:53:44 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323396,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:58:45 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323397,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:03:46 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323398,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:08:48 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323399,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:09:48 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323399,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:13:50 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323400,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:14:50 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323400,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:23:53 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323402,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:24:54 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323402,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:33:55 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323404,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:34:55 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323404,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:49:00 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323407,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:54:02 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323408,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:59:03 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323409,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 04:04:05 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323410,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 04:09:07 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323411,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 04:19:08 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323413,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 04:34:12 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323416,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 04:44:15 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323418,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 04:54:18 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323420,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 04:59:18 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323421,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:09:20 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323423,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:10:20 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323423,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:14:21 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323424,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:19:22 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323425,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:24:24 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323426,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:29:25 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323427,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:34:27 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323428,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:44:30 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323430,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:49:31 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323431,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:54:33 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323432,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:59:35 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323433,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:04:36 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323434,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:09:38 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323435,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:14:39 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323436,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:19:41 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323437,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:24:42 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323438,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:29:44 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323439,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:34:45 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323440,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:35:45 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323440,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:39:47 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323441,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:44:49 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323442,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:49:50 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323443,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:54:51 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323444,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:59:52 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323445,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:00:52 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323445,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:04:54 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323446,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:05:54 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323446,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:09:55 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323447,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:14:57 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323448,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:19:58 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323449,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:25:00 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323450,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:35:03 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323452,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:40:04 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323453,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 08:15:16 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323460,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 08:20:17 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323461,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 08:25:17 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323462,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 08:30:18 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323463,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 08:35:19 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323464,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 08:40:20 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323465,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 08:45:22 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323466,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 08:50:23 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323467,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 08:55:25 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323468,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:00:26 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323469,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:05:28 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323470,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:10:29 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323471,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:15:30 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323472,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:20:32 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323473,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:25:34 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323474,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:30:35 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323475,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:35:37 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323476,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:40:39 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323477,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:45:40 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323478,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:50:42 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323479,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:55:44 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323480,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:00:45 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323481,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:05:47 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323482,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:10:49 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323483,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:15:50 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323484,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:20:51 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323485,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:25:53 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323486,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:30:54 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323487,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:35:56 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323488,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:40:58 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323489,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:45:59 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323490,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:51:00 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323491,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:56:00 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323492,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:01:01 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323493,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:06:02 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323494,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:11:03 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323495,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:16:05 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323496,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:21:07 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323497,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:26:08 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323498,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:31:09 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323499,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:36:10 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323500,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:41:10 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323501,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:46:11 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323502,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:51:12 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323503,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:56:14 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323504,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:01:15 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323505,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:06:17 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323506,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:11:18 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323507,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:16:20 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323508,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:21:21 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323509,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:26:22 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323510,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:31:23 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323511,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:36:25 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323512,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:41:26 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323513,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:46:28 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323514,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:51:29 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323515,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 12:56:31 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323516,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 01:01:32 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323517,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 01:06:34 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323518,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 01:11:35 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323519,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 01:16:37 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323520,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 01:21:38 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323521,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 01:26:40 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323522,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 01:32:19 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323523,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 01:37:20 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323524,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 01:42:22 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323525,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 01:47:23 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323526,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 01:52:25 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323527,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 01:57:27 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323528,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:02:28 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323529,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:07:29 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323530,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:12:30 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323531,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:17:32 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323532,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:22:33 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323533,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:27:35 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323534,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:32:37 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323535,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:37:38 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323536,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:42:39 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323537,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:47:40 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323538,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:52:42 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323539,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 02:57:44 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323540,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:02:45 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323541,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:07:47 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323542,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:12:49 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323543,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:17:49 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323544,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:22:50 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323545,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:27:51 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323546,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:32:53 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323547,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:37:54 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323548,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:42:56 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323549,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:47:57 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323550,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:52:59 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323551,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 03:58:01 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323552,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 04:03:02 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323553,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 04:08:04 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323554,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 04:13:06 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323555,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 04:18:08 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323556,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 04:23:09 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323557,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 04:28:10 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323558,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 04:33:11 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323559,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 04:38:11 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323560,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 04:48:13 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323562,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:13:22 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323567,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:23:25 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323569,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:28:26 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323570,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:33:27 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323571,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:38:28 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323572,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:43:29 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323573,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:48:31 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323574,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:53:33 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323575,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 05:58:34 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323576,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:03:36 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323577,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:04:36 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323577,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:08:37 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323578,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:13:39 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323579,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:18:41 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323580,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:23:42 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323581,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:28:44 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323582,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:33:46 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323583,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:34:46 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323583,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:38:47 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323584,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:39:47 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323584,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:48:51 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323586,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:53:52 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323587,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 06:58:54 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323588,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:08:56 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323590,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:13:58 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323591,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:18:59 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323592,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:24:00 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323593,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:29:01 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323594,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:39:05 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323596,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:44:06 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323597,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:49:08 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323598,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:54:09 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323599,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:55:09 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323599,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 07:59:10 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323600,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 08:04:11 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323601,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 08:14:15 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323603,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 08:34:20 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323607,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 08:39:21 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323608,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 08:44:22 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323609,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 08:59:24 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323612,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:04:26 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323613,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:09:28 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323614,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:14:29 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323615,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:19:31 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323616,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:20:32 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323616,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:24:33 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323617,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:29:34 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323618,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:34:35 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323619,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:39:37 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323620,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:44:39 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323621,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:49:41 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323622,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:54:42 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323623,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 09:59:44 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323624,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:04:46 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323625,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:09:47 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323626,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:14:49 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323627,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:15:49 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323627,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:24:52 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323629,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:29:54 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323630,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:34:56 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323631,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:39:57 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323632,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:44:59 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323633,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:50:00 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323634,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 10:55:02 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323635,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:05:05 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323637,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:10:07 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323638,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:15:08 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323639,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:25:12 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323641,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:30:13 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323642,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:35:15 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323643,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:40:16 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323644,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:45:18 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323645,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:50:19 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323646,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/19/2026 11:55:21 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323647,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:00:23 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323648,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:05:24 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323649,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:10:26 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323650,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:15:28 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323651,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:20:29 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323652,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:25:31 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323653,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:30:33 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323654,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:35:35 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323655,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:40:36 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323656,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:45:38 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323657,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:50:39 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323658,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:55:41 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323659,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:56:41 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323659,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:00:43 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323660,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:01:43 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323660,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:05:44 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323661,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:06:43 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323661,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:10:46 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323662,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:15:48 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323663,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:16:48 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323663,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:20:49 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323664,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:21:49 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323664,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:25:51 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323665,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:26:51 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323665,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:35:55 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323667,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:40:56 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323668,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:45:58 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323669,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:56:01 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323671,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 02:11:06 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323674,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 02:16:06 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323675,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 02:21:07 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323676,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 02:31:09 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323678,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 02:36:10 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323679,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 02:41:12 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323680,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 02:51:13 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323682,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 02:56:14 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323683,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 03:01:15 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323684,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 03:11:18 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323686,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 03:16:19 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323687,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 03:26:22 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323689,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 03:36:24 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323691,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 03:41:25 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323692,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 03:51:26 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323694,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 04:01:27 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323696,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 04:06:29 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323697,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 04:11:30 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323698,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 04:16:31 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323699,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 04:21:33 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323700,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 04:26:34 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323701,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 04:27:34 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323701,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 04:31:36 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323702,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 04:36:38 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323703,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 04:41:39 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323704,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 04:46:41 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323705,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 04:51:42 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323706,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 04:56:44 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323707,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 05:01:45 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323708,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 05:06:47 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323709,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 05:11:49 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323710,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 05:16:50 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323711,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 05:21:52 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323712,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 05:26:53 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323713,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 05:31:55 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323714,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 05:41:58 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323716,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 05:46:59 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323717,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 05:52:01 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323718,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 05:57:03 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323719,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 06:02:05 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323720,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 06:07:06 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323721,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 06:12:06 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323722,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 06:17:07 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323723,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 06:22:08 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323724,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 06:27:10 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323725,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 06:37:13 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323727,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 06:42:14 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323728,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 06:52:17 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323730,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 07:02:20 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323732,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 07:07:21 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323733,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 07:12:22 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323734,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 07:17:23 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323735,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 07:27:32 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323737,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 07:32:33 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323738,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 07:37:35 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323739,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 07:42:36 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323740,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 08:17:48 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323747,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 08:22:49 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323748,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 08:27:51 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323749,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 08:32:53 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323750,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 08:37:54 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323751,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 08:42:56 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323752,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 08:47:58 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323753,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 08:52:59 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323754,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 08:58:01 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323755,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 09:03:02 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323756,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 09:08:03 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323757,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 09:13:05 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323758,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 09:18:06 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323759,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 09:23:08 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323760,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 09:28:10 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323761,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 09:33:11 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323762,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 09:38:12 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323763,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 09:43:14 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323764,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 09:48:16 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323765,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 09:53:16 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323766,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 09:58:17 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323767,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 10:03:19 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323768,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 10:08:20 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323769,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 10:13:21 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323770,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 10:18:22 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323771,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 10:23:24 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323772,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 10:28:26 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323773,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 10:33:27 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323774,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 10:38:29 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323775,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 10:43:30 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323776,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 10:48:32 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323777,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 10:53:33 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323778,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 10:58:35 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323779,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 11:03:36 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323780,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 11:08:38 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323781,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 11:13:40 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323782,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 11:18:41 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323783,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 11:23:43 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323784,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 11:28:44 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323785,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 11:33:46 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323786,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 11:38:46 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323787,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 11:43:48 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323788,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 11:48:50 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323789,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 11:53:51 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323790,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 11:54:52 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323790,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 11:58:53 AM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323791,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:03:54 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323792,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:08:56 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323793,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:13:57 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323794,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:18:59 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323795,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:24:01 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323796,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:29:02 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323797,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:34:04 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323798,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:39:05 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323799,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:44:07 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323800,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:49:08 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323801,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 12:54:10 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323802,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:14:15 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323806,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:19:16 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323807,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:24:18 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323808,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:29:19 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323809,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:34:21 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323810,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:39:23 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323811,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:44:25 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323812,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:49:27 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323813,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:54:27 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323814,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 01:59:28 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323815,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 02:04:29 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323816,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 02:09:31 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323817,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 02:14:32 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323818,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 02:19:34 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323819,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 02:24:35 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323820,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 02:29:37 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323821,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 02:34:39 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323822,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 02:39:40 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323823,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 02:44:41 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323824,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 02:49:43 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323825,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  },
+  {
+    "timestamp": "03/20/2026 02:54:44 PM",
+    "trend": "Neutral",
+    "confidence": 1.0,
+    "next_epoch": 323826,
+    "model_version": "trend_method_v2_0",
+    "mode": "DB_process_trend"
+  }
+]

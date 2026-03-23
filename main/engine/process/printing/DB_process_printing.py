@@ -236,6 +236,120 @@ def print_trend_decision(
         + (f" | notes={notes}" if notes is not None else "")
         + (f" | raw={raw}" if raw is not None else "")
     )
+    # -------------------------------------------------------------------------------------------------
+    # v21 live debug dump (raw features + equations + scores)
+    # -------------------------------------------------------------------------------------------------
+    if p.get("TREND", {}).get("LIVE_DEBUG", True):
+        eq = extras.get("equation", {}) if isinstance(extras, dict) else {}
+        inputs = extras.get("inputs", {}) if isinstance(extras, dict) else {}
+        scores_dbg = extras.get("scores", {}) if isinstance(extras, dict) else {}
+        flags_dbg = extras.get("flags", {}) if isinstance(extras, dict) else {}
+        mapped = extras.get("mapped_features", {}) if isinstance(extras, dict) else {}
+        raw_td = extras.get("raw_td_features", {}) if isinstance(extras, dict) else {}
+        hyst_meta = extras.get("hyst_meta", {}) if isinstance(extras, dict) else {}
+        src_summary = extras.get("src_summary", {}) if isinstance(extras, dict) else {}
+
+        if eq:
+            if eq.get("fast_score_eq"):
+                slog.TREND_FEATURES(
+                    f"[v21_live_eq] "
+                    f"fast={eq.get('fast_score_eq')} | "
+                    f"mid={eq.get('mid_score_eq')} | "
+                    f"continuation={eq.get('continuation_score_eq')} | "
+                    f"reversal={eq.get('reversal_score_eq')} | "
+                    f"branch={eq.get('branch_rule')} | "
+                    f"decision={eq.get('decision_rule')}"
+                )
+            else:
+                slog.TREND_FEATURES(
+                    f"[v21_live_eq] "
+                    f"bull={eq.get('bull_score_eq')} | "
+                    f"bear={eq.get('bear_score_eq')} | "
+                    f"sep={eq.get('separation_eq')} | "
+                    f"conf={eq.get('confidence_eq')} | "
+                    f"neutral={eq.get('neutral_rule')} | "
+                    f"decision={eq.get('decision_rule')}"
+                )
+
+        if inputs:
+            input_parts = [
+                f"s8={_fmt_float(inputs.get('s8'), nd=6)}",
+                f"s23={_fmt_float(inputs.get('s23'), nd=6)}",
+                f"s53={_fmt_float(inputs.get('s53'), nd=6)}",
+                f"s83={_fmt_float(inputs.get('s83'), nd=6)}",
+            ]
+            for extra_key in ["fast_min", "reversal_min", "mid_dom_ratio", "decision_min", "neutral_min"]:
+                if extra_key in inputs:
+                    input_parts.append(f"{extra_key}={_fmt_float(inputs.get(extra_key), nd=6)}")
+            slog.TREND_FEATURES("[v21_live_inputs] " + " | ".join(input_parts))
+
+            lg = inputs.get("latest_gauss", {}) or {}
+            if lg:
+                slog.TREND_FEATURES(
+                    f"[v21_live_gauss] "
+                    f"g8={_fmt_float(lg.get('s8'), nd=4)} | "
+                    f"g23={_fmt_float(lg.get('s23'), nd=4)} | "
+                    f"g38={_fmt_float(lg.get('s38'), nd=4)} | "
+                    f"g53={_fmt_float(lg.get('s53'), nd=4)} | "
+                    f"g68={_fmt_float(lg.get('s68'), nd=4)} | "
+                    f"g83={_fmt_float(lg.get('s83'), nd=4)}"
+                )
+
+        if scores_dbg:
+            if "fast_score" in scores_dbg:
+                slog.TREND_FEATURES(
+                    f"[v21_live_scores] "
+                    f"fast_score={_fmt_float(scores_dbg.get('fast_score'), nd=6)} | "
+                    f"mid_score={_fmt_float(scores_dbg.get('mid_score'), nd=6)} | "
+                    f"continuation_score={_fmt_float(scores_dbg.get('continuation_score'), nd=6)} | "
+                    f"reversal_score={_fmt_float(scores_dbg.get('reversal_score'), nd=6)} | "
+                    f"decision_score={_fmt_float(scores_dbg.get('decision_score'), nd=6)} | "
+                    f"confidence={_fmt_float(scores_dbg.get('confidence'), nd=6)}"
+                )
+            else:
+                slog.TREND_FEATURES(
+                    f"[v21_live_scores] "
+                    f"bull_score={_fmt_float(scores_dbg.get('bull_score'), nd=6)} | "
+                    f"bear_score={_fmt_float(scores_dbg.get('bear_score'), nd=6)} | "
+                    f"separation={_fmt_float(scores_dbg.get('separation'), nd=6)} | "
+                    f"confidence={_fmt_float(scores_dbg.get('confidence'), nd=6)}"
+                )
+
+        if flags_dbg:
+            slog.TREND_FEATURES("[v21_live_flags] " + " | ".join(f"{k}={flags_dbg.get(k)}" for k in sorted(flags_dbg.keys())))
+
+        if mapped:
+            mapped_parts = []
+            for k in sorted(mapped.keys()):
+                v = mapped.get(k)
+                try:
+                    mapped_parts.append(f"{k}={_fmt_float(v, nd=6)}")
+                except Exception:
+                    mapped_parts.append(f"{k}={v}")
+            slog.TREND_FEATURES("[v21_live_mapped] " + " | ".join(mapped_parts))
+
+        if hyst_meta:
+            meta_parts = []
+            for k in sorted(hyst_meta.keys()):
+                meta_parts.append(f"{k}={hyst_meta.get(k)}")
+            slog.TREND_FEATURES("[v21_live_hyst_meta] " + " | ".join(meta_parts))
+
+        if raw_td:
+            ga = raw_td.get("gauss", {}) or {}
+            hs = raw_td.get("hysteresis", {}) or {}
+            ga_slopes = ga.get("slopes", {}) or {}
+            slog.TREND_FEATURES(
+                f"[v21_live_raw_keys] gauss_keys={list(ga.keys())} | "
+                f"hyst_keys={list(hs.keys())}"
+            )
+            if ga_slopes:
+                slope_parts = []
+                for k in sorted(ga_slopes.keys()):
+                    slope_parts.append(f"{k}={_fmt_float(ga_slopes.get(k), nd=6)}")
+                slog.TREND_FEATURES("[v21_live_raw_slopes] " + " | ".join(slope_parts))
+
+        if src_summary:
+            slog.TREND_FEATURES("[v21_live_src] " + " | ".join(f"{k}={src_summary.get(k)}" for k in sorted(src_summary.keys())))
 
     # Calc / gates block (explicit equations + guardrail gates)
     calc = td.get("calc") or {}

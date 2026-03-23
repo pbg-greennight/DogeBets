@@ -1,0 +1,8 @@
+epoch,pred_v22_base,truth,slow_retention,hinge_torsion,transition_score_v23,phase_disagree_count_3,fs_disagree_count_3,fast_alt_3epoch,osc_core_count,core_window_pm1,pm1_centered_soft,pm1_hinge_018,adaptive_policy,adaptive_reason
+320920,Bear,Bull,1.6361203413198382,0.3619156339245184,1,0,0,0,0,0,0,0,base,regime_aggressive|mode=AGGRESSIVE|no_current_edge
+320997,Bear,Bull,1.1129530002544925,0.2932370400084516,1,0,0,0,0,0,0,0,base,regime_aggressive|mode=AGGRESSIVE|no_current_edge
+321170,Bear,Bull,1.9026312620244423,0.1617608164018711,1,0,0,0,0,0,0,0,base,regime_aggressive|mode=AGGRESSIVE|no_current_edge
+321189,Bear,Bull,1.745798753163399,0.1896690382169991,1,1,1,0,0,0,0,0,base,regime_aggressive|mode=AGGRESSIVE|no_current_edge
+321304,Bear,Bull,1.4339076306314382,0.2391922753233023,1,0,1,1,1,0,0,0,base,regime_safe|mode=SAFE|no_current_edge
+321371,Bear,Bull,1.2457472309597506,0.2597700865159475,1,1,1,1,1,0,0,0,base,regime_aggressive|mode=AGGRESSIVE|no_current_edge
+321610,Bear,Bull,1.2980760016143904,0.3325768538410291,1,0,1,0,0,0,0,0,base,persist_SAFE|regime_balanced|mode=SAFE|no_current_edge
