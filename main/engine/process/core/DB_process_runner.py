@@ -27,7 +27,6 @@ def _fmt_mtime(path: str) -> str:
 
 def debug_import_paths() -> None:
     """Guardrail for 'Cause #1 (stale orchestrator / partial copy)' issues.
-
     Prints the exact module file paths Python loaded, plus file mtimes, so logs
     immediately reveal if you're executing an older duplicate file.
     """

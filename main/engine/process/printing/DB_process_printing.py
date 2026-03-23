@@ -248,6 +248,8 @@ def print_trend_decision(
         raw_td = extras.get("raw_td_features", {}) if isinstance(extras, dict) else {}
         hyst_meta = extras.get("hyst_meta", {}) if isinstance(extras, dict) else {}
         src_summary = extras.get("src_summary", {}) if isinstance(extras, dict) else {}
+        validation = extras.get("validation", {}) if isinstance(extras, dict) else {}
+        scorecard = extras.get("scorecard", {}) if isinstance(extras, dict) else {}
 
         if eq:
             if eq.get("fast_score_eq"):
@@ -351,6 +353,30 @@ def print_trend_decision(
         if src_summary:
             slog.TREND_FEATURES("[v21_live_src] " + " | ".join(f"{k}={src_summary.get(k)}" for k in sorted(src_summary.keys())))
 
+        if validation:
+            slog.TREND_FEATURES(
+                f"[v21_live_validation] required_missing={validation.get('missing_required_count', 0)} | "
+                f"optional_missing={validation.get('missing_optional_count', 0)} | "
+                f"cov_overall={_fmt_float(validation.get('coverage_overall'), nd=6)} | "
+                f"cov_msbc={_fmt_float(validation.get('coverage_msbc'), nd=6)} | "
+                f"cov_gbc={_fmt_float(validation.get('coverage_gbc'), nd=6)} | "
+                f"guard_fired={validation.get('guard_fired', False)} | "
+                f"note={validation.get('note', '-') }"
+            )
+
+        if scorecard:
+            slog.TREND_FEATURES(
+                f"[v21_live_scorecard] branch={scorecard.get('branch')} | "
+                f"bull_cont={_fmt_float(scorecard.get('bull_continuation'), nd=6)} | "
+                f"bear_cont={_fmt_float(scorecard.get('bear_continuation'), nd=6)} | "
+                f"bull_rev={_fmt_float(scorecard.get('bull_reversal'), nd=6)} | "
+                f"bear_rev={_fmt_float(scorecard.get('bear_reversal'), nd=6)} | "
+                f"decision={_fmt_float(scorecard.get('decision_score'), nd=6)} | "
+                f"decision_norm={_fmt_float(scorecard.get('decision_score_norm'), nd=6)} | "
+                f"cont_adj={_fmt_float(scorecard.get('continuation_adjust'), nd=6)} | "
+                f"rev_adj={_fmt_float(scorecard.get('reversal_adjust'), nd=6)}"
+            )
+
     # Calc / gates block (explicit equations + guardrail gates)
     calc = td.get("calc") or {}
     if p.get("TREND", {}).get("CALC", True) and isinstance(calc, dict) and calc:
@@ -386,11 +412,29 @@ def print_trend_decision(
 
     # Scores block
     if p.get("TREND", {}).get("SCORES", True) and isinstance(scores, dict) and scores:
-        slog.TREND_SCORES(
-            f"[td_scores] neutral={_fmt_float(scores.get('neutral'), nd=4)} | bull={_fmt_float(scores.get('bull'), nd=4)} | "
-            f"bear={_fmt_float(scores.get('bear'), nd=4)} | reversal={_fmt_float(scores.get('reversal'), nd=4)} | "
-            f"reason={reason} | model={model_id}"
-        )
+        score_parts = [
+            f"neutral={_fmt_float(scores.get('neutral'), nd=4)}",
+            f"bull={_fmt_float(scores.get('bull'), nd=4)}",
+            f"bear={_fmt_float(scores.get('bear'), nd=4)}",
+            f"reversal={_fmt_float(scores.get('reversal'), nd=4)}",
+        ]
+        if 'bull_continuation' in scores:
+            score_parts.append(f"bull_cont={_fmt_float(scores.get('bull_continuation'), nd=4)}")
+        if 'bear_continuation' in scores:
+            score_parts.append(f"bear_cont={_fmt_float(scores.get('bear_continuation'), nd=4)}")
+        if 'bull_reversal' in scores:
+            score_parts.append(f"bull_rev={_fmt_float(scores.get('bull_reversal'), nd=4)}")
+        if 'bear_reversal' in scores:
+            score_parts.append(f"bear_rev={_fmt_float(scores.get('bear_reversal'), nd=4)}")
+        if 'decision' in scores:
+            score_parts.append(f"decision={_fmt_float(scores.get('decision'), nd=4)}")
+        if 'decision_norm' in scores:
+            score_parts.append(f"decision_norm={_fmt_float(scores.get('decision_norm'), nd=4)}")
+        if 'branch' in scores:
+            score_parts.append(f"branch={scores.get('branch')}")
+        score_parts.append(f"reason={reason}")
+        score_parts.append(f"model={model_id}")
+        slog.TREND_SCORES("[td_scores] " + " | ".join(score_parts))
 
     # Features block
     if p.get("TREND", {}).get("FEATURES", True) and isinstance(feats, dict) and feats:

@@ -24,6 +24,7 @@ data/
 calculations/
 csv/
 logs/
+main/research/epoch_tournament/outputs
 
 removed_data.csv
 

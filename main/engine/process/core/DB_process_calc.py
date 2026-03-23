@@ -47,14 +47,73 @@ def _safe_slope(values, n=5):
         return 0.0
 
 
+def _safe_curve_from_pack(pack: Dict[str, Any], n: int = 9) -> float:
+    try:
+        vals = [float(v) for v in ((pack or {}).get("values") or []) if v is not None]
+        ts = list((pack or {}).get("ts") or [])[-len(vals):]
+        if len(vals) < 3:
+            return 0.0
+        tail = vals[-n:] if len(vals) >= n else vals
+        if len(tail) < 3:
+            return 0.0
+        tail_ts = ts[-len(tail):] if ts else []
+        mid_idx = max(1, len(tail) // 2)
+        start_val = float(tail[0])
+        mid_val = float(tail[mid_idx])
+        end_val = float(tail[-1])
+
+        if tail_ts and len(tail_ts) == len(tail):
+            try:
+                mid_dt = max((tail_ts[mid_idx] - tail_ts[0]).total_seconds(), 1e-9)
+                tail_dt = max((tail_ts[-1] - tail_ts[mid_idx]).total_seconds(), 1e-9)
+            except Exception:
+                mid_dt = float(mid_idx)
+                tail_dt = float(max(1, len(tail) - mid_idx - 1))
+        else:
+            mid_dt = float(mid_idx)
+            tail_dt = float(max(1, len(tail) - mid_idx - 1))
+
+        slope1 = (mid_val - start_val) / mid_dt
+        slope2 = (end_val - mid_val) / tail_dt
+        return float(slope2 - slope1)
+    except Exception:
+        return 0.0
+
+
+def _fan_summary(latest_map: Dict[str, float]) -> Dict[str, float]:
+    ordered = [
+        latest_map.get("s8", 0.0),
+        latest_map.get("s23", 0.0),
+        latest_map.get("s38", 0.0),
+        latest_map.get("s53", 0.0),
+        latest_map.get("s68", 0.0),
+        latest_map.get("s83", 0.0),
+    ]
+    try:
+        width = float(max(ordered) - min(ordered)) if ordered else 0.0
+    except Exception:
+        width = 0.0
+    diffs = [ordered[i + 1] - ordered[i] for i in range(len(ordered) - 1)]
+    if diffs:
+        pos = sum(1 for d in diffs if d >= 0)
+        neg = sum(1 for d in diffs if d <= 0)
+        alignment = max(pos, neg) / float(len(diffs))
+    else:
+        alignment = 0.0
+    return {
+        "fan_width": float(width),
+        "fan_alignment": float(alignment),
+    }
+
+
 def build_td_features_for_model(
-    curr_epoch: int,
-    next_epoch: int,
-    windows,
-    per_sigma_hist: Dict[int, Dict[str, Any]],
-    config: Dict[str, Any],
-    hyst_obj: Dict[str, Any],
-    model_path=None,
+        curr_epoch: int,
+        next_epoch: int,
+        windows,
+        per_sigma_hist: Dict[int, Dict[str, Any]],
+        config: Dict[str, Any],
+        hyst_obj: Dict[str, Any],
+        model_path=None,
 ) -> Dict[str, Any]:
     """
     Build the live feature payload expected by the new v21 model.
@@ -62,8 +121,18 @@ def build_td_features_for_model(
     This is intentionally process/live-based, not parquet/archive-based.
     """
 
+    def sigma_pack(s: int):
+        return (per_sigma_hist.get(int(s), {}) or {})
+
     def sigma_vals(s: int):
-        return (per_sigma_hist.get(int(s), {}) or {}).get("values", []) or []
+        return sigma_pack(s).get("values", []) or []
+
+    s8_pack = sigma_pack(8)
+    s23_pack = sigma_pack(23)
+    s38_pack = sigma_pack(38)
+    s53_pack = sigma_pack(53)
+    s68_pack = sigma_pack(68)
+    s83_pack = sigma_pack(83)
 
     s8 = sigma_vals(8)
     s23 = sigma_vals(23)
@@ -72,33 +141,384 @@ def build_td_features_for_model(
     s68 = sigma_vals(68)
     s83 = sigma_vals(83)
 
+    latest = {
+        "s8": _safe_last(s8),
+        "s23": _safe_last(s23),
+        "s38": _safe_last(s38),
+        "s53": _safe_last(s53),
+        "s68": _safe_last(s68),
+        "s83": _safe_last(s83),
+    }
+    slopes = {
+        "s8": _safe_slope(s8),
+        "s23": _safe_slope(s23),
+        "s38": _safe_slope(s38),
+        "s53": _safe_slope(s53),
+        "s68": _safe_slope(s68),
+        "s83": _safe_slope(s83),
+    }
+    curvature = {
+        "s8": _safe_curve_from_pack(s8_pack),
+        "s23": _safe_curve_from_pack(s23_pack),
+        "s38": _safe_curve_from_pack(s38_pack),
+        "s53": _safe_curve_from_pack(s53_pack),
+        "s68": _safe_curve_from_pack(s68_pack),
+        "s83": _safe_curve_from_pack(s83_pack),
+    }
+    fan = _fan_summary(latest)
+
     td_features = {
         "meta": {
             "curr_epoch": int(curr_epoch),
             "next_epoch": int(next_epoch),
         },
         "gauss": {
-            "latest": {
-                "s8": _safe_last(s8),
-                "s23": _safe_last(s23),
-                "s38": _safe_last(s38),
-                "s53": _safe_last(s53),
-                "s68": _safe_last(s68),
-                "s83": _safe_last(s83),
-            },
-            "slopes": {
-                "s8": _safe_slope(s8),
-                "s23": _safe_slope(s23),
-                "s38": _safe_slope(s38),
-                "s53": _safe_slope(s53),
-                "s68": _safe_slope(s68),
-                "s83": _safe_slope(s83),
-            },
+            "latest": latest,
+            "slopes": slopes,
+            "curvature": curvature,
         },
+        "fan": fan,
         "hysteresis": hyst_obj or {},
     }
 
     return td_features
+
+
+def _safe_runtime_get(container: Any, key: str, default: Any = None) -> Any:
+    if container is None:
+        return default
+    if isinstance(container, dict):
+        return container.get(key, default)
+    try:
+        return getattr(container, key)
+    except Exception:
+        return default
+
+
+def _safe_runtime_set(container: Any, key: str, value: Any) -> None:
+    if container is None:
+        return
+    if isinstance(container, dict):
+        try:
+            container[key] = value
+        except Exception:
+            pass
+        return
+    try:
+        setattr(container, key, value)
+    except Exception:
+        pass
+
+
+def _same_intish(a: Any, b: Optional[int]) -> bool:
+    if b is None or a is None:
+        return True
+    try:
+        return int(a) == int(b)
+    except Exception:
+        return False
+
+
+def _is_v21_live_src_row_usable(
+        src_row: Any,
+        *,
+        curr_epoch: Optional[int] = None,
+        next_epoch: Optional[int] = None,
+) -> bool:
+    if not isinstance(src_row, dict) or not src_row:
+        return False
+    if not _same_intish(src_row.get("src_meta_epoch"), curr_epoch):
+        return False
+    if not _same_intish(src_row.get("src_meta_next_epoch"), next_epoch):
+        return False
+    return True
+
+
+def _v21_live_src_row_needs_hyst_refresh(src_row: Dict[str, Any], hyst_obj: Optional[Dict[str, Any]]) -> bool:
+    if not isinstance(src_row, dict) or not src_row or not hyst_obj:
+        return False
+    try:
+        return float(src_row.get("src_live_has_hyst", 0.0) or 0.0) <= 0.0
+    except Exception:
+        return False
+
+
+def summarize_v21_live_src_row(row: Dict[str, Any]) -> Dict[str, Any]:
+    row = row if isinstance(row, dict) else {}
+    keep = [
+        "src_meta_epoch",
+        "src_meta_next_epoch",
+        "src_meta_decision_time",
+        "src_meta_close_now",
+        "src_meta_hist_points",
+        "src_live_has_bell",
+        "src_live_has_channel_snapshot",
+        "src_live_has_pv_tail",
+        "src_live_has_hyst",
+        "src_live_sigma_count",
+    ]
+    return {k: row.get(k) for k in keep if k in row}
+
+
+def stash_v21_live_runtime_context(
+        *,
+        windows: Any = None,
+        config: Optional[Dict[str, Any]] = None,
+        hyst_obj: Optional[Dict[str, Any]] = None,
+        catalog: Optional[Dict[str, Any]] = None,
+        timing: Any = None,
+        decision_dt: Optional[datetime] = None,
+        src_row: Optional[Dict[str, Any]] = None,
+        src_summary: Optional[Dict[str, Any]] = None,
+) -> None:
+    if windows is not None:
+        if catalog is not None:
+            _safe_runtime_set(windows, "v21_live_catalog", catalog)
+        if timing is not None:
+            _safe_runtime_set(windows, "v21_live_timing", timing)
+        if decision_dt is not None:
+            _safe_runtime_set(windows, "v21_live_decision_dt", decision_dt)
+        if isinstance(src_row, dict) and src_row:
+            _safe_runtime_set(windows, "v21_live_src_row", src_row)
+        if isinstance(src_summary, dict) and src_summary:
+            _safe_runtime_set(windows, "v21_live_src_summary", src_summary)
+
+    if isinstance(hyst_obj, dict):
+        if catalog is not None:
+            hyst_obj["v21_live_catalog"] = catalog
+        if timing is not None:
+            hyst_obj["v21_live_timing"] = timing
+        if decision_dt is not None:
+            hyst_obj["v21_live_decision_dt"] = decision_dt
+        if isinstance(src_row, dict) and src_row:
+            hyst_obj["v21_live_src_row"] = src_row
+        if isinstance(src_summary, dict) and src_summary:
+            hyst_obj["v21_live_src_summary"] = src_summary
+
+    if isinstance(config, dict):
+        if catalog is not None:
+            config["_V21_LIVE_CATALOG"] = catalog
+        if timing is not None:
+            config["_V21_LIVE_TIMING"] = timing
+        if decision_dt is not None:
+            config["_V21_LIVE_DECISION_DT"] = decision_dt
+        if isinstance(src_row, dict) and src_row:
+            config["_V21_LIVE_SRC_ROW"] = src_row
+        if isinstance(src_summary, dict) and src_summary:
+            config["_V21_LIVE_SRC_SUMMARY"] = src_summary
+
+
+def build_v21_live_src_artifacts(
+        *,
+        timing: Any,
+        windows: Any,
+        decision_dt: datetime,
+        catalog: Dict[str, Any],
+        per_sigma_hist: Dict[int, Dict[str, Any]],
+        hyst_obj: Optional[Dict[str, Any]] = None,
+        config: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    try:
+        from main.engine.process.models.v21_live.build_v21_live_src_row import (
+            V21LiveSrcInputs,
+            build_v21_live_src_row,
+            build_v21_live_src_summary,
+        )
+    except Exception as exc:
+        _log_cfg.debug("[v21_live_src] adapter import unavailable: %s", exc)
+        return {
+            "row": {},
+            "summary": {},
+            "error": f"adapter_import_error: {exc}",
+        }
+
+    try:
+        src_row = build_v21_live_src_row(
+            V21LiveSrcInputs(
+                timing=timing,
+                windows=windows,
+                decision_dt=decision_dt,
+                catalog=catalog,
+                per_sigma_hist=per_sigma_hist or {},
+                hyst_obj=hyst_obj or {},
+                config=config or {},
+            )
+        )
+        src_row = src_row if isinstance(src_row, dict) else {}
+        try:
+            src_summary = build_v21_live_src_summary(src_row)
+        except Exception:
+            src_summary = summarize_v21_live_src_row(src_row)
+
+        return {
+            "row": src_row,
+            "summary": src_summary if isinstance(src_summary, dict) else {},
+            "error": None,
+        }
+    except Exception as exc:
+        logging.exception("[v21_live_src] build failed")
+        return {
+            "row": {},
+            "summary": {},
+            "error": f"adapter_build_error: {exc}",
+        }
+
+
+def get_or_build_v21_live_src_bundle(
+        *,
+        curr_epoch: Optional[int],
+        next_epoch: Optional[int],
+        windows: Any,
+        per_sigma_hist: Dict[int, Dict[str, Any]],
+        config: Optional[Dict[str, Any]] = None,
+        hyst_obj: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    hyst_obj = hyst_obj if isinstance(hyst_obj, dict) else {}
+    config = config if isinstance(config, dict) else {}
+
+    cached_row = _safe_runtime_get(windows, "v21_live_src_row")
+    if not _is_v21_live_src_row_usable(cached_row, curr_epoch=curr_epoch, next_epoch=next_epoch):
+        cached_row = (hyst_obj.get("v21_live_src_row") if isinstance(hyst_obj, dict) else None) or {}
+    if not _is_v21_live_src_row_usable(cached_row, curr_epoch=curr_epoch, next_epoch=next_epoch):
+        cached_row = (config.get("_V21_LIVE_SRC_ROW") if isinstance(config, dict) else None) or {}
+
+    cached_summary = (
+            _safe_runtime_get(windows, "v21_live_src_summary")
+            or (hyst_obj.get("v21_live_src_summary") if isinstance(hyst_obj, dict) else None)
+            or (config.get("_V21_LIVE_SRC_SUMMARY") if isinstance(config, dict) else None)
+            or {}
+    )
+    if not isinstance(cached_summary, dict) or not cached_summary:
+        cached_summary = summarize_v21_live_src_row(cached_row)
+
+    cached_ok = _is_v21_live_src_row_usable(
+        cached_row,
+        curr_epoch=curr_epoch,
+        next_epoch=next_epoch,
+    )
+    if cached_ok and not _v21_live_src_row_needs_hyst_refresh(cached_row, hyst_obj):
+        return {
+            "row": cached_row,
+            "summary": cached_summary,
+            "error": None,
+            "source": "cache",
+        }
+
+    catalog = (
+            _safe_runtime_get(windows, "v21_live_catalog")
+            or (hyst_obj.get("v21_live_catalog") if isinstance(hyst_obj, dict) else None)
+            or (config.get("_V21_LIVE_CATALOG") if isinstance(config, dict) else None)
+            or {}
+    )
+    timing = (
+            _safe_runtime_get(windows, "v21_live_timing")
+            or (hyst_obj.get("v21_live_timing") if isinstance(hyst_obj, dict) else None)
+            or (config.get("_V21_LIVE_TIMING") if isinstance(config, dict) else None)
+    )
+    decision_dt = (
+            _safe_runtime_get(windows, "v21_live_decision_dt")
+            or (hyst_obj.get("v21_live_decision_dt") if isinstance(hyst_obj, dict) else None)
+            or (config.get("_V21_LIVE_DECISION_DT") if isinstance(config, dict) else None)
+            or _safe_runtime_get(windows, "full_end")
+    )
+
+    if not catalog or timing is None or decision_dt is None:
+        return {
+            "row": cached_row if cached_ok else {},
+            "summary": cached_summary if cached_ok else {},
+            "error": "missing_live_runtime_context",
+            "source": "cache_only" if cached_ok else "unavailable",
+        }
+
+    built = build_v21_live_src_artifacts(
+        timing=timing,
+        windows=windows,
+        decision_dt=decision_dt,
+        catalog=catalog,
+        per_sigma_hist=per_sigma_hist or {},
+        hyst_obj=hyst_obj or {},
+        config=config or {},
+    )
+
+    row = built.get("row") if isinstance(built.get("row"), dict) else {}
+    summary = built.get("summary") if isinstance(built.get("summary"), dict) else {}
+    if row:
+        stash_v21_live_runtime_context(
+            windows=windows,
+            config=config,
+            hyst_obj=hyst_obj,
+            catalog=catalog,
+            timing=timing,
+            decision_dt=decision_dt,
+            src_row=row,
+            src_summary=summary,
+        )
+        return {
+            "row": row,
+            "summary": summary,
+            "error": built.get("error"),
+            "source": "rebuilt",
+        }
+
+    return {
+        "row": cached_row if cached_ok else {},
+        "summary": cached_summary if cached_ok else {},
+        "error": built.get("error") or "v21_live_src_unavailable",
+        "source": "rebuild_failed" if cached_ok else "unavailable",
+    }
+
+
+def attach_v21_live_bundle(
+        td_features: Dict[str, Any],
+        *,
+        curr_epoch: Optional[int],
+        next_epoch: Optional[int],
+        windows: Any,
+        per_sigma_hist: Dict[int, Dict[str, Any]],
+        config: Optional[Dict[str, Any]] = None,
+        hyst_obj: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    td_features = td_features if isinstance(td_features, dict) else {}
+    src_bundle = get_or_build_v21_live_src_bundle(
+        curr_epoch=curr_epoch,
+        next_epoch=next_epoch,
+        windows=windows,
+        per_sigma_hist=per_sigma_hist,
+        config=config,
+        hyst_obj=hyst_obj,
+    )
+    src_row = src_bundle.get("row") if isinstance(src_bundle.get("row"), dict) else {}
+    src_summary = src_bundle.get("summary") if isinstance(src_bundle.get("summary"), dict) else {}
+
+    src_audit = {}
+    if src_row:
+        try:
+            from main.engine.process.models.v21_live.v21_live_validator import validate_src_row
+        except Exception:
+            try:
+                from process.models.v21_live.v21_live_validator import validate_src_row
+            except Exception:
+                validate_src_row = None
+        if callable(validate_src_row):
+            try:
+                src_audit = validate_src_row(src_row)
+            except Exception:
+                src_audit = {}
+        td_features["src_row"] = src_row
+        td_features["live_src_row"] = src_row
+        td_features["src_summary"] = src_summary
+        td_features["live_src_summary"] = src_summary
+        td_features["src_audit"] = src_audit
+        src_bundle["audit"] = src_audit
+        td_features["v21_live_src_available"] = 1.0
+    else:
+        td_features["v21_live_src_available"] = 0.0
+
+    if src_bundle.get("error"):
+        td_features["v21_live_src_error"] = str(src_bundle.get("error"))
+
+    return src_bundle
+
 
 def _deep_merge_dicts(base: dict, extra: dict) -> dict:
     """Deep merge `extra` into `base` (mutates & returns base). Lists/scalars overwrite."""
@@ -108,6 +528,7 @@ def _deep_merge_dicts(base: dict, extra: dict) -> dict:
         else:
             base[k] = copy.deepcopy(v)
     return base
+
 
 def _resolve_include_path(model_path: Path, include_ref: str) -> "Path | None":
     """Resolve an include reference to an on-disk JSON path using a few compatibility rules."""
@@ -157,6 +578,7 @@ def _resolve_include_path(model_path: Path, include_ref: str) -> "Path | None":
 
     return None
 
+
 def load_trend_method_config_v2(model_path: str) -> dict:
     """
     Loads and returns the final merged trend method config.
@@ -189,7 +611,8 @@ def load_trend_method_config_v2(model_path: str) -> dict:
 
     # engine_library injection (late, so includes can override)
     if "engine_library" not in merged or not isinstance(merged.get("engine_library"), dict):
-        lib_path = _resolve_include_path(p, "trend_method_engine_library.json") or (p.parent / "trend_method_engine_library.json")
+        lib_path = _resolve_include_path(p, "trend_method_engine_library.json") or (
+                    p.parent / "trend_method_engine_library.json")
         if lib_path and lib_path.exists():
             try:
                 merged["engine_library"] = json.loads(lib_path.read_text(encoding="utf-8"))
@@ -206,6 +629,7 @@ def load_trend_method_config_v2(model_path: str) -> dict:
 
     return merged
 
+
 # Back-compat shim (older callers)
 def load_trend_method_config(model_path: str) -> dict:
     return load_trend_method_config_v2(model_path)
@@ -217,6 +641,7 @@ def load_model_config(model_path: str) -> dict:
     cfg = json.loads(p.read_text(encoding="utf-8"))
     validate_model_config(cfg)
     return cfg
+
 
 def validate_model_config(cfg: dict) -> None:
     required_top = ["model_id", "sigmas", "neutral", "scores", "decision", "overrides"]
@@ -248,10 +673,12 @@ def validate_model_config(cfg: dict) -> None:
 def clamp(x: float, lo: float = 0.0, hi: float = 1.0) -> float:
     return max(lo, min(hi, x))
 
+
 def sign(x: float) -> int:
     if x > 0: return 1
     if x < 0: return -1
     return 0
+
 
 def majority_sign(vals: list[int]) -> int:
     s = sum(vals)
@@ -326,9 +753,9 @@ def data_neutrality(feats: dict, cfg: dict) -> dict:
     neu = cfg["neutral"]
 
     flat_start = float(neu["flat"]["start"])
-    flat_span  = float(neu["flat"]["span"])
-    dis_start  = float(neu["disagree"]["start"])
-    dis_span   = float(neu["disagree"]["span"])
+    flat_span = float(neu["flat"]["span"])
+    dis_start = float(neu["disagree"]["start"])
+    dis_span = float(neu["disagree"]["span"])
 
     flat_score = clamp((feats["flat_mean"] - flat_start) / flat_span)
     disagree_score = clamp((feats["disagree_ratio"] - dis_start) / dis_span)
@@ -363,7 +790,7 @@ def data_reversal(feats: dict, neutral_score: float, cfg: dict) -> dict:
     long_sig = cfg["sigmas"]["long"]
 
     long_bear_strength = sum(1 for s in long_sig if feats[f"sign_to_s{s}"] == -1) / len(long_sig)
-    mid_bull_strength  = sum(1 for s in mid_sig  if feats[f"sign_to_s{s}"] == +1) / len(mid_sig)
+    mid_bull_strength = sum(1 for s in mid_sig if feats[f"sign_to_s{s}"] == +1) / len(mid_sig)
 
     raw = long_bear_strength * mid_bull_strength
     penalty = float(cfg["scores"]["reversal"]["neutral_penalty"])
@@ -434,7 +861,8 @@ def data_process_calc(per_sigma: dict, model_path: str) -> dict:
             "model_id": cfg["model_id"],
             "trend": "Bear",
             "confidence": 0.0,
-            "scores": {"neutral": neutral_score, "bull": cont["bull_score"], "bear": cont["bear_score"], "reversal": rev["reversal_score"]},
+            "scores": {"neutral": neutral_score, "bull": cont["bull_score"], "bear": cont["bear_score"],
+                       "reversal": rev["reversal_score"]},
             "features": feats,
             "reason": "HOOK_DOWN_OVERRIDE"
         }
@@ -467,7 +895,8 @@ def data_process_calc(per_sigma: dict, model_path: str) -> dict:
         "model_id": cfg["model_id"],
         "trend": trend,
         "confidence": 0.0,  # placeholder for future confidence_level()
-        "scores": {"neutral": neutral_score, "bull": cont["bull_score"], "bear": cont["bear_score"], "reversal": rev["reversal_score"]},
+        "scores": {"neutral": neutral_score, "bull": cont["bull_score"], "bear": cont["bear_score"],
+                   "reversal": rev["reversal_score"]},
         "features": feats,
         "reason": reason
     }
@@ -488,12 +917,12 @@ def _resolve_global_last_ts(per_sigma_hist: Dict[int, Dict[str, Any]], decision_
 
 
 def build_bell_out(
-    *,
-    timing: Any,
-    decision_dt: datetime,
-    per_sigma_hist: Dict[int, Dict[str, Any]],
-    config: Dict[str, Any],
-    close_series: Optional[Tuple[List[datetime], List[float]]] = None,
+        *,
+        timing: Any,
+        decision_dt: datetime,
+        per_sigma_hist: Dict[int, Dict[str, Any]],
+        config: Dict[str, Any],
+        close_series: Optional[Tuple[List[datetime], List[float]]] = None,
 ) -> Dict[str, Any]:
     """
     Truth-source bell structure:
@@ -601,7 +1030,7 @@ def build_bell_out(
             tail_vals = list(vals_comb[-max(20, min(120, len(vals_comb))):])
             tail_ts = list(ts_comb[-len(tail_vals):])
             mt = snapshot_metrics(tail_vals, tail_ts)
-        
+
             # --- helper: slope over last k steps (in seconds domain) ---
             def _seg_slope(vals: List[float], ts: List[datetime], k: int) -> float:
                 if len(vals) < 2:
@@ -609,45 +1038,45 @@ def build_bell_out(
                 kk = max(1, min(int(k), len(vals) - 1))
                 dt = max((ts[-1] - ts[-1 - kk]).total_seconds(), 1e-9)
                 return (float(vals[-1]) - float(vals[-1 - kk])) / dt
-        
+
             # prev vs last "abs slope" (for shrink ratio and sign->sign)
             k_seg = max(6, min(20, len(tail_vals) // 6))
             prev_slice_vals = tail_vals[:-k_seg] if len(tail_vals) > 2 * k_seg else tail_vals
             prev_slice_ts = tail_ts[:-k_seg] if len(tail_ts) > 2 * k_seg else tail_ts
-        
+
             prev_slope = _seg_slope(prev_slice_vals, prev_slice_ts, k=k_seg)
             last_slope = _seg_slope(tail_vals, tail_ts, k=k_seg)
-        
+
             prev_abs = abs(prev_slope)
             last_abs = abs(last_slope)
             shrink = (last_abs / (prev_abs + 1e-9)) if prev_abs > 0 else 0.0
-        
+
             sign_from = 0 if prev_slope == 0 else (1 if prev_slope > 0 else -1)
             sign_to = 0 if last_slope == 0 else (1 if last_slope > 0 else -1)
-        
+
             # hook: sign disagreement short vs long
             short_s = _seg_slope(tail_vals, tail_ts, k=max(4, k_seg // 2))
             long_s = _seg_slope(tail_vals, tail_ts, k=max(12, k_seg * 2))
             hook = 1 if (short_s == 0.0 or long_s == 0.0) else (1 if (short_s > 0) != (long_s > 0) else 0)
-        
+
             # eps: MAD of instantaneous slopes (robust noise floor) + flat score
             diffs = []
             for i in range(1, len(tail_vals)):
                 dt_i = max((tail_ts[i] - tail_ts[i - 1]).total_seconds(), 1e-9)
                 diffs.append((float(tail_vals[i]) - float(tail_vals[i - 1])) / dt_i)
-        
+
             eps = 0.0
             if len(diffs) >= 3:
                 import statistics
                 med = statistics.median(diffs)
                 mad = statistics.median([abs(d - med) for d in diffs]) + 1e-9
                 eps = float(mad)
-        
+
                 # flat score from tail diffs MAD (1=flat, 0=not flat)
                 flat = max(0.0, min(1.0, 1.0 - (abs(mt.get("slope", 0.0)) / (5.0 * mad))))
             else:
                 flat = 0.0
-        
+
             bell["diagnostics"]["per_sigma"][sigma] = {
                 "shrink": float(shrink),
                 "flat": float(flat),
@@ -669,19 +1098,19 @@ def build_bell_out(
                 "sign_from": 0,
                 "sign_to": 0,
             }
-        
+
     out["bell"] = bell
     out["bell_curve_series"] = bell_curve_series
     return out
 
 
 def build_channels_out(
-    *,
-    timing: Any,
-    windows: Any,
-    per_sigma_full: Dict[int, Dict[str, Any]],
-    per_sigma_hist: Dict[int, Dict[str, Any]],
-    config: Dict[str, Any],
+        *,
+        timing: Any,
+        windows: Any,
+        per_sigma_full: Dict[int, Dict[str, Any]],
+        per_sigma_hist: Dict[int, Dict[str, Any]],
+        config: Dict[str, Any],
 ) -> Dict[str, Any]:
     """
     Truth-source channel structures:
@@ -709,17 +1138,23 @@ def build_channels_out(
 
 
 def build_calc_out(
-    *,
-    timing: Any,
-    windows: Any,
-    decision_dt: datetime,
-    per_sigma_full: Dict[int, Dict[str, Any]],
-    per_sigma_hist: Dict[int, Dict[str, Any]],
-    config: Dict[str, Any],
-    close_series: Optional[Tuple[List[datetime], List[float]]] = None,
+        *,
+        timing: Any,
+        windows: Any,
+        decision_dt: datetime,
+        per_sigma_full: Dict[int, Dict[str, Any]],
+        per_sigma_hist: Dict[int, Dict[str, Any]],
+        config: Dict[str, Any],
+        close_series: Optional[Tuple[List[datetime], List[float]]] = None,
+        hyst_obj: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Stage 1: single truth object consumed by printing and (later) trend.
+
+    In addition to the bell/channel truth payload, this now stashes the live
+    runtime context required by the v21 research adapter so
+    DB_process_trend.calculate_trend(...) can either reuse a prebuilt
+    `src_*` row or rebuild it on demand with the current hysteresis object.
     """
     bell_out = build_bell_out(
         timing=timing,
@@ -736,13 +1171,66 @@ def build_calc_out(
         config=config,
     )
 
-    return {
+    out = {
         "status": "ok",
         "decision_dt": decision_dt,
         "bell": bell_out.get("bell", {}) or {},
         "bell_curve_series": bell_out.get("bell_curve_series", {}) or {},
         "channels": channels_out,
     }
+
+    # Make the stage-1 truth payload discoverable to the later trend step.
+    stash_v21_live_runtime_context(
+        windows=windows,
+        config=config,
+        hyst_obj=hyst_obj,
+        catalog=out,
+        timing=timing,
+        decision_dt=decision_dt,
+    )
+
+    # Best effort: prebuild the canonical research-style src row here when the
+    # adapter module is present. If hysteresis is unavailable at this stage,
+    # DB_process_trend.calculate_trend(...) can rebuild the row later using the
+    # stashed runtime context plus the real hyst_obj it receives.
+    try:
+        src_bundle = build_v21_live_src_artifacts(
+            timing=timing,
+            windows=windows,
+            decision_dt=decision_dt,
+            catalog=out,
+            per_sigma_hist=per_sigma_hist,
+            hyst_obj=hyst_obj or {},
+            config=config,
+        )
+    except Exception as exc:
+        src_bundle = {
+            "row": {},
+            "summary": {},
+            "error": f"stage1_v21_live_src_error: {exc}",
+        }
+
+    src_row = src_bundle.get("row") if isinstance(src_bundle.get("row"), dict) else {}
+    src_summary = src_bundle.get("summary") if isinstance(src_bundle.get("summary"), dict) else {}
+    if src_row:
+        out["v21_live_src_row"] = src_row
+        out["v21_live_src_summary"] = src_summary
+        stash_v21_live_runtime_context(
+            windows=windows,
+            config=config,
+            hyst_obj=hyst_obj,
+            catalog=out,
+            timing=timing,
+            decision_dt=decision_dt,
+            src_row=src_row,
+            src_summary=src_summary,
+        )
+
+    if src_bundle.get("error"):
+        out["v21_live_src_error"] = src_bundle.get("error")
+
+    return out
+
 
 from pathlib import Path
 import importlib.util
@@ -752,6 +1240,7 @@ MODELS_DIR = Path(__file__).resolve().parent / "models"
 MODEL_CONFIG_GLOB = "trend_method_v2_*.json"
 PREDICTIONS_LATEST_FILE = MODELS_DIR / "model_predictions" / "model_predictions_latest.json"
 PREDICTIONS_HISTORY_FILE = MODELS_DIR / "model_predictions_history" / "model_predictions_history.jsonl"
+
 
 def _safe_number(v: Any, default: float = 0.0) -> float:
     try:
@@ -779,6 +1268,7 @@ def _load_model_module(model_py_path: Path):
     spec.loader.exec_module(module)
     return module
 
+
 def _error_result(model_id: str, err: Exception) -> Dict[str, Any]:
     return {
         "model_id": model_id,
@@ -789,6 +1279,7 @@ def _error_result(model_id: str, err: Exception) -> Dict[str, Any]:
         "debug": {"error": str(err), "trace": traceback.format_exc(limit=3)},
         "raw_features_used": {},
     }
+
 
 def _normalize_model_result(model_id: str, result: Dict[str, Any]) -> Dict[str, Any]:
     out = dict(result or {})
@@ -801,8 +1292,9 @@ def _normalize_model_result(model_id: str, result: Dict[str, Any]) -> Dict[str, 
     out["reason"] = str(out.get("reason") or "")
     out["debug"] = out.get("debug") if isinstance(out.get("debug"), dict) else {}
     out["raw_features_used"] = out.get("raw_features_used") if isinstance(out.get("raw_features_used"),
-                                                                              dict) else {}
+                                                                          dict) else {}
     return out
+
 
 def _safe_sign(v: Any) -> int:
     try:
@@ -867,7 +1359,8 @@ def _build_history_gaussian_slopes(features: Dict[str, Any]) -> Dict[str, Any]:
     return out
 
 
-def _build_history_fan_physics(features: Dict[str, Any], stack: Dict[str, Any], slope_pack: Dict[str, Any]) -> Dict[str, Any]:
+def _build_history_fan_physics(features: Dict[str, Any], stack: Dict[str, Any], slope_pack: Dict[str, Any]) -> Dict[
+    str, Any]:
     g = lambda k: stack.get(k)
     s = lambda k: slope_pack.get(k)
 
@@ -892,7 +1385,8 @@ def _build_history_fan_physics(features: Dict[str, Any], stack: Dict[str, Any], 
     slope_g83 = _safe_number(s("slope_g83"), 0.0)
 
     fan_width_velocity = _safe_number(fan.get("width_slope"), slope_g83 - slope_g8)
-    fan_width_acceleration = _safe_number((gauss.get("curvature") or {}).get("s83"), 0.0) - _safe_number((gauss.get("curvature") or {}).get("s8"), 0.0)
+    fan_width_acceleration = _safe_number((gauss.get("curvature") or {}).get("s83"), 0.0) - _safe_number(
+        (gauss.get("curvature") or {}).get("s8"), 0.0)
 
     hinge_gap = _safe_number(g("g38"), 0.0) - _safe_number(g("g23"), 0.0)
     hinge_velocity = slope_g38 - slope_g23
@@ -901,7 +1395,8 @@ def _build_history_fan_physics(features: Dict[str, Any], stack: Dict[str, Any], 
 
     snap_divergence = abs(slope_g8 - slope_g23) + abs(slope_g23 - slope_g38)
     snap_score = snap_divergence / max(abs(slope_g8) + abs(slope_g23) + abs(slope_g38), 1e-9)
-    snap_velocity = (_safe_number((gauss.get("tangent") or {}).get("s8"), 0.0) - _safe_number((gauss.get("tangent") or {}).get("s23"), 0.0))
+    snap_velocity = (_safe_number((gauss.get("tangent") or {}).get("s8"), 0.0) - _safe_number(
+        (gauss.get("tangent") or {}).get("s23"), 0.0))
 
     fast = [slope_g8, slope_g23, slope_g38]
     slow = [slope_g53, slope_g68, slope_g83]
@@ -926,11 +1421,17 @@ def _build_history_fan_physics(features: Dict[str, Any], stack: Dict[str, Any], 
     outer_energy = abs(slope_g53) + abs(slope_g68) + abs(slope_g83)
     fan_energy_total = inner_energy + outer_energy
     fan_energy_ratio = _safe_div(inner_energy, max(outer_energy, 1e-9))
-    fan_sign_conflict = bool(_safe_sign(slope_g8) and _safe_sign(slope_g83) and _safe_sign(slope_g8) != _safe_sign(slope_g83))
+    fan_sign_conflict = bool(
+        _safe_sign(slope_g8) and _safe_sign(slope_g83) and _safe_sign(slope_g8) != _safe_sign(slope_g83))
     slow_retention = outer_energy
-    fan_energy_instability = float((abs(fan_energy_ratio - 1.0) + (1.0 if fan_sign_conflict else 0.0) + (1.0 if phase_disagreement else 0.0)) / 3.0)
-    fan_energy_velocity = (abs(_safe_number((gauss.get("tangent") or {}).get("s8"), 0.0)) + abs(_safe_number((gauss.get("tangent") or {}).get("s23"), 0.0)) + abs(_safe_number((gauss.get("tangent") or {}).get("s38"), 0.0)))
-    fan_energy_acceleration = (abs(_safe_number(curvature.get("s8"), 0.0)) + abs(_safe_number(curvature.get("s23"), 0.0)) + abs(_safe_number(curvature.get("s38"), 0.0)))
+    fan_energy_instability = float((abs(fan_energy_ratio - 1.0) + (1.0 if fan_sign_conflict else 0.0) + (
+        1.0 if phase_disagreement else 0.0)) / 3.0)
+    fan_energy_velocity = (abs(_safe_number((gauss.get("tangent") or {}).get("s8"), 0.0)) + abs(
+        _safe_number((gauss.get("tangent") or {}).get("s23"), 0.0)) + abs(
+        _safe_number((gauss.get("tangent") or {}).get("s38"), 0.0)))
+    fan_energy_acceleration = (
+                abs(_safe_number(curvature.get("s8"), 0.0)) + abs(_safe_number(curvature.get("s23"), 0.0)) + abs(
+            _safe_number(curvature.get("s38"), 0.0)))
 
     reversal_pressure = (-fan_width_acceleration) + abs(hinge_velocity) + snap_velocity
 
@@ -1000,7 +1501,8 @@ def _build_history_context(features: Dict[str, Any], *, timestamp: str) -> Dict[
     }
 
 
-def _enrich_model_history_result(model_result: Dict[str, Any], features: Dict[str, Any], *, timestamp: str) -> Dict[str, Any]:
+def _enrich_model_history_result(model_result: Dict[str, Any], features: Dict[str, Any], *, timestamp: str) -> Dict[
+    str, Any]:
     out = dict(model_result or {})
     dbg = out.get("debug") if isinstance(out.get("debug"), dict) else {}
     dbg = dict(dbg)
@@ -1035,7 +1537,8 @@ def _enrich_model_history_result(model_result: Dict[str, Any], features: Dict[st
         out["raw_features_used"] = rfu
 
     stack_cov = sum(1 for k in ("g8", "g23", "g38", "g53", "g68", "g83") if k in stack)
-    slope_cov = sum(1 for k in ("slope_g8", "slope_g23", "slope_g38", "slope_g53", "slope_g68", "slope_g83") if k in slopes)
+    slope_cov = sum(
+        1 for k in ("slope_g8", "slope_g23", "slope_g38", "slope_g53", "slope_g68", "slope_g83") if k in slopes)
     logging.debug(
         "[models] history_payload: stack=%d/6 slopes=%d/6 hinge=ok snap=ok phase=ok context=%s",
         stack_cov,
@@ -1043,6 +1546,7 @@ def _enrich_model_history_result(model_result: Dict[str, Any], features: Dict[st
         "ok" if context.get("tail_anchor_type") or context.get("extrema_pair") else "partial",
     )
     return out
+
 
 def load_enabled_model_configs(models_dir: Optional[Path] = None) -> List[Dict[str, Any]]:
     base = models_dir or MODELS_DIR
@@ -1058,6 +1562,7 @@ def load_enabled_model_configs(models_dir: Optional[Path] = None) -> List[Dict[s
         cfg["_config_path"] = str(cfg_path)
         out.append(cfg)
     return out
+
 
 def persist_model_predictions(epoch_payload: Dict[str, Any]) -> None:
     PREDICTIONS_LATEST_FILE.parent.mkdir(parents=True, exist_ok=True)
